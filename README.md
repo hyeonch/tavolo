@@ -91,15 +91,23 @@ npm run typecheck
 ## 데이터 모델 초안
 
 ```ts
-type MealRecord = {
+type Meal = {
   id: string;
-  title: string;
-  date: string; // YYYY-MM-DD
-  rating?: number; // 1~5
+  name: string;
+  recipeUrl?: string;
   memo?: string;
   tags: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+type MealRecord = {
+  id: string;
+  mealId: string;
+  cookedAt: string; // YYYY-MM-DD
+  rating?: number; // 1~5
+  memo?: string;
   mediaIds: string[];
-  recipeUrl?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -159,7 +167,12 @@ app/
 assets/
 src/
   db/
+    database.ts
+    mealRepository.ts
+    mediaRepository.ts
+    migrations.ts
     schema.ts
+    tagRepository.ts
   types/
     meal.ts
 ```
@@ -205,7 +218,7 @@ src/
 - Expo 프로젝트 세팅
 - 하단 탭 네비게이션 구성
 - SQLite 세팅
-- MealRecord, Media 타입 및 테이블 생성
+- Meal, MealRecord, Media 타입 및 테이블 생성
 - 요리 추가 화면 구현
 - 사진 첨부 구현
 - 기록 저장 구현
