@@ -1,0 +1,46 @@
+{
+  "name": "tavolo",
+  "version": "1.0.0",
+  "description": "개인 요리 기록 앱. 직접 만든 요리를 날짜별로 기록하고, 사진과 메모로 다시 꺼내보며, 나중에는 연말 결산과 요리 월드컵으로 회고하는 로컬 우선 앱이다.",
+  "main": "expo-router/entry",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyeonch/tavolo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hyeonch/tavolo/issues"
+  },
+  "homepage": "https://github.com/hyeonch/tavolo#readme",
+  "private": "true",
+  "devDependencies": {
+    "@types/react": "^19.2.15",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "expo": "~56.0.6",
+    "expo-constants": "~56.0.16",
+    "expo-linking": "~56.0.12",
+    "expo-router": "~56.2.7",
+    "expo-sqlite": "~56.0.4",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.25.2",
+    "react-native-web": "^0.21.2"
+  }
+}
