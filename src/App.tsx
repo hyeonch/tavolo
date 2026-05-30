@@ -1,6 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-type RouteKey = 'home' | 'add' | 'calendar' | 'search' | 'recap';
+import {
+  createMediaObjectUrl,
+  getMediaByIdAsync,
+  listMealRecordsAsync,
+  listRecentMealRecordsAsync,
+  revokeMediaObjectUrl,
+} from './db';
+import type { MealRecord } from './types/meal';
+
+type RouteKey = 'home' | 'add' | 'calendar' | 'search' | 'recap' | 'detail';
 
 type Route = {
   key: RouteKey;
@@ -15,7 +24,10 @@ const routes: Route[] = [
   { key: 'recap', label: '결산' },
 ];
 
-const recentMeals = ['김치볶음밥', '버섯 파스타', '토마토 달걀볶음'];
+type HomeMealCard = {
+  record: MealRecord;
+  thumbnailUrl: string | null;
+};
 
 function getTodayLabel() {
   return new Intl.DateTimeFormat('ko-KR', {
@@ -23,7 +35,116 @@ function getTodayLabel() {
   }).format(new Date());
 }
 
-function HomeView({ onAddClick }: { onAddClick: () => void }) {
+function getCurrentMonthKey() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatCookedAtLabel(cookedAt: string) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  }).format(new Date(`${cookedAt}T00:00:00`));
+}
+
+function formatRating(rating?: number) {
+  return rating ? `만족도 ${rating}/5` : '만족도 미입력';
+}
+
+function MealCard({
+  mealCard,
+  onOpen,
+}: {
+  mealCard: HomeMealCard;
+  onOpen: (record: MealRecord) => void;
+}) {
+  const { record, thumbnailUrl } = mealCard;
+
+  return (
+    <li>
+      <button className="meal-card" type="button" onClick={() => onOpen(record)}>
+        <span className="meal-thumbnail" aria-hidden="true">
+          {thumbnailUrl ? <img alt="" src={thumbnailUrl} /> : record.meal?.name.slice(0, 1) ?? 'T'}
+        </span>
+        <span className="meal-card-body">
+          <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
+          <span>
+            {formatCookedAtLabel(record.cookedAt)} · {formatRating(record.rating)}
+          </span>
+          {record.memo ? <span className="meal-card-memo">{record.memo}</span> : null}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function HomeView({
+  onAddClick,
+  onOpenRecord,
+}: {
+  onAddClick: () => void;
+  onOpenRecord: (record: MealRecord) => void;
+}) {
+  const [recentMeals, setRecentMeals] = useState<HomeMealCard[]>([]);
+  const [currentMonthCount, setCurrentMonthCount] = useState(0);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrls: string[] = [];
+
+    async function loadHomeAsync() {
+      setLoadState('loading');
+
+      try {
+        const [recentRecords, allRecords] = await Promise.all([
+          listRecentMealRecordsAsync(6),
+          listMealRecordsAsync(),
+        ]);
+        const mealCards = await Promise.all(
+          recentRecords.map(async (record) => {
+            const firstMediaId = record.mediaIds[0];
+            const media = firstMediaId ? await getMediaByIdAsync(firstMediaId) : null;
+            const thumbnailUrl = media ? createMediaObjectUrl(media) : null;
+
+            if (thumbnailUrl?.startsWith('blob:')) {
+              objectUrls.push(thumbnailUrl);
+            }
+
+            return { record, thumbnailUrl };
+          })
+        );
+
+        if (!isMounted) {
+          objectUrls.forEach((url) => revokeMediaObjectUrl(url));
+          return;
+        }
+
+        const monthKey = getCurrentMonthKey();
+        setRecentMeals(mealCards);
+        setCurrentMonthCount(
+          allRecords.filter((record) => record.cookedAt.startsWith(monthKey)).length
+        );
+        setLoadState('ready');
+      } catch (error) {
+        console.error(error);
+
+        if (isMounted) {
+          setLoadState('error');
+        }
+      }
+    }
+
+    void loadHomeAsync();
+
+    return () => {
+      isMounted = false;
+      objectUrls.forEach((url) => revokeMediaObjectUrl(url));
+      objectUrls = [];
+    };
+  }, []);
+
   return (
     <section className="view home-view">
       <div className="section-heading">
@@ -35,7 +156,7 @@ function HomeView({ onAddClick }: { onAddClick: () => void }) {
       <div className="summary-grid" aria-label="요리 기록 요약">
         <div className="summary-item">
           <span>이번 달</span>
-          <strong>0회</strong>
+          <strong>{currentMonthCount}회</strong>
         </div>
         <div className="summary-item">
           <span>최근 기록</span>
@@ -50,17 +171,71 @@ function HomeView({ onAddClick }: { onAddClick: () => void }) {
       <div className="panel">
         <div className="panel-header">
           <h2>최근 기록</h2>
-          <span>프로토타입 데이터</span>
+          <span>최신순</span>
         </div>
-        <ul className="meal-list">
-          {recentMeals.map((meal) => (
-            <li key={meal}>
-              <span className="meal-thumbnail" aria-hidden="true" />
-              <span>{meal}</span>
-            </li>
-          ))}
-        </ul>
+        {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
+        {loadState === 'error' ? (
+          <p className="panel-state">저장된 기록을 불러오지 못했습니다.</p>
+        ) : null}
+        {loadState === 'ready' && recentMeals.length === 0 ? (
+          <div className="empty-state">
+            <strong>아직 저장된 요리가 없습니다.</strong>
+            <p>첫 요리를 기록하면 이곳에 최근 기록이 쌓입니다.</p>
+          </div>
+        ) : null}
+        {recentMeals.length > 0 ? (
+          <ul className="meal-list">
+            {recentMeals.map((mealCard) => (
+              <MealCard
+                key={mealCard.record.id}
+                mealCard={mealCard}
+                onOpen={onOpenRecord}
+              />
+            ))}
+          </ul>
+        ) : null}
       </div>
+    </section>
+  );
+}
+
+function DetailPreviewView({
+  record,
+  onBackClick,
+}: {
+  record: MealRecord | null;
+  onBackClick: () => void;
+}) {
+  return (
+    <section className="view placeholder-view">
+      <div className="section-heading">
+        <p className="eyebrow">기록 상세</p>
+        <h1>{record?.meal?.name ?? '요리 기록'}</h1>
+        <p>{record ? formatCookedAtLabel(record.cookedAt) : '선택한 기록을 찾을 수 없습니다.'}</p>
+      </div>
+      {record ? (
+        <div className="detail-preview">
+          <div>
+            <span>만족도</span>
+            <strong>{record.rating ? `${record.rating}/5` : '미입력'}</strong>
+          </div>
+          {record.memo ? (
+            <div>
+              <span>메모</span>
+              <p>{record.memo}</p>
+            </div>
+          ) : null}
+          {record.meal?.tags.length ? (
+            <div>
+              <span>태그</span>
+              <p>{record.meal.tags.join(', ')}</p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      <button className="secondary-action" type="button" onClick={onBackClick}>
+        홈으로 돌아가기
+      </button>
     </section>
   );
 }
@@ -121,8 +296,12 @@ function PlaceholderView({
 
 export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>('home');
+  const [selectedRecord, setSelectedRecord] = useState<MealRecord | null>(null);
   const activeRouteLabel = useMemo(
-    () => routes.find((route) => route.key === activeRoute)?.label ?? '홈',
+    () =>
+      activeRoute === 'detail'
+        ? '상세'
+        : routes.find((route) => route.key === activeRoute)?.label ?? '홈',
     [activeRoute]
   );
 
@@ -157,8 +336,25 @@ export function App() {
           <span>Tavolo</span>
         </div>
 
-        {activeRoute === 'home' && <HomeView onAddClick={() => setActiveRoute('add')} />}
+        {activeRoute === 'home' && (
+          <HomeView
+            onAddClick={() => setActiveRoute('add')}
+            onOpenRecord={(record) => {
+              setSelectedRecord(record);
+              setActiveRoute('detail');
+            }}
+          />
+        )}
         {activeRoute === 'add' && <AddView />}
+        {activeRoute === 'detail' && (
+          <DetailPreviewView
+            record={selectedRecord}
+            onBackClick={() => {
+              setSelectedRecord(null);
+              setActiveRoute('home');
+            }}
+          />
+        )}
         {activeRoute === 'calendar' && (
           <PlaceholderView
             eyebrow="달력"
