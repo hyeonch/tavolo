@@ -183,6 +183,17 @@ h2 {
   padding: 0 18px;
 }
 
+.secondary-action {
+  width: fit-content;
+  min-height: 44px;
+  border: 1px solid #d9ded8;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f4f42;
+  font-weight: 800;
+  padding: 0 16px;
+}
+
 .panel {
   display: grid;
   max-width: 620px;
@@ -209,19 +220,120 @@ h2 {
 }
 
 .meal-list li {
-  display: flex;
-  min-height: 48px;
+  min-width: 0;
+}
+
+.meal-card {
+  display: grid;
+  width: 100%;
+  min-height: 74px;
+  grid-template-columns: 52px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
   color: #303632;
-  font-weight: 700;
+  padding: 8px;
+  text-align: left;
+}
+
+.meal-card:hover {
+  border-color: #d9ded8;
+  background: #fbfcfa;
 }
 
 .meal-thumbnail {
-  width: 38px;
-  height: 38px;
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  overflow: hidden;
   border-radius: 8px;
   background: #e07a5f;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.meal-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.meal-card-body {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.meal-card-body strong,
+.meal-card-body span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meal-card-body strong {
+  font-size: 16px;
+}
+
+.meal-card-body span {
+  color: #6a716c;
+  font-size: 14px;
+}
+
+.meal-card-body .meal-card-memo {
+  color: #303632;
+}
+
+.panel-state,
+.empty-state p {
+  color: #6a716c;
+  line-height: 1.6;
+}
+
+.empty-state {
+  display: grid;
+  gap: 6px;
+  border: 1px dashed #cdd7cf;
+  border-radius: 8px;
+  background: #fbfcfa;
+  padding: 18px;
+}
+
+.empty-state strong {
+  color: #303632;
+}
+
+.detail-preview {
+  display: grid;
+  width: min(100%, 620px);
+  gap: 14px;
+}
+
+.detail-preview div {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #e2ded3;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.detail-preview span {
+  color: #6a716c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.detail-preview strong {
+  font-size: 22px;
+}
+
+.detail-preview p {
+  color: #303632;
+  line-height: 1.6;
 }
 
 .meal-form {
@@ -318,6 +430,10 @@ h2 {
   }
 
   .primary-action {
+    width: 100%;
+  }
+
+  .secondary-action {
     width: 100%;
   }
 }
