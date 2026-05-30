@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 
 import {
+  createMealAsync,
+  createMealRecordAsync,
+  createMediaAsync,
   createMediaObjectUrl,
   getMediaByIdAsync,
   listMealRecordsAsync,
@@ -28,6 +32,14 @@ type HomeMealCard = {
   record: MealRecord;
   thumbnailUrl: string | null;
 };
+
+function createLocalId(prefix: string) {
+  if (typeof crypto.randomUUID === 'function') {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 function getTodayLabel() {
   return new Intl.DateTimeFormat('ko-KR', {
@@ -240,34 +252,119 @@ function DetailPreviewView({
   );
 }
 
-function AddView() {
+function AddView({ onSaved }: { onSaved: () => void }) {
+  const [mealName, setMealName] = useState('');
+  const [cookedAt, setCookedAt] = useState(new Date().toISOString().slice(0, 10));
+  const [rating, setRating] = useState('');
+  const [memo, setMemo] = useState('');
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>('idle');
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedMealName = mealName.trim();
+
+    if (!trimmedMealName || !cookedAt) {
+      return;
+    }
+
+    setSubmitState('saving');
+
+    try {
+      const mealId = createLocalId('meal');
+      const mealRecordId = createLocalId('meal-record');
+      const trimmedMemo = memo.trim();
+      await createMealAsync({
+        id: mealId,
+        name: trimmedMealName,
+        memo: trimmedMemo || undefined,
+      });
+      await createMealRecordAsync({
+        id: mealRecordId,
+        mealId,
+        cookedAt,
+        rating: rating ? Number(rating) : undefined,
+        memo: trimmedMemo || undefined,
+      });
+
+      if (photo) {
+        await createMediaAsync({
+          id: createLocalId('media'),
+          mealRecordId,
+          type: 'photo',
+          blob: photo,
+        });
+      }
+
+      onSaved();
+    } catch (error) {
+      console.error(error);
+      setSubmitState('error');
+    }
+  }
+
   return (
     <section className="view">
       <div className="section-heading">
         <p className="eyebrow">새 기록</p>
         <h1>오늘 만든 요리</h1>
-        <p>IndexedDB 저장은 TVL-29에서 연결합니다.</p>
+        <p>요리 이름과 날짜만 입력해도 바로 저장할 수 있습니다.</p>
       </div>
 
-      <form className="meal-form">
+      <form className="meal-form" onSubmit={handleSubmit}>
         <label>
           요리 이름
-          <input type="text" placeholder="김치볶음밥" />
+          <input
+            required
+            type="text"
+            value={mealName}
+            placeholder="김치볶음밥"
+            onChange={(event) => setMealName(event.target.value)}
+          />
         </label>
         <label>
           날짜
-          <input type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+          <input
+            required
+            type="date"
+            value={cookedAt}
+            onChange={(event) => setCookedAt(event.target.value)}
+          />
+        </label>
+        <label>
+          만족도
+          <select value={rating} onChange={(event) => setRating(event.target.value)}>
+            <option value="">선택 안 함</option>
+            <option value="5">5점</option>
+            <option value="4">4점</option>
+            <option value="3">3점</option>
+            <option value="2">2점</option>
+            <option value="1">1점</option>
+          </select>
         </label>
         <label>
           사진
-          <input type="file" accept="image/*" />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+          />
         </label>
         <label>
           메모
-          <textarea placeholder="다음엔 파를 더 넣기" rows={4} />
+          <textarea
+            value={memo}
+            placeholder="다음엔 파를 더 넣기"
+            rows={4}
+            onChange={(event) => setMemo(event.target.value)}
+          />
         </label>
-        <button className="primary-action" type="button">
-          저장 준비 중
+        {submitState === 'error' ? (
+          <p className="form-error">저장하지 못했습니다. 다시 시도해 주세요.</p>
+        ) : null}
+        <button className="primary-action" type="submit" disabled={submitState === 'saving'}>
+          {submitState === 'saving' ? '저장 중' : '저장하기'}
         </button>
       </form>
     </section>
@@ -345,7 +442,13 @@ export function App() {
             }}
           />
         )}
-        {activeRoute === 'add' && <AddView />}
+        {activeRoute === 'add' && (
+          <AddView
+            onSaved={() => {
+              setActiveRoute('home');
+            }}
+          />
+        )}
         {activeRoute === 'detail' && (
           <DetailPreviewView
             record={selectedRecord}

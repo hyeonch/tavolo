@@ -350,6 +350,7 @@ h2 {
 }
 
 .meal-form input,
+.meal-form select,
 .meal-form textarea {
   min-height: 48px;
   border: 1px solid #d9ded8;
@@ -361,6 +362,11 @@ h2 {
 
 .meal-form textarea {
   resize: vertical;
+}
+
+.form-error {
+  color: #b04436;
+  font-weight: 700;
 }
 
 .placeholder-view {
