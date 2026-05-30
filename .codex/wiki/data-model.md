@@ -6,6 +6,8 @@ Current direction:
 - `MealRecord` represents one dated cooking record for a `Meal`.
 - `Media` belongs to `MealRecord`.
 - `Tag` belongs to `Meal` through `meal_tags`.
+- The web MVP should store structured records in IndexedDB.
+- Attached photos should be represented by `Media` and stored locally in the browser, using Blob/File data where practical.
 
 Current conceptual types:
 
@@ -31,6 +33,16 @@ type MealRecord = {
   createdAt: string;
   updatedAt: string;
 };
+
+type Media = {
+  id: string;
+  mealRecordId: string;
+  type: 'photo';
+  uri?: string;
+  blob?: Blob;
+  thumbnailUri?: string;
+  createdAt: string;
+};
 ```
 
 Rationale:
@@ -38,3 +50,4 @@ Rationale:
 - A user may save a meal from a recipe link before cooking it.
 - A user may cook the same meal multiple times, creating multiple records.
 - Recaps and search should be able to distinguish the reusable dish from each dated record.
+- The repository layer should hide IndexedDB and Blob/object URL details from UI components.

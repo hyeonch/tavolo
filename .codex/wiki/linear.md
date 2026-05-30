@@ -4,6 +4,7 @@
 - Use the `tavolo` team and `Tavolo MVP` project.
 - The project is organized by milestones, and each milestone contains scoped issues.
 - Prefer issues in the current or earliest milestone before later milestones.
+- Current planning is web-app-first. Completed Expo prototype issues are historical context; new MVP work should follow web-first issues and milestones.
 - Treat the active Linear issue description and completion criteria as the source of truth.
 - Move the issue to `In Progress` when starting work.
 - Move the issue to `Done` only after implementation and verification.
