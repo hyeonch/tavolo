@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,6 +15,13 @@ import {
 } from 'react-native';
 
 import { createMealAsync, createMealRecordAsync } from '../../src/db/mealRepository';
+import { createMediaAsync } from '../../src/db/mediaRepository';
+import { copyPickedPhotoToAppStorageAsync } from '../../src/lib/mediaStorage';
+
+type SelectedPhoto = {
+  asset: ImagePicker.ImagePickerAsset;
+  uri: string;
+};
 
 function createLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -37,6 +46,7 @@ export default function AddScreen() {
   const [rating, setRating] = useState<number | undefined>();
   const [memo, setMemo] = useState('');
   const [tagDraft, setTagDraft] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhoto | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const trimmedName = name.trim();
@@ -45,6 +55,33 @@ export default function AddScreen() {
     () => trimmedName.length > 0 && isValidDateInput(trimmedCookedAt) && !isSaving,
     [isSaving, trimmedCookedAt, trimmedName]
   );
+
+  async function handlePickPhoto() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert('사진 접근 권한이 필요합니다.', '사진을 첨부하려면 권한을 허용해주세요.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsMultipleSelection: false,
+      mediaTypes: ['images'],
+      quality: 0.85,
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    const asset = result.assets[0];
+
+    if (!asset) {
+      return;
+    }
+
+    setSelectedPhoto({ asset, uri: asset.uri });
+  }
 
   async function handleSave() {
     if (!trimmedName) {
@@ -62,6 +99,7 @@ export default function AddScreen() {
     try {
       const mealId = createLocalId('meal');
       const mealRecordId = createLocalId('meal-record');
+      const mediaId = selectedPhoto ? createLocalId('media') : null;
       const trimmedMemo = memo.trim();
 
       const meal = await createMealAsync({
@@ -74,7 +112,7 @@ export default function AddScreen() {
         throw new Error('요리 정보를 저장하지 못했습니다.');
       }
 
-      await createMealRecordAsync({
+      const mealRecord = await createMealRecordAsync({
         id: mealRecordId,
         mealId,
         cookedAt: trimmedCookedAt,
@@ -82,11 +120,28 @@ export default function AddScreen() {
         memo: trimmedMemo || undefined,
       });
 
+      if (!mealRecord) {
+        throw new Error('요리 기록을 저장하지 못했습니다.');
+      }
+
+      if (selectedPhoto && mediaId) {
+        const storedUri = await copyPickedPhotoToAppStorageAsync(selectedPhoto.asset, mediaId);
+
+        await createMediaAsync({
+          id: mediaId,
+          mealRecordId,
+          type: 'photo',
+          uri: storedUri,
+          thumbnailUri: storedUri,
+        });
+      }
+
       setName('');
       setCookedAt(getTodayDateInputValue());
       setRating(undefined);
       setMemo('');
       setTagDraft('');
+      setSelectedPhoto(null);
       router.replace('/');
     } catch (error) {
       Alert.alert(
@@ -161,6 +216,39 @@ export default function AddScreen() {
                 );
               })}
             </View>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>사진</Text>
+            {selectedPhoto ? (
+              <View style={styles.photoPreviewRow}>
+                <Image source={{ uri: selectedPhoto.uri }} style={styles.photoPreview} />
+                <View style={styles.photoActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={handlePickPhoto}
+                    style={styles.secondaryButton}
+                  >
+                    <Text style={styles.secondaryButtonText}>다시 선택</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setSelectedPhoto(null)}
+                    style={styles.secondaryButton}
+                  >
+                    <Text style={styles.secondaryButtonText}>삭제</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                onPress={handlePickPhoto}
+                style={styles.photoPickerButton}
+              >
+                <Text style={styles.photoPickerButtonText}>사진 선택</Text>
+              </Pressable>
+            )}
           </View>
 
           <View style={styles.field}>
@@ -279,6 +367,49 @@ const styles = StyleSheet.create({
   },
   ratingTextSelected: {
     color: '#FFFFFF',
+  },
+  photoPickerButton: {
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: '#D9DED8',
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  photoPickerButtonText: {
+    color: '#356859',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  photoPreviewRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  photoPreview: {
+    width: 96,
+    height: 96,
+    borderRadius: 8,
+    backgroundColor: '#E8ECE8',
+  },
+  photoActions: {
+    flex: 1,
+    gap: 10,
+    justifyContent: 'center',
+  },
+  secondaryButton: {
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: '#D9DED8',
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  secondaryButtonText: {
+    color: '#303632',
+    fontSize: 15,
+    fontWeight: '700',
   },
   saveButton: {
     minHeight: 54,
