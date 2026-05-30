@@ -158,6 +158,8 @@ type Tag = {
 - `Media`는 `MealRecord`에 속한다.
 - 태그는 meal-tag 관계를 통해 `Meal`에 속한다.
 - 웹 repository 레이어는 IndexedDB 세부 구현을 UI 컴포넌트에서 숨겨야 한다.
+- TVL-29의 초기 구현은 별도 라이브러리 없이 브라우저 기본 IndexedDB 위에 얇은 promise 래퍼를 둔다.
+- 저장소 API는 `src/db/index.ts`에서 가져온다.
 
 ## Linear 계획
 

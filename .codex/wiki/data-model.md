@@ -8,6 +8,7 @@ Current direction:
 - `Tag` belongs to `Meal` through `meal_tags`.
 - The web MVP should store structured records in IndexedDB.
 - Attached photos should be represented by `Media` and stored locally in the browser, using Blob/File data where practical.
+- TVL-29 uses a small native IndexedDB wrapper instead of adding an IndexedDB library.
 
 Current conceptual types:
 
@@ -51,3 +52,4 @@ Rationale:
 - A user may cook the same meal multiple times, creating multiple records.
 - Recaps and search should be able to distinguish the reusable dish from each dated record.
 - The repository layer should hide IndexedDB and Blob/object URL details from UI components.
+- Debug seed helpers may exist for browser-local development data, but product UI should not depend on seeded records.

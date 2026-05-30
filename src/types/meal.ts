@@ -71,7 +71,8 @@ export type CreateMediaInput = {
   id: string;
   mealRecordId: string;
   type: Media['type'];
-  uri: string;
+  uri?: string;
+  blob?: Blob;
   thumbnailUri?: string;
   createdAt?: string;
 };
