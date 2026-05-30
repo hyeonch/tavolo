@@ -23,8 +23,9 @@ export type MealRecord = {
 export type Media = {
   id: string;
   mealRecordId: string;
-  type: 'photo' | 'video';
-  uri: string;
+  type: 'photo';
+  uri?: string;
+  blob?: Blob;
   thumbnailUri?: string;
   createdAt: string;
 };
