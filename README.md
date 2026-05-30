@@ -1,116 +1,116 @@
 # Tavolo
 
-Tavolo is a local-first personal cooking archive. It helps one person quickly record what they cooked, attach photos and notes, then rediscover past meals through recent lists, calendar views, search, and lightweight recaps.
+Tavolo는 로컬 우선 개인 요리 아카이브 웹앱이다. 직접 만든 요리를 빠르게 기록하고, 사진과 메모를 붙인 뒤, 최근 기록과 달력, 검색, 간단한 결산으로 다시 꺼내보는 것을 목표로 한다.
 
-## Product Direction
+## 제품 방향
 
-Tavolo is now a web-app-first product. The earlier Expo/React Native implementation is treated as a prototype and reference, not the target MVP architecture.
+Tavolo는 웹앱 우선 제품이다. 이전 Expo/React Native 구현은 프로토타입과 참고 자료로만 본다.
 
-Core principles:
+핵심 원칙:
 
-- Build the MVP as a browser-based web app first.
-- Keep the app personal and local-first.
-- Do not add accounts, servers, feeds, likes, comments, follows, or sync in the MVP.
-- Store records in browser local storage, primarily IndexedDB.
-- Store attached photos locally in the browser, using Blob/File data where practical.
-- Make recording fast: meal name and date should be enough to save.
-- Keep photos, memo, rating, tags, and recipe URL optional.
-- Use Korean user-facing copy by default.
+- MVP는 브라우저 기반 웹앱으로 먼저 만든다.
+- 개인용 로컬 우선 앱으로 유지한다.
+- MVP에서는 계정, 서버, 피드, 좋아요, 댓글, 팔로우, 동기화를 만들지 않는다.
+- 구조화된 기록은 주로 IndexedDB에 저장한다.
+- 첨부 사진은 가능한 한 브라우저 로컬 Blob/File 데이터로 저장한다.
+- 요리 이름과 날짜만으로도 빠르게 저장할 수 있어야 한다.
+- 사진, 메모, 만족도, 태그, 레시피 URL은 선택 입력이다.
+- 사용자에게 보이는 문구는 기본적으로 한국어를 사용한다.
 
-## MVP Scope
+## MVP 범위
 
-The first web MVP should complete this flow:
+첫 웹 MVP는 다음 흐름을 완성한다.
 
-`open web app -> create meal record -> attach optional photo -> persist locally -> browse from home/calendar`
+`웹앱 열기 -> 요리 기록 생성 -> 선택적으로 사진 첨부 -> 브라우저에 로컬 저장 -> 홈/달력에서 다시 보기`
 
-Included:
+포함 기능:
 
-- Web app routing and responsive layout
-- Home, add record, calendar, search, and recap surfaces
-- Meal record creation
-- Meal name, date, rating, memo, tags, recipe URL
-- Photo attachment stored locally in the browser
-- IndexedDB-backed local repository layer
-- Recent records on home
-- Calendar date-based browsing
-- Detail, edit, and delete
-- Basic text search
+- 웹앱 라우팅과 반응형 레이아웃
+- 홈, 기록 추가, 달력, 검색, 결산 화면
+- 요리 기록 생성
+- 요리 이름, 날짜, 만족도, 메모, 태그, 레시피 URL 입력
+- 브라우저 로컬에 저장되는 사진 첨부
+- IndexedDB 기반 로컬 repository 레이어
+- 홈 최근 기록
+- 달력 날짜별 탐색
+- 상세 조회, 수정, 삭제
+- 기본 텍스트 검색
 
-Excluded:
+제외 기능:
 
-- Native mobile app release
-- Account creation and login
-- Cloud sync
-- Public feed
-- Social actions
-- Sharing flows
-- Advanced analytics
+- 네이티브 모바일 앱 출시
+- 계정 생성과 로그인
+- 클라우드 동기화
+- 공개 피드
+- 소셜 기능
+- 공유 플로우
+- 고급 분석
 
-## User Flows
+## 사용자 흐름
 
-### Record Today's Cooking
+### 오늘 요리 기록
 
-1. Open the web app.
-2. Start a new cooking record.
-3. Enter the meal name.
-4. Optionally attach a photo, rating, memo, tags, or recipe URL.
-5. Save.
-6. See the record on the home screen and calendar.
+1. 웹앱을 연다.
+2. 새 요리 기록을 시작한다.
+3. 요리 이름을 입력한다.
+4. 필요하면 사진, 만족도, 메모, 태그, 레시피 URL을 추가한다.
+5. 저장한다.
+6. 홈과 달력에서 저장된 기록을 확인한다.
 
-### Browse Past Records
+### 과거 기록 조회
 
-1. Open the calendar or home screen.
-2. Select a date or recent record.
-3. Open the meal detail page.
-4. Review photos, memo, rating, tags, and recipe URL.
+1. 홈 또는 달력을 연다.
+2. 날짜나 최근 기록을 선택한다.
+3. 요리 상세 화면을 연다.
+4. 사진, 메모, 만족도, 태그, 레시피 URL을 다시 본다.
 
-### Recap Later
+### 이후 회고
 
-After the core MVP, Tavolo can summarize yearly and monthly cooking counts, favorite meals, common tags, and eventually run a cooking world cup using saved meals.
+핵심 MVP 이후에는 연도별/월별 요리 횟수, 만족도 높은 요리, 자주 사용한 태그를 요약하고, 저장된 요리를 후보로 요리 월드컵을 진행할 수 있다.
 
-## Technical Direction
+## 기술 방향
 
-Target stack:
+대상 스택:
 
 - React
 - TypeScript
 - Vite
-- IndexedDB for local structured data
-- Browser File/Blob storage for attached photos
-- Plain CSS for the initial scaffold
+- 구조화된 로컬 데이터 저장용 IndexedDB
+- 첨부 사진 저장용 브라우저 File/Blob
+- 초기 스캐폴드에서는 plain CSS
 
-Expo/React Native files from the prototype have been removed from the MVP path. Do not continue building new MVP features on Expo unless explicitly requested.
+Expo/React Native 파일은 MVP 경로에서 제거했다. 사용자가 명시적으로 다시 요청하지 않는 한 새 MVP 기능은 Expo 위에 만들지 않는다.
 
-## Development
+## 개발
 
-Install dependencies:
+의존성 설치:
 
 ```bash
 npm install
 ```
 
-Run the web app:
+웹앱 실행:
 
 ```bash
 npm run dev
 ```
 
-Build and type-check:
+빌드와 타입 체크:
 
 ```bash
 npm run build
 npm run typecheck
 ```
 
-Preview the production build:
+프로덕션 빌드 미리보기:
 
 ```bash
 npm run preview
 ```
 
-## Data Model
+## 데이터 모델
 
-Current conceptual model:
+현재 개념 모델:
 
 ```ts
 type Meal = {
@@ -151,19 +151,19 @@ type Tag = {
 };
 ```
 
-Model notes:
+모델 메모:
 
-- `Meal` represents the reusable dish.
-- `MealRecord` represents one dated cooking/eating event.
-- `Media` belongs to `MealRecord`.
-- Tags belong to `Meal` through a meal-tag relationship.
-- The web repository layer should hide IndexedDB details from UI components.
+- `Meal`은 재사용 가능한 요리 자체를 나타낸다.
+- `MealRecord`는 특정 날짜에 요리하거나 먹은 한 번의 기록을 나타낸다.
+- `Media`는 `MealRecord`에 속한다.
+- 태그는 meal-tag 관계를 통해 `Meal`에 속한다.
+- 웹 repository 레이어는 IndexedDB 세부 구현을 UI 컴포넌트에서 숨겨야 한다.
 
-## Linear Plan
+## Linear 계획
 
-Work is tracked in Linear under the `tavolo` team and `Tavolo MVP` project.
+작업은 Linear의 `tavolo` 팀과 `Tavolo MVP` 프로젝트에서 관리한다.
 
-Current web-first milestone order:
+현재 웹앱 우선 마일스톤 순서:
 
 1. `Phase 1: 웹앱 기반 전환`
 2. `Phase 2: 달력/상세 탐색`
@@ -172,9 +172,9 @@ Current web-first milestone order:
 5. `Phase 5: 결산 기초`
 6. `Phase 6: 요리 월드컵`
 
-Next implementation should start with:
+다음 구현 순서:
 
 - `TVL-29`: IndexedDB 로컬 저장소와 repository 레이어 구성
 - `TVL-12`: 웹 홈 최근 요리 기록 리스트 구현
 
-Completed Expo prototype issues are retained as historical context. New MVP work should follow the web-first Linear issues.
+완료된 Expo 프로토타입 이슈는 히스토리로만 유지한다. 새 MVP 작업은 웹앱 우선 Linear 이슈를 따른다.

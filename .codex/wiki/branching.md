@@ -18,3 +18,4 @@ Rules:
 - If local work exists, inspect it first and do not discard it without explicit user approval.
 - If the current branch is not based on `main`, stop and ask before continuing.
 - Split commits by meaningful scope when a task includes multiple kinds of changes, such as wiki/process updates and product implementation.
+- Write commit messages in Korean by default.
