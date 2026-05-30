@@ -74,23 +74,39 @@ Target stack:
 
 - React
 - TypeScript
-- Web app framework to be selected in `TVL-28`
+- Vite
 - IndexedDB for local structured data
 - Browser File/Blob storage for attached photos
-- CSS or a lightweight styling approach selected with the web scaffold
+- Plain CSS for the initial scaffold
 
-The current repository may still contain Expo/React Native files from the prototype. `TVL-28` owns the web scaffold and cleanup decision. Do not continue building new MVP features on Expo unless explicitly requested.
+Expo/React Native files from the prototype have been removed from the MVP path. Do not continue building new MVP features on Expo unless explicitly requested.
 
 ## Development
 
-Current prototype commands:
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Run the web app:
+
+```bash
+npm run dev
+```
+
+Build and type-check:
+
+```bash
+npm run build
 npm run typecheck
 ```
 
-The web-app dev/build commands will be finalized by `TVL-28`.
+Preview the production build:
+
+```bash
+npm run preview
+```
 
 ## Data Model
 
@@ -158,7 +174,7 @@ Current web-first milestone order:
 
 Next implementation should start with:
 
-- `TVL-28`: 웹앱 스캐폴딩과 Expo 앱 구조 제거
 - `TVL-29`: IndexedDB 로컬 저장소와 repository 레이어 구성
+- `TVL-12`: 웹 홈 최근 요리 기록 리스트 구현
 
 Completed Expo prototype issues are retained as historical context. New MVP work should follow the web-first Linear issues.
