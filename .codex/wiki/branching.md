@@ -19,3 +19,4 @@ Rules:
 - If the current branch is not based on `main`, stop and ask before continuing.
 - Split commits by meaningful scope when a task includes multiple kinds of changes, such as wiki/process updates and product implementation.
 - Write commit messages in Korean by default.
+- Create pull requests as ready for review by default; use Draft only when the user explicitly asks for a draft PR.
