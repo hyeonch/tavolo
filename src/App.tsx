@@ -15,11 +15,13 @@ import {
   createMediaObjectUrl,
   getMealRecordByIdAsync,
   getTagByNameAsync,
+  importLocalDataAsync,
   getMediaByIdAsync,
   listMealRecordsAsync,
   listRecipeScrapsAsync,
   replaceMealTagsAsync,
   revokeMediaObjectUrl,
+  setDataSource,
   updateMealAsync,
   updateMealRecordAsync,
 } from './db';
@@ -49,10 +51,10 @@ const emptyMealRecords: MealRecord[] = [];
 
 function createLocalId(prefix: string) {
   if (typeof crypto.randomUUID === 'function') {
-    return `${prefix}-${crypto.randomUUID()}`;
+    return crypto.randomUUID();
   }
 
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${Date.now()}-${prefix}-${Math.random().toString(36).slice(2)}`;
 }
 
 function toDateKey(date: Date) {
@@ -1341,11 +1343,14 @@ function PlaceholderView({
 
 export function App() {
   const { auth, message: authMessage, signIn, signOut } = useAuth();
+  const activeDataScope = auth.status === 'signed-in' ? auth.user.id : 'local';
+  setDataSource(auth.status === 'signed-in' ? 'cloud' : 'local');
   const [activeRoute, setActiveRoute] = useState<RouteKey>('home');
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [selectedRecipeScrap, setSelectedRecipeScrap] = useState<RecipeScrap | null>(null);
   const [editingRecord, setEditingRecord] = useState<MealRecord | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
+  const [isImporting, setIsImporting] = useState(false);
   const activeRouteLabel = useMemo(
     () =>
       activeRoute === 'detail'
@@ -1353,6 +1358,30 @@ export function App() {
         : routes.find((route) => route.key === activeRoute)?.label ?? '홈',
     [activeRoute]
   );
+
+  useEffect(() => {
+    setSelectedRecordId(null);
+    setSelectedRecipeScrap(null);
+    setEditingRecord(null);
+    setDataVersion((version) => version + 1);
+  }, [activeDataScope]);
+
+  const importLocalData = async () => {
+    if (auth.status !== 'signed-in') return;
+    setIsImporting(true);
+    try {
+      await importLocalDataAsync(auth.user.id);
+      setDataVersion((version) => version + 1);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  if (auth.status === 'loading') {
+    return <div className="app-shell"><main className="content"><span className="account-loading">계정 확인 중</span></main></div>;
+  }
 
   return (
     <div className="app-shell">
@@ -1388,18 +1417,18 @@ export function App() {
           ))}
         </nav>
 
-        <AccountControls auth={auth} message={authMessage} onSignIn={signIn} onSignOut={signOut} />
+        <AccountControls auth={auth} message={authMessage} onSignIn={signIn} onSignOut={signOut} onImportLocalData={importLocalData} isImporting={isImporting} />
       </aside>
 
       <main className="content">
         <div className="mobile-topbar">
           <strong>{activeRouteLabel}</strong>
-          <AccountControls auth={auth} compact message={authMessage} onSignIn={signIn} onSignOut={signOut} />
+          <AccountControls auth={auth} compact message={authMessage} onSignIn={signIn} onSignOut={signOut} onImportLocalData={importLocalData} isImporting={isImporting} />
         </div>
 
         {activeRoute === 'home' && (
           <HomeView
-            key={`home-${dataVersion}`}
+            key={`home-${activeDataScope}-${dataVersion}`}
             onOpenRecord={(record) => {
               setSelectedRecordId(record.id);
               setActiveRoute('detail');
@@ -1408,7 +1437,7 @@ export function App() {
         )}
         {activeRoute === 'add' && (
           <AddView
-            key={editingRecord?.id ?? selectedRecipeScrap?.id ?? 'new-record'}
+            key={`${activeDataScope}-${editingRecord?.id ?? selectedRecipeScrap?.id ?? 'new-record'}`}
             record={editingRecord}
             recipeScrap={selectedRecipeScrap}
             onSaved={(recordId) => {
@@ -1422,6 +1451,7 @@ export function App() {
         )}
         {activeRoute === 'detail' && (
           <DetailView
+            key={`${activeDataScope}-${selectedRecordId ?? 'none'}`}
             recordId={selectedRecordId}
             onEdit={(record) => {
               setEditingRecord(record);
