@@ -39,7 +39,3 @@ pnpm-debug.log*
 
 # Test / coverage
 coverage/
-.vercel/
-.env*
-!.env.example
-supabase/.temp/

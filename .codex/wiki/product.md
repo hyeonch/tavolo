@@ -7,6 +7,7 @@ The product is now web-app-first. The earlier Expo/React Native work is prototyp
 MVP focus:
 
 - Browser-based local-first web app.
+- The next delivery phase adds account-backed Supabase persistence with Google and Kakao sign-in; Supabase becomes the source of truth after sign-in.
 - IndexedDB-backed local data.
 - Browser File/Blob storage for attached photos where practical.
 - No server, login, sync, public feed, likes, comments, or follows.
