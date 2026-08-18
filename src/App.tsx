@@ -740,7 +740,16 @@ function AddView({
     () => existingMedia.filter((media) => !removedMediaIds.has(media.id)),
     [existingMedia, removedMediaIds]
   );
-  const existingFinishedMedia = visibleExistingMedia.find((media) => media.id === record?.finishedMediaId);
+  const existingFinishedMedia = visibleExistingMedia.find((media) => media.id === record?.finishedMediaId)
+    ?? visibleExistingMedia.find(
+      (media) =>
+        !media.recipeStepId && !record?.recipeSteps?.some((step) => step.mediaIds.includes(media.id))
+    );
+
+  function getRecipeStepIdForMedia(media: Media) {
+    return media.recipeStepId
+      ?? recipeSteps.find((step) => step.mediaIds.includes(media.id))?.id;
+  }
 
   function markMediaForRemoval(media: Media) {
     setRemovedMediaIds((ids) => new Set(ids).add(media.id));
@@ -749,10 +758,11 @@ function AddView({
       delete nextFiles[media.id];
       return nextFiles;
     });
-    if (media.recipeStepId) {
+    const recipeStepId = getRecipeStepIdForMedia(media);
+    if (recipeStepId) {
       setRecipeSteps((steps) =>
         steps.map((step) =>
-          step.id === media.recipeStepId ? { ...step, mediaIds: step.mediaIds.filter((id) => id !== media.id) } : step
+          step.id === recipeStepId ? { ...step, mediaIds: step.mediaIds.filter((id) => id !== media.id) } : step
         )
       );
     }
@@ -886,9 +896,9 @@ function AddView({
       }
 
       const mediaIdsToDelete = new Set(removedMediaIds);
-      let finishedMediaId = removedMediaIds.has(record?.finishedMediaId ?? '')
+      let finishedMediaId = removedMediaIds.has(existingFinishedMedia?.id ?? '')
         ? undefined
-        : record?.finishedMediaId;
+        : existingFinishedMedia?.id;
 
       if (finishedPhoto) {
         const media = await createMediaAsync({
@@ -899,7 +909,7 @@ function AddView({
         });
 
         if (media) {
-          if (record?.finishedMediaId) mediaIdsToDelete.add(record.finishedMediaId);
+          if (existingFinishedMedia) mediaIdsToDelete.add(existingFinishedMedia.id);
           finishedMediaId = media.id;
         }
       }
@@ -929,20 +939,21 @@ function AddView({
 
       for (const [mediaId, file] of Object.entries(replacementFiles)) {
         const existing = existingMedia.find((media) => media.id === mediaId);
-        if (!existing?.recipeStepId || removedMediaIds.has(mediaId)) continue;
+        const recipeStepId = existing ? getRecipeStepIdForMedia(existing) : undefined;
+        if (!existing || !recipeStepId || removedMediaIds.has(mediaId)) continue;
 
         const replacement = await createMediaAsync({
           id: createLocalId('media'),
           mealRecordId,
           type: 'photo',
           blob: file,
-          recipeStepId: existing.recipeStepId,
+          recipeStepId,
         });
         if (!replacement) continue;
 
         mediaIdsToDelete.add(mediaId);
         recipeStepsWithMedia = recipeStepsWithMedia.map((step) =>
-          step.id === existing.recipeStepId
+          step.id === recipeStepId
             ? { ...step, mediaIds: step.mediaIds.map((id) => (id === mediaId ? replacement.id : id)) }
             : step
         );
@@ -1095,10 +1106,10 @@ function AddView({
                 rows={3}
                 onChange={(event) => updateRecipeStep(step.id, { body: event.target.value })}
               />
-              {visibleExistingMedia.filter((media) => media.recipeStepId === step.id).length ? (
+              {visibleExistingMedia.filter((media) => getRecipeStepIdForMedia(media) === step.id).length ? (
                 <div className="existing-media-grid" aria-label={`Step ${index + 1} 기존 사진`}>
                   {visibleExistingMedia
-                    .filter((media) => media.recipeStepId === step.id)
+                    .filter((media) => getRecipeStepIdForMedia(media) === step.id)
                     .map((media) => (
                       <div className="existing-media-card" key={media.id}>
                         <span className="media-preview-label">현재 사진</span>
