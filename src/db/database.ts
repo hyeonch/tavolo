@@ -56,6 +56,18 @@ function migrateDatabase(database: IDBDatabase, transaction: IDBTransaction) {
   });
   ensureIndex(recipeScraps, 'updatedAt', 'updatedAt', { unique: false });
   ensureIndex(recipeScraps, 'url', 'url', { unique: false });
+
+  const worldCupSessions = ensureObjectStore(database, transaction, stores.worldCupSessions, {
+    keyPath: 'id',
+  });
+  ensureIndex(worldCupSessions, 'updatedAt', 'updatedAt', { unique: false });
+  ensureIndex(worldCupSessions, 'status', 'status', { unique: false });
+
+  const worldCupMatches = ensureObjectStore(database, transaction, stores.worldCupMatches, {
+    keyPath: 'id',
+  });
+  ensureIndex(worldCupMatches, 'sessionId', 'sessionId', { unique: false });
+  ensureIndex(worldCupMatches, 'sessionRound', ['sessionId', 'round'], { unique: false });
 }
 
 export function requestToPromise<T>(request: IDBRequest<T>) {

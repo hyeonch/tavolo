@@ -6,6 +6,8 @@ The product is now web-app-first. The earlier Expo/React Native work is prototyp
 
 When Tavolo is added to a device home screen, it should launch in standalone app mode rather than a browser tab. This does not imply offline support.
 
+Browser-history URL routing (refresh restoration and swipe-back navigation) is deferred outside the MVP scope.
+
 MVP focus:
 
 - Browser-based personal cooking archive.
