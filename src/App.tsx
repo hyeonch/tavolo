@@ -851,7 +851,7 @@ function AddView({
             onChange={(event) => setMealName(event.target.value)}
           />
         </label>
-        <label>
+        <label className="compact-field">
           날짜
           <input
             required
@@ -860,7 +860,7 @@ function AddView({
             onChange={(event) => setCookedAt(event.target.value)}
           />
         </label>
-        <label>
+        <label className="compact-field">
           만족도
           <select value={rating} onChange={(event) => setRating(event.target.value)}>
             <option value="">선택 안 함</option>

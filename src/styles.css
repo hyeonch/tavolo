@@ -579,7 +579,7 @@ h2 {
   padding-bottom: 24px;
 }
 
-.meal-form label {
+.meal-form > label {
   display: grid;
   min-width: 0;
   width: 100%;
@@ -603,11 +603,15 @@ h2 {
   resize: vertical;
 }
 
-.meal-form input,
-.meal-form select,
-.meal-form textarea {
+.meal-form > label > input,
+.meal-form > label > select,
+.meal-form > label > textarea {
   min-width: 0;
   width: 100%;
+}
+
+.meal-form > .compact-field {
+  width: min(100%, 220px);
 }
 
 .recipe-scrap-form,
@@ -622,7 +626,7 @@ h2 {
   padding: 20px;
 }
 
-.recipe-scrap-form label {
+.recipe-scrap-form > label {
   display: grid;
   min-width: 0;
   width: 100%;
@@ -631,8 +635,8 @@ h2 {
   font-weight: 800;
 }
 
-.recipe-scrap-form input,
-.recipe-scrap-form textarea {
+.recipe-scrap-form > label > input,
+.recipe-scrap-form > label > textarea {
   min-height: 48px;
   border: 1px solid #d9ded8;
   border-radius: 8px;
@@ -787,8 +791,17 @@ h2 {
 
 .step-photo-entry {
   display: inline-flex;
+  flex: none;
   align-items: center;
+  min-height: 32px;
+  padding: 0 8px;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.recipe-step-heading strong {
+  flex: none;
+  white-space: nowrap;
 }
 
 .step-photo-entry input {
