@@ -76,3 +76,10 @@ Rationale:
 - Recaps and search should be able to distinguish the reusable dish from each dated record, while still using meal-level tags entered from the add-record flow.
 - The repository layer should hide IndexedDB and Blob/object URL details from UI components.
 - Debug seed helpers may exist for browser-local development data, but product UI should not depend on seeded records.
+
+Supabase persistence direction:
+
+- All account data is owned by `auth.users.id` through a `user_id` column and RLS; rows cannot cross user boundaries.
+- `meals`, `meal_records`, `tags`, `meal_tags`, and `recipe_scraps` map directly to the current conceptual types. Ingredient groups and recipe steps remain JSONB columns on `meal_records`.
+- `media` stores private Storage metadata (`storage_path`, MIME type, size, kind, and optional recipe-step ID); Blob data itself lives in the private `meal-media` bucket.
+- Existing IndexedDB records are imported only after the user explicitly approves a first-login migration. Keep the local copy until that import succeeds.

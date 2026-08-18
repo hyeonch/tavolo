@@ -14,5 +14,6 @@ Use Korean user-facing copy by default.
 Platform direction:
 
 - The MVP is web-app-first.
-- Browser local data persistence is part of the product model, not a temporary implementation detail.
-- Photos are local personal archive media; for the web MVP, prioritize reliable browser-local persistence over native device file APIs.
+- Supabase is the account-backed source of truth for authenticated users; browser-local data remains only for migration and short-lived client state.
+- Photos are private personal archive media stored in Supabase Storage, not publicly addressable files.
+- The first cloud-backed release requires connectivity for writes; offline conflict resolution is a later enhancement.
