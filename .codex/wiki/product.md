@@ -10,6 +10,7 @@ MVP focus:
 - Google-authenticated users read and write only their Supabase-owned records; browser-local records are never mixed into an account.
 - IndexedDB is retained only as legacy browser data.
 - Photos use private Supabase Storage.
+- Photos use fixed presentation frames: compact list thumbnails and 4:3 detail/step images with cover cropping, so original image dimensions do not distort the app layout.
 - No public feed, likes, comments, or follows.
 - Record meals quickly.
 - A cooking record can include recipe notes: ingredient and seasoning groups, plus step-by-step cooking instructions.
