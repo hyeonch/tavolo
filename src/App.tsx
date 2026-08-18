@@ -550,7 +550,11 @@ function DetailView({
         <div className="detail-content">
           <div className="detail-hero" aria-label="대표 완성사진">
             {representativePhotoUrl ? (
-              <img alt={`${record.meal?.name ?? '요리'} 완성사진`} src={representativePhotoUrl} />
+              <img
+                alt={`${record.meal?.name ?? '요리'} 완성사진`}
+                decoding="async"
+                src={representativePhotoUrl}
+              />
             ) : (
               <span>{record.meal?.name.slice(0, 1) ?? 'T'}</span>
             )}
@@ -615,7 +619,9 @@ function DetailView({
                           stepPhotoUrls[mediaId] ? (
                             <img
                               alt={`Step ${step.order} 과정 사진 ${index + 1}`}
+                              decoding="async"
                               key={mediaId}
+                              loading="lazy"
                               src={stepPhotoUrls[mediaId]}
                             />
                           ) : null
