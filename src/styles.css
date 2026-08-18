@@ -1597,14 +1597,29 @@ button {
   gap: 9px;
 }
 
-.month-bar-list > div {
+.month-bar-list button {
   display: grid;
+  width: 100%;
   grid-template-columns: 34px minmax(0, 1fr) 24px;
   align-items: center;
   gap: 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
   color: #52645a;
   font-size: 12px;
   font-weight: 800;
+  padding: 4px;
+  text-align: left;
+}
+
+.month-bar-list button:not(:disabled):hover {
+  background: #f0f5f0;
+}
+
+.month-bar-list button:disabled {
+  cursor: default;
+  opacity: .48;
 }
 
 .month-bar-list i {
@@ -1629,13 +1644,38 @@ button {
   margin: 0;
 }
 
-.recap-tag-list span {
+.recap-tag-list button,
+.active-search-filters span {
+  border: 0;
   border-radius: 999px;
   background: #edf3ef;
   color: #1f4f42;
   font-size: 13px;
   font-weight: 800;
   padding: 7px 10px;
+}
+
+.recap-tag-list button:hover {
+  background: #dceadf;
+}
+
+.active-search-filters {
+  display: flex;
+  width: min(100%, 700px);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.active-search-filters button {
+  min-height: 32px;
+  border: 1px solid #d9ded8;
+  border-radius: 999px;
+  background: #fff;
+  color: #52645a;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 10px;
 }
 
 .world-cup-panel,
@@ -1696,15 +1736,39 @@ button {
 
 .world-cup-choice-grid button {
   display: grid;
-  min-height: 156px;
-  align-content: center;
-  gap: 8px;
+  min-height: 260px;
+  grid-template-rows: minmax(140px, 1fr) auto;
+  align-content: stretch;
   border: 1px solid #d9ded8;
   border-radius: 12px;
   background: #fbfcfa;
   color: #1f2722;
   padding: 16px;
   text-align: left;
+}
+
+.world-cup-thumbnail {
+  display: grid;
+  min-height: 140px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #edf3ef;
+  color: #356859;
+  font-size: 42px;
+  font-weight: 800;
+}
+
+.world-cup-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-cup-choice-copy {
+  display: grid;
+  gap: 7px;
+  padding-top: 14px;
 }
 
 .world-cup-choice-grid button:hover {
@@ -1871,7 +1935,20 @@ button {
   }
 
   .world-cup-choice-grid button {
-    min-height: 106px;
+    min-height: 170px;
+    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .world-cup-thumbnail {
+    min-height: 100%;
+  }
+
+  .world-cup-choice-copy {
+    align-content: center;
+    padding-top: 0;
   }
 
   .scrap-preview {

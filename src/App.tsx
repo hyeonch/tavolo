@@ -61,6 +61,13 @@ type HomeMealCard = {
   thumbnailUrl: string | null;
 };
 
+type SearchPreset = {
+  key: string;
+  year?: number;
+  month?: number;
+  tag?: string;
+};
+
 const emptyMealRecords: MealRecord[] = [];
 
 function createLocalId(prefix: string) {
@@ -1494,14 +1501,33 @@ function RecordSearchCard({ record, onOpen }: { record: MealRecord; onOpen: (rec
   );
 }
 
-function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void }) {
+function SearchView({
+  onOpenRecord,
+  preset,
+}: {
+  onOpenRecord: (record: MealRecord) => void;
+  preset: SearchPreset | null;
+}) {
   const [records, setRecords] = useState<MealRecord[]>([]);
   const [query, setQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(null);
 
   useEffect(() => {
     void listMealRecordsAsync().then(setRecords).catch((error) => console.error(error));
   }, []);
+
+  useEffect(() => {
+    if (!preset) return;
+
+    setQuery('');
+    setSelectedTag(preset.tag ?? '');
+    setSelectedMonth(
+      preset.year && preset.month
+        ? { year: preset.year, month: preset.month }
+        : null
+    );
+  }, [preset]);
 
   const allTags = useMemo(
     () =>
@@ -1529,10 +1555,22 @@ function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => vo
 
       return (
         (!normalizedQuery || searchText.includes(normalizedQuery)) &&
-        (!selectedTag || record.meal?.tags.includes(selectedTag))
+        (!selectedTag || record.meal?.tags.includes(selectedTag)) &&
+        (!selectedMonth || record.cookedAt.startsWith(`${selectedMonth.year}-${String(selectedMonth.month).padStart(2, '0')}`))
       );
     });
-  }, [query, records, selectedTag]);
+  }, [query, records, selectedMonth, selectedTag]);
+
+  const activeFilters = [
+    selectedMonth ? `${selectedMonth.year}년 ${selectedMonth.month}월` : null,
+    selectedTag ? `#${selectedTag}` : null,
+  ].filter(Boolean);
+
+  function clearFilters() {
+    setQuery('');
+    setSelectedTag('');
+    setSelectedMonth(null);
+  }
 
   return (
     <section className="view search-view">
@@ -1550,6 +1588,12 @@ function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => vo
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
+      {activeFilters.length ? (
+        <div className="active-search-filters" aria-label="적용된 검색 필터">
+          {activeFilters.map((filter) => <span key={filter}>{filter}</span>)}
+          <button type="button" onClick={clearFilters}>필터 지우기</button>
+        </div>
+      ) : null}
       {allTags.length ? (
         <div className="tag-filter" aria-label="태그 필터">
           <button className={!selectedTag ? 'is-active' : ''} type="button" onClick={() => setSelectedTag('')}>
@@ -1567,7 +1611,7 @@ function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => vo
           ))}
         </div>
       ) : null}
-      <p className="result-count">{query.trim() || selectedTag ? `${filteredRecords.length}개의 검색 결과` : `전체 ${filteredRecords.length}개의 기록`}</p>
+      <p className="result-count">{query.trim() || selectedTag || selectedMonth ? `${filteredRecords.length}개의 검색 결과` : `전체 ${filteredRecords.length}개의 기록`}</p>
       {filteredRecords.length ? (
         <ul className="record-search-list">
           {filteredRecords.map((record) => (
@@ -1581,6 +1625,61 @@ function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => vo
         </div>
       )}
     </section>
+  );
+}
+
+function WorldCupChoice({
+  record,
+  onChoose,
+}: {
+  record: MealRecord | undefined;
+  onChoose: () => void;
+}) {
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrl: string | null = null;
+    const mediaId = record?.finishedMediaId ?? record?.mediaIds[0];
+
+    async function loadThumbnailAsync() {
+      if (!mediaId) {
+        setThumbnailUrl(null);
+        return;
+      }
+
+      try {
+        const media = await getMediaByIdAsync(mediaId);
+        const url = media ? createMediaObjectUrl(media) : null;
+        if (url?.startsWith('blob:')) objectUrl = url;
+        if (isMounted) setThumbnailUrl(url);
+      } catch (error) {
+        console.error(error);
+        if (isMounted) setThumbnailUrl(null);
+      }
+    }
+
+    void loadThumbnailAsync();
+
+    return () => {
+      isMounted = false;
+      revokeMediaObjectUrl(objectUrl);
+    };
+  }, [record?.finishedMediaId, record?.id, record?.mediaIds]);
+
+  const mealName = record?.meal?.name ?? '이름 없는 요리';
+
+  return (
+    <button type="button" onClick={onChoose}>
+      <span className="world-cup-thumbnail" aria-hidden="true">
+        {thumbnailUrl ? <img alt="" src={thumbnailUrl} /> : <span>{mealName.slice(0, 1)}</span>}
+      </span>
+      <span className="world-cup-choice-copy">
+        <strong>{mealName}</strong>
+        <small>{record ? formatCookedAtLabel(record.cookedAt) : '기록을 찾을 수 없어요'}</small>
+        {record?.rating ? <em>만족도 {record.rating}/5</em> : null}
+      </span>
+    </button>
   );
 }
 
@@ -1649,7 +1748,7 @@ function WorldCupView({ records, onOpenRecord }: { records: MealRecord[]; onOpen
           <div className="world-cup-choice-grid">
             {[currentMatch.leftRecordId, currentMatch.rightRecordId].map((recordId) => {
               const record = recordById.get(recordId);
-              return <button key={recordId} type="button" onClick={() => void chooseWinner(currentMatch, recordId)}><strong>{record?.meal?.name ?? '이름 없는 요리'}</strong><small>{record ? formatCookedAtLabel(record.cookedAt) : '기록을 찾을 수 없어요'}</small>{record?.rating ? <em>만족도 {record.rating}/5</em> : null}</button>;
+              return <WorldCupChoice key={recordId} record={record} onChoose={() => void chooseWinner(currentMatch, recordId)} />;
             })}
           </div>
           <p>더 마음에 드는 요리를 골라주세요.</p>
@@ -1659,7 +1758,13 @@ function WorldCupView({ records, onOpenRecord }: { records: MealRecord[]; onOpen
   );
 }
 
-function RecapView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void }) {
+function RecapView({
+  onOpenRecord,
+  onOpenSearch,
+}: {
+  onOpenRecord: (record: MealRecord) => void;
+  onOpenSearch: (preset: Omit<SearchPreset, 'key'>) => void;
+}) {
   const [records, setRecords] = useState<MealRecord[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [section, setSection] = useState<'recap' | 'world-cup'>('recap');
@@ -1695,8 +1800,8 @@ function RecapView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => voi
         <>
           <label className="recap-year-select"><span>결산 연도</span><select value={summary.year} onChange={(event) => setSelectedYear(Number(event.target.value))}>{years.map((year) => <option key={year} value={year}>{year}년</option>)}</select></label>
           <div className="recap-grid"><section><span>남긴 요리</span><strong>{summary.totalCount}<small>개</small></strong></section><section><span>평균 만족도</span><strong>{summary.averageRating ?? '–'}<small>{summary.averageRating ? ' / 5' : ''}</small></strong></section><section><span>가장 많이 쓴 태그</span><strong className="tag-stat">{summary.favoriteTag ? `#${summary.favoriteTag}` : '–'}</strong></section></div>
-          <section className="recap-highlight recap-months"><div className="panel-header"><div><p className="eyebrow">월별 기록</p><h2>{summary.year}년의 식탁</h2></div></div><div className="month-bar-list">{summary.monthCounts.map((count, index) => <div key={index}><span>{index + 1}월</span><i><b style={{ width: `${(count / peakMonth) * 100}%` }} /></i><strong>{count}</strong></div>)}</div></section>
-          <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">자주 사용한 태그</p><h2>{summary.topTags.length ? '올해의 취향' : '태그를 남겨보세요'}</h2></div></div>{summary.topTags.length ? <p className="recap-tag-list">{summary.topTags.map((tag) => <span key={tag.name}>#{tag.name} <b>{tag.count}</b></span>)}</p> : null}</section>
+          <section className="recap-highlight recap-months"><div className="panel-header"><div><p className="eyebrow">월별 기록</p><h2>{summary.year}년의 식탁</h2></div></div><div className="month-bar-list">{summary.monthCounts.map((count, index) => <button disabled={!count} key={index} type="button" onClick={() => onOpenSearch({ year: summary.year, month: index + 1 })}><span>{index + 1}월</span><i><b style={{ width: `${(count / peakMonth) * 100}%` }} /></i><strong>{count}</strong></button>)}</div></section>
+          <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">자주 사용한 태그</p><h2>{summary.topTags.length ? '올해의 취향' : '태그를 남겨보세요'}</h2></div></div>{summary.topTags.length ? <p className="recap-tag-list">{summary.topTags.map((tag) => <button key={tag.name} type="button" onClick={() => onOpenSearch({ tag: tag.name })}>#{tag.name} <b>{tag.count}</b></button>)}</p> : null}</section>
           <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">가장 만족한 요리</p><h2>{summary.bestRecords.length ? `${summary.bestRecords[0].rating}점 기록` : '평점을 남겨보세요'}</h2></div></div>{summary.bestRecords.length ? <ul className="record-text-list">{summary.bestRecords.map((record) => <RecordTextCard key={record.id} record={record} onOpen={onOpenRecord} />)}</ul> : null}</section>
         </>
       ) : null}
@@ -1733,6 +1838,7 @@ export function App() {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [selectedRecipeScrap, setSelectedRecipeScrap] = useState<RecipeScrap | null>(null);
   const [editingRecord, setEditingRecord] = useState<MealRecord | null>(null);
+  const [searchPreset, setSearchPreset] = useState<SearchPreset | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
   const activeRouteLabel = useMemo(
     () =>
@@ -1851,6 +1957,7 @@ export function App() {
         {activeRoute === 'search' && (
           <SearchView
             key={`search-${dataVersion}`}
+            preset={searchPreset}
             onOpenRecord={(record) => {
               setSelectedRecordId(record.id);
               setActiveRoute('detail');
@@ -1860,6 +1967,10 @@ export function App() {
         {activeRoute === 'recap' && (
           <RecapView
             key={`recap-${dataVersion}`}
+            onOpenSearch={(filter) => {
+              setSearchPreset({ ...filter, key: createLocalId('search-filter') });
+              setActiveRoute('search');
+            }}
             onOpenRecord={(record) => {
               setSelectedRecordId(record.id);
               setActiveRoute('detail');
