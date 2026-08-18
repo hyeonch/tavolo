@@ -7,8 +7,8 @@ The product is now web-app-first. The earlier Expo/React Native work is prototyp
 MVP focus:
 
 - Browser-based personal cooking archive.
-- Google-authenticated users read and write only their Supabase-owned records; browser-local records are explicitly imported once rather than shared across browser users.
-- IndexedDB is retained only to migrate legacy records.
+- Google-authenticated users read and write only their Supabase-owned records; browser-local records are never mixed into an account.
+- IndexedDB is retained only as legacy browser data.
 - Photos use private Supabase Storage.
 - No public feed, likes, comments, or follows.
 - Record meals quickly.

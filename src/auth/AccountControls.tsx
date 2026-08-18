@@ -8,11 +8,9 @@ type AccountControlsProps = {
   compact?: boolean;
   onSignIn: (provider: Extract<Provider, 'google' | 'kakao'>) => void;
   onSignOut: () => void;
-  onImportLocalData?: () => void;
-  isImporting?: boolean;
 };
 
-export function AccountControls({ auth, message, compact = false, onSignIn, onSignOut, onImportLocalData, isImporting = false }: AccountControlsProps) {
+export function AccountControls({ auth, message, compact = false, onSignIn, onSignOut }: AccountControlsProps) {
   if (auth.status === 'loading') {
     return <span className={compact ? 'account-loading compact' : 'account-loading'}>계정 확인 중</span>;
   }
@@ -25,7 +23,6 @@ export function AccountControls({ auth, message, compact = false, onSignIn, onSi
           {auth.status === 'signed-in' ? (
             <>
               <span title={getUserLabel(auth.user)}>{getUserLabel(auth.user)}</span>
-              {onImportLocalData ? <button type="button" onClick={onImportLocalData} disabled={isImporting}>{isImporting ? '기존 기록 가져오는 중' : '기존 기록 가져오기'}</button> : null}
               <button type="button" onClick={onSignOut}>로그아웃</button>
             </>
           ) : (
@@ -43,7 +40,6 @@ export function AccountControls({ auth, message, compact = false, onSignIn, onSi
     return (
       <div className="account-signed-in">
         <span title={getUserLabel(auth.user)}>{getUserLabel(auth.user)}</span>
-        {onImportLocalData ? <button type="button" onClick={onImportLocalData} disabled={isImporting}>{isImporting ? '가져오는 중' : '기존 기록 가져오기'}</button> : null}
         <button type="button" onClick={onSignOut}>로그아웃</button>
       </div>
     );
