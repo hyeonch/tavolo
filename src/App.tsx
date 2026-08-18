@@ -1112,8 +1112,19 @@ function AddView({
                     .filter((media) => getRecipeStepIdForMedia(media) === step.id)
                     .map((media) => (
                       <div className="existing-media-card" key={media.id}>
-                        <span className="media-preview-label">현재 사진</span>
-                        {existingMediaUrls[media.id] ? <img alt={`Step ${index + 1} 기존 과정 사진`} src={existingMediaUrls[media.id]} /> : null}
+                        {replacementFiles[media.id] ? (
+                          <SelectedPhotoPreview
+                            alt={`Step ${index + 1} 교체할 과정 사진`}
+                            file={replacementFiles[media.id]}
+                            label="교체할 사진"
+                            onClear={() => setReplacementFile(media.id, null)}
+                          />
+                        ) : (
+                          <>
+                            <span className="media-preview-label">현재 사진</span>
+                            {existingMediaUrls[media.id] ? <img alt={`Step ${index + 1} 기존 과정 사진`} src={existingMediaUrls[media.id]} /> : null}
+                          </>
+                        )}
                         <div>
                           <label className="small-action file-action">
                             변경
@@ -1126,14 +1137,6 @@ function AddView({
                           </label>
                           <button aria-label={`Step ${index + 1} 기존 사진 삭제`} className="remove-media-action" type="button" onClick={() => markMediaForRemoval(media)}>×</button>
                         </div>
-                        {replacementFiles[media.id] ? (
-                          <SelectedPhotoPreview
-                            alt={`Step ${index + 1} 교체할 과정 사진`}
-                            file={replacementFiles[media.id]}
-                            label="교체할 사진"
-                            onClear={() => setReplacementFile(media.id, null)}
-                          />
-                        ) : null}
                       </div>
                     ))}
                 </div>
@@ -1177,8 +1180,19 @@ function AddView({
         {existingFinishedMedia ? (
           <div className="existing-media-grid finished-media-grid" aria-label="기존 완성사진">
             <div className="existing-media-card">
-              <span className="media-preview-label">현재 사진</span>
-              {existingMediaUrls[existingFinishedMedia.id] ? <img alt="기존 완성사진" src={existingMediaUrls[existingFinishedMedia.id]} /> : null}
+              {finishedPhoto ? (
+                <SelectedPhotoPreview
+                  alt="교체할 완성사진"
+                  file={finishedPhoto}
+                  label="교체할 사진"
+                  onClear={() => setFinishedPhoto(null)}
+                />
+              ) : (
+                <>
+                  <span className="media-preview-label">현재 사진</span>
+                  {existingMediaUrls[existingFinishedMedia.id] ? <img alt="기존 완성사진" src={existingMediaUrls[existingFinishedMedia.id]} /> : null}
+                </>
+              )}
               <div>
                 <label className="small-action file-action">
                   변경
@@ -1191,14 +1205,6 @@ function AddView({
                 </label>
                 <button aria-label="기존 완성사진 삭제" className="remove-media-action" type="button" onClick={() => markMediaForRemoval(existingFinishedMedia)}>×</button>
               </div>
-              {finishedPhoto ? (
-                <SelectedPhotoPreview
-                  alt="교체할 완성사진"
-                  file={finishedPhoto}
-                  label="교체할 사진"
-                  onClear={() => setFinishedPhoto(null)}
-                />
-              ) : null}
             </div>
           </div>
         ) : null}
