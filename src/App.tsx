@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
+import { AccountControls } from './auth/AccountControls';
+import { useAuth } from './auth/useAuth';
 import {
   createMealAsync,
   createMealRecordAsync,
@@ -1338,6 +1340,7 @@ function PlaceholderView({
 }
 
 export function App() {
+  const { auth, message: authMessage, signIn, signOut } = useAuth();
   const [activeRoute, setActiveRoute] = useState<RouteKey>('home');
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [selectedRecipeScrap, setSelectedRecipeScrap] = useState<RecipeScrap | null>(null);
@@ -1384,12 +1387,14 @@ export function App() {
             </button>
           ))}
         </nav>
+
+        <AccountControls auth={auth} message={authMessage} onSignIn={signIn} onSignOut={signOut} />
       </aside>
 
       <main className="content">
         <div className="mobile-topbar">
           <strong>{activeRouteLabel}</strong>
-          <span>Tavolo</span>
+          <AccountControls auth={auth} compact message={authMessage} onSignIn={signIn} onSignOut={signOut} />
         </div>
 
         {activeRoute === 'home' && (

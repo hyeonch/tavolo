@@ -17,7 +17,8 @@ build/
 .env.*
 !.env.example
 
-# Supabase CLI state
+# Vercel and Supabase CLI state
+.vercel/
 supabase/.temp/
 
 # Logs
