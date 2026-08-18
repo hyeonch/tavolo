@@ -7,6 +7,9 @@ import {
   createMediaAsync,
   createRecipeScrapAsync,
   createTagAsync,
+  deleteMealRecordAsync,
+  deleteMediaAsync,
+  deleteRecipeScrapAsync,
   createMediaObjectUrl,
   getMealRecordByIdAsync,
   getTagByNameAsync,
@@ -15,6 +18,7 @@ import {
   listRecipeScrapsAsync,
   replaceMealTagsAsync,
   revokeMediaObjectUrl,
+  updateMealAsync,
   updateMealRecordAsync,
 } from './db';
 import type { IngredientGroup, MealRecord, RecipeScrap, RecipeStep } from './types/meal';
@@ -111,8 +115,41 @@ function getRecipeScrapTitle(recipeScrap: RecipeScrap) {
   }
 }
 
+function getRecipePreview(url: string) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '');
+    let videoId: string | null = null;
+
+    if (host === 'youtu.be') {
+      videoId = parsed.pathname.split('/').filter(Boolean)[0] ?? null;
+    } else if (host.includes('youtube.com')) {
+      videoId =
+        parsed.searchParams.get('v') ??
+        parsed.pathname.match(/\/(?:shorts|embed)\/([^/?]+)/)?.[1] ??
+        null;
+    }
+
+    if (videoId) {
+      return {
+        host,
+        label: 'YouTube',
+        thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      };
+    }
+
+    return {
+      host,
+      label: host.includes('instagram.com') ? 'Instagram' : host,
+      thumbnailUrl: null,
+    };
+  } catch {
+    return { host: '', label: '외부 링크', thumbnailUrl: null };
+  }
+}
+
 type RecipeStepDraft = RecipeStep & {
-  photoName?: string;
+  photoFile?: File | null;
 };
 
 function createIngredientItem() {
@@ -138,6 +175,7 @@ function createRecipeStep(order: number): RecipeStepDraft {
     order,
     body: '',
     mediaIds: [],
+    photoFile: null,
   };
 }
 
@@ -371,17 +409,24 @@ function HomeView({
 function DetailView({
   recordId,
   onBackClick,
+  onEdit,
+  onDeleted,
 }: {
   recordId: string | null;
   onBackClick: () => void;
+  onEdit: (record: MealRecord) => void;
+  onDeleted: () => void;
 }) {
   const [record, setRecord] = useState<MealRecord | null>(null);
   const [representativePhotoUrl, setRepresentativePhotoUrl] = useState<string | null>(null);
+  const [stepPhotoUrls, setStepPhotoUrls] = useState<Record<string, string>>({});
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     let objectUrl: string | null = null;
+    let stepObjectUrls: string[] = [];
 
     async function loadRecordAsync() {
       if (!recordId) {
@@ -411,13 +456,33 @@ function DetailView({
           objectUrl = photoUrl;
         }
 
+        const stepMediaIds = [...new Set(loadedRecord.recipeSteps?.flatMap((step) => step.mediaIds) ?? [])];
+        const stepMediaEntries = await Promise.all(
+          stepMediaIds.map(async (mediaId) => {
+            const stepMedia = await getMediaByIdAsync(mediaId);
+            const stepPhotoUrl = stepMedia ? createMediaObjectUrl(stepMedia) : null;
+
+            if (stepPhotoUrl?.startsWith('blob:')) {
+              stepObjectUrls.push(stepPhotoUrl);
+            }
+
+            return [mediaId, stepPhotoUrl] as const;
+          })
+        );
+
         if (!isMounted) {
           revokeMediaObjectUrl(objectUrl);
+          stepObjectUrls.forEach((url) => revokeMediaObjectUrl(url));
           return;
         }
 
         setRecord(loadedRecord);
         setRepresentativePhotoUrl(photoUrl);
+        setStepPhotoUrls(
+          Object.fromEntries(
+            stepMediaEntries.filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
+          )
+        );
         setLoadState('ready');
       } catch (error) {
         console.error(error);
@@ -433,8 +498,28 @@ function DetailView({
     return () => {
       isMounted = false;
       revokeMediaObjectUrl(objectUrl);
+      stepObjectUrls.forEach((url) => revokeMediaObjectUrl(url));
     };
   }, [recordId]);
+
+  async function handleDelete() {
+    if (
+      !record ||
+      !window.confirm(`“${record.meal?.name ?? '이 기록'}”을(를) 삭제할까요? 사진도 함께 삭제되며 되돌릴 수 없습니다.`)
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await deleteMealRecordAsync(record.id);
+      onDeleted();
+    } catch (error) {
+      console.error(error);
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <section className="view detail-view">
@@ -443,6 +528,17 @@ function DetailView({
         <h1>{record?.meal?.name ?? (loadState === 'loading' ? '기록을 불러오는 중' : '요리 기록')}</h1>
         <p>{record ? formatCookedAtLabel(record.cookedAt) : '저장한 요리 기록을 다시 확인합니다.'}</p>
       </div>
+
+      {record ? (
+        <div className="detail-actions">
+          <button className="secondary-action" type="button" onClick={() => onEdit(record)}>
+            수정하기
+          </button>
+          <button className="danger-action" disabled={isDeleting} type="button" onClick={() => void handleDelete()}>
+            {isDeleting ? '삭제 중' : '삭제'}
+          </button>
+        </div>
+      ) : null}
 
       {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
       {loadState === 'not-found' ? <p className="panel-state">요청한 기록을 찾을 수 없습니다.</p> : null}
@@ -506,8 +602,23 @@ function DetailView({
               <ol className="detail-steps">
                 {record.recipeSteps.map((step) => (
                   <li key={step.id}>
-                    <strong>Step {step.order}</strong>
-                    <p>{step.body}</p>
+                    <div>
+                      <strong>Step {step.order}</strong>
+                      <p>{step.body}</p>
+                    </div>
+                    {step.mediaIds.length ? (
+                      <div className="detail-step-photos">
+                        {step.mediaIds.map((mediaId, index) =>
+                          stepPhotoUrls[mediaId] ? (
+                            <img
+                              alt={`Step ${step.order} 과정 사진 ${index + 1}`}
+                              key={mediaId}
+                              src={stepPhotoUrls[mediaId]}
+                            />
+                          ) : null
+                        )}
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ol>
@@ -525,20 +636,29 @@ function DetailView({
 function AddView({
   onSaved,
   recipeScrap,
+  record,
 }: {
-  onSaved: () => void;
+  onSaved: (recordId: string) => void;
   recipeScrap: RecipeScrap | null;
+  record: MealRecord | null;
 }) {
-  const [mealName, setMealName] = useState(() => recipeScrap?.title ?? '');
-  const [cookedAt, setCookedAt] = useState(new Date().toISOString().slice(0, 10));
-  const [rating, setRating] = useState('');
-  const [memo, setMemo] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
-  const [ingredientGroups, setIngredientGroups] = useState<IngredientGroup[]>(() => [
-    createIngredientGroup('재료'),
-    createIngredientGroup('양념'),
-  ]);
-  const [recipeSteps, setRecipeSteps] = useState<RecipeStepDraft[]>(() => [createRecipeStep(1)]);
+  const isEditing = Boolean(record);
+  const [mealName, setMealName] = useState(() => record?.meal?.name ?? recipeScrap?.title ?? '');
+  const [recipeUrl, setRecipeUrl] = useState(() => record?.meal?.recipeUrl ?? recipeScrap?.url ?? '');
+  const [cookedAt, setCookedAt] = useState(() => record?.cookedAt ?? new Date().toISOString().slice(0, 10));
+  const [rating, setRating] = useState(() => (record?.rating ? String(record.rating) : ''));
+  const [memo, setMemo] = useState(() => record?.memo ?? '');
+  const [tagsInput, setTagsInput] = useState(() => record?.meal?.tags.join(', ') ?? '');
+  const [ingredientGroups, setIngredientGroups] = useState<IngredientGroup[]>(() =>
+    record?.ingredientGroups?.length
+      ? record.ingredientGroups
+      : [createIngredientGroup('재료'), createIngredientGroup('양념')]
+  );
+  const [recipeSteps, setRecipeSteps] = useState<RecipeStepDraft[]>(() =>
+    record?.recipeSteps?.length
+      ? record.recipeSteps.map((step) => ({ ...step, photoFile: null }))
+      : [createRecipeStep(1)]
+  );
   const [finishedPhoto, setFinishedPhoto] = useState<File | null>(null);
   const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>('idle');
 
@@ -586,8 +706,8 @@ function AddView({
     setSubmitState('saving');
 
     try {
-      const mealId = createLocalId('meal');
-      const mealRecordId = createLocalId('meal-record');
+      const mealId = record?.mealId ?? createLocalId('meal');
+      const mealRecordId = record?.id ?? createLocalId('meal-record');
       const trimmedMemo = memo.trim();
       const tagNames = [...new Set(tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean))];
       const savedIngredientGroups = ingredientGroups
@@ -609,15 +729,23 @@ function AddView({
           id: step.id,
           order: index + 1,
           body: step.body.trim(),
-          mediaIds: [],
+          mediaIds: step.mediaIds,
         }));
 
-      await createMealAsync({
-        id: mealId,
-        name: trimmedMealName,
-        recipeUrl: recipeScrap?.url,
-        memo: trimmedMemo || undefined,
-      });
+      if (isEditing) {
+        await updateMealAsync(mealId, {
+          name: trimmedMealName,
+          recipeUrl: recipeUrl.trim() || null,
+          memo: trimmedMemo || null,
+        });
+      } else {
+        await createMealAsync({
+          id: mealId,
+          name: trimmedMealName,
+          recipeUrl: recipeUrl.trim() || undefined,
+          memo: trimmedMemo || undefined,
+        });
+      }
       const tagIds = await Promise.all(
         tagNames.map(async (tagName) => {
           const existingTag = await getTagByNameAsync(tagName);
@@ -630,15 +758,25 @@ function AddView({
         })
       );
       await replaceMealTagsAsync(mealId, tagIds);
-      await createMealRecordAsync({
-        id: mealRecordId,
-        mealId,
-        cookedAt,
-        rating: rating ? Number(rating) : undefined,
-        memo: trimmedMemo || undefined,
-        ingredientGroups: savedIngredientGroups.length ? savedIngredientGroups : undefined,
-        recipeSteps: savedRecipeSteps.length ? savedRecipeSteps : undefined,
-      });
+      if (isEditing) {
+        await updateMealRecordAsync(mealRecordId, {
+          cookedAt,
+          rating: rating ? Number(rating) : null,
+          memo: trimmedMemo || null,
+          ingredientGroups: savedIngredientGroups.length ? savedIngredientGroups : null,
+          recipeSteps: savedRecipeSteps,
+        });
+      } else {
+        await createMealRecordAsync({
+          id: mealRecordId,
+          mealId,
+          cookedAt,
+          rating: rating ? Number(rating) : undefined,
+          memo: trimmedMemo || undefined,
+          ingredientGroups: savedIngredientGroups.length ? savedIngredientGroups : undefined,
+          recipeSteps: savedRecipeSteps.length ? savedRecipeSteps : undefined,
+        });
+      }
 
       if (finishedPhoto) {
         const media = await createMediaAsync({
@@ -649,11 +787,41 @@ function AddView({
         });
 
         if (media) {
+          if (record?.finishedMediaId) {
+            await deleteMediaAsync(record.finishedMediaId);
+          }
           await updateMealRecordAsync(mealRecordId, { finishedMediaId: media.id });
         }
       }
 
-      onSaved();
+      const recipeStepsWithMedia = await Promise.all(
+        savedRecipeSteps.map(async (step) => {
+          const draft = recipeSteps.find((item) => item.id === step.id);
+
+          if (!draft?.photoFile) {
+            return step;
+          }
+
+          const media = await createMediaAsync({
+            id: createLocalId('media'),
+            mealRecordId,
+            type: 'photo',
+            blob: draft.photoFile,
+            recipeStepId: step.id,
+          });
+
+          return {
+            ...step,
+            mediaIds: media ? [...step.mediaIds, media.id] : step.mediaIds,
+          };
+        })
+      );
+
+      if (recipeStepsWithMedia.some((step) => step.mediaIds.length > 0)) {
+        await updateMealRecordAsync(mealRecordId, { recipeSteps: recipeStepsWithMedia });
+      }
+
+      onSaved(mealRecordId);
     } catch (error) {
       console.error(error);
       setSubmitState('error');
@@ -663,8 +831,8 @@ function AddView({
   return (
     <section className="view">
       <div className="section-heading">
-        <p className="eyebrow">새 기록</p>
-        <h1>오늘 만든 요리</h1>
+        <p className="eyebrow">{isEditing ? '기록 수정' : '새 기록'}</p>
+        <h1>{isEditing ? '그날의 기록을 다듬어요.' : '오늘 만든 요리'}</h1>
         <p>
           {recipeScrap
             ? `“${getRecipeScrapTitle(recipeScrap)}” 레시피를 바탕으로 기록합니다.`
@@ -712,6 +880,16 @@ function AddView({
             onChange={(event) => setTagsInput(event.target.value)}
           />
           <span className="field-hint">쉼표로 나누어 입력하세요. 요리 자체에 저장됩니다.</span>
+        </label>
+        <label>
+          원본 레시피 링크
+          <input
+            type="url"
+            value={recipeUrl}
+            placeholder="https://..."
+            onChange={(event) => setRecipeUrl(event.target.value)}
+          />
+          <span className="field-hint">스크랩에서 시작한 기록은 이 링크를 그대로 보관합니다.</span>
         </label>
 
         <fieldset className="recipe-section">
@@ -770,7 +948,7 @@ function AddView({
                     type="file"
                     accept="image/*"
                     onChange={(event) =>
-                      updateRecipeStep(step.id, { photoName: event.target.files?.[0]?.name })
+                      updateRecipeStep(step.id, { photoFile: event.target.files?.[0] ?? null })
                     }
                   />
                 </label>
@@ -782,7 +960,7 @@ function AddView({
                 rows={3}
                 onChange={(event) => updateRecipeStep(step.id, { body: event.target.value })}
               />
-              {step.photoName ? <span className="field-hint">선택됨: {step.photoName}</span> : null}
+              {step.photoFile ? <span className="field-hint">선택됨: {step.photoFile.name}</span> : null}
             </div>
           ))}
           <button
@@ -816,10 +994,26 @@ function AddView({
           <p className="form-error">저장하지 못했습니다. 다시 시도해 주세요.</p>
         ) : null}
         <button className="primary-action" type="submit" disabled={submitState === 'saving'}>
-          {submitState === 'saving' ? '저장 중' : '저장하기'}
+          {submitState === 'saving' ? '저장 중' : isEditing ? '수정 저장하기' : '저장하기'}
         </button>
       </form>
     </section>
+  );
+}
+
+function RecipePreview({ recipeScrap }: { recipeScrap: RecipeScrap }) {
+  const preview = getRecipePreview(recipeScrap.url);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  return (
+    <div className={`scrap-preview${preview.thumbnailUrl && !imageFailed ? ' has-image' : ''}`}>
+      {preview.thumbnailUrl && !imageFailed ? (
+        <img alt="" src={preview.thumbnailUrl} onError={() => setImageFailed(true)} />
+      ) : (
+        <span>{preview.label === 'Instagram' ? '◎' : '↗'}</span>
+      )}
+      <small>{preview.label}</small>
+    </div>
   );
 }
 
@@ -867,6 +1061,15 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
       console.error(error);
       setSubmitState('error');
     }
+  }
+
+  async function handleDelete(recipeScrap: RecipeScrap) {
+    if (!window.confirm(`“${getRecipeScrapTitle(recipeScrap)}” 스크랩을 삭제할까요?`)) {
+      return;
+    }
+
+    await deleteRecipeScrapAsync(recipeScrap.id);
+    await loadRecipeScrapsAsync();
   }
 
   return (
@@ -927,21 +1130,189 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
           <ul className="scrap-list">
             {recipeScraps.map((recipeScrap) => (
               <li key={recipeScrap.id}>
-                <div>
+                <RecipePreview recipeScrap={recipeScrap} />
+                <div className="scrap-body">
                   <strong>{getRecipeScrapTitle(recipeScrap)}</strong>
                   <a href={recipeScrap.url} rel="noreferrer" target="_blank">
-                    {recipeScrap.url}
+                    {getRecipePreview(recipeScrap.url).host || recipeScrap.url} ↗
                   </a>
                   {recipeScrap.memo ? <p>{recipeScrap.memo}</p> : null}
+                  <div className="scrap-actions">
+                    <button type="button" onClick={() => onStartRecord(recipeScrap)}>
+                      이 레시피로 기록
+                    </button>
+                    <button className="quiet-action" type="button" onClick={() => void handleDelete(recipeScrap)}>
+                      삭제
+                    </button>
+                  </div>
                 </div>
-                <button type="button" onClick={() => onStartRecord(recipeScrap)}>
-                  이 레시피로 기록
-                </button>
               </li>
             ))}
           </ul>
         ) : null}
       </section>
+    </section>
+  );
+}
+
+function RecordTextCard({
+  record,
+  onOpen,
+}: {
+  record: MealRecord;
+  onOpen: (record: MealRecord) => void;
+}) {
+  return (
+    <li>
+      <button className="record-text-card" type="button" onClick={() => onOpen(record)}>
+        <span className="record-date">{formatCookedAtLabel(record.cookedAt)}</span>
+        <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
+        <span>{record.meal?.tags.length ? record.meal.tags.map((tag) => `#${tag}`).join(' ') : formatRating(record.rating)}</span>
+      </button>
+    </li>
+  );
+}
+
+function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void }) {
+  const [records, setRecords] = useState<MealRecord[]>([]);
+  const [query, setQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
+
+  useEffect(() => {
+    void listMealRecordsAsync().then(setRecords).catch((error) => console.error(error));
+  }, []);
+
+  const allTags = useMemo(
+    () =>
+      [...new Set(records.flatMap((record) => record.meal?.tags ?? []))].sort((left, right) =>
+        left.localeCompare(right, 'ko-KR')
+      ),
+    [records]
+  );
+  const filteredRecords = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
+
+    return records.filter((record) => {
+      const searchText = [
+        record.meal?.name,
+        record.memo,
+        record.meal?.memo,
+        ...(record.meal?.tags ?? []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('ko-KR');
+
+      return (
+        (!normalizedQuery || searchText.includes(normalizedQuery)) &&
+        (!selectedTag || record.meal?.tags.includes(selectedTag))
+      );
+    });
+  }, [query, records, selectedTag]);
+
+  return (
+    <section className="view search-view">
+      <div className="section-heading">
+        <p className="eyebrow">검색</p>
+        <h1>기억나는 단어로<br />식탁을 찾아보세요.</h1>
+        <p>요리 이름, 메모, 태그를 함께 검색합니다.</p>
+      </div>
+      <label className="search-field">
+        <span aria-hidden="true">⌕</span>
+        <input
+          type="search"
+          value={query}
+          placeholder="요리, 메모, 태그 검색"
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </label>
+      {allTags.length ? (
+        <div className="tag-filter" aria-label="태그 필터">
+          <button className={!selectedTag ? 'is-active' : ''} type="button" onClick={() => setSelectedTag('')}>
+            전체
+          </button>
+          {allTags.map((tag) => (
+            <button
+              className={selectedTag === tag ? 'is-active' : ''}
+              key={tag}
+              type="button"
+              onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <p className="result-count">{filteredRecords.length}개의 기록</p>
+      {filteredRecords.length ? (
+        <ul className="record-text-list">
+          {filteredRecords.map((record) => (
+            <RecordTextCard key={record.id} record={record} onOpen={onOpenRecord} />
+          ))}
+        </ul>
+      ) : (
+        <div className="empty-state">
+          <strong>{records.length ? '조건에 맞는 기록이 없어요.' : '아직 검색할 기록이 없어요.'}</strong>
+          <p>{records.length ? '다른 단어나 태그로 다시 찾아보세요.' : '첫 요리 기록을 남기면 여기서 바로 찾을 수 있어요.'}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RecapView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void }) {
+  const [records, setRecords] = useState<MealRecord[]>([]);
+
+  useEffect(() => {
+    void listMealRecordsAsync().then(setRecords).catch((error) => console.error(error));
+  }, []);
+
+  const ratedRecords = records.filter((record) => record.rating);
+  const averageRating = ratedRecords.length
+    ? (ratedRecords.reduce((sum, record) => sum + (record.rating ?? 0), 0) / ratedRecords.length).toFixed(1)
+    : null;
+  const favoriteTag = useMemo(() => {
+    const counts = new Map<string, number>();
+    records.flatMap((record) => record.meal?.tags ?? []).forEach((tag) => {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    });
+
+    return [...counts.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? null;
+  }, [records]);
+  const bestRating = Math.max(0, ...records.map((record) => record.rating ?? 0));
+  const bestRecords = records.filter((record) => record.rating === bestRating).slice(0, 3);
+
+  return (
+    <section className="view recap-view">
+      <div className="section-heading">
+        <p className="eyebrow">결산</p>
+        <h1>쌓인 식탁을<br />한눈에 돌아봐요.</h1>
+        <p>지금 이 브라우저에 저장된 기록을 바탕으로 계산합니다.</p>
+      </div>
+      {records.length ? (
+        <>
+          <div className="recap-grid">
+            <section><span>남긴 요리</span><strong>{records.length}<small>개</small></strong></section>
+            <section><span>평균 만족도</span><strong>{averageRating ?? '–'}<small>{averageRating ? ' / 5' : ''}</small></strong></section>
+            <section><span>가장 많이 쓴 태그</span><strong className="tag-stat">{favoriteTag ? `#${favoriteTag}` : '–'}</strong></section>
+          </div>
+          <section className="recap-highlight">
+            <div className="panel-header">
+              <div><p className="eyebrow">가장 만족한 요리</p><h2>{bestRating ? `${bestRating}점 기록` : '평점을 남겨보세요'}</h2></div>
+            </div>
+            {bestRecords.length ? (
+              <ul className="record-text-list">
+                {bestRecords.map((record) => <RecordTextCard key={record.id} record={record} onOpen={onOpenRecord} />)}
+              </ul>
+            ) : null}
+          </section>
+        </>
+      ) : (
+        <div className="empty-state">
+          <strong>아직 결산할 기록이 없어요.</strong>
+          <p>요리를 몇 번 남기면 좋아한 맛과 자주 만든 요리가 보이기 시작해요.</p>
+        </div>
+      )}
     </section>
   );
 }
@@ -970,6 +1341,8 @@ export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>('home');
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [selectedRecipeScrap, setSelectedRecipeScrap] = useState<RecipeScrap | null>(null);
+  const [editingRecord, setEditingRecord] = useState<MealRecord | null>(null);
+  const [dataVersion, setDataVersion] = useState(0);
   const activeRouteLabel = useMemo(
     () =>
       activeRoute === 'detail'
@@ -1000,6 +1373,10 @@ export function App() {
 
                 if (route.key !== 'add') {
                   setSelectedRecipeScrap(null);
+                  setEditingRecord(null);
+                } else {
+                  setSelectedRecipeScrap(null);
+                  setEditingRecord(null);
                 }
               }}
             >
@@ -1017,6 +1394,7 @@ export function App() {
 
         {activeRoute === 'home' && (
           <HomeView
+            key={`home-${dataVersion}`}
             onOpenRecord={(record) => {
               setSelectedRecordId(record.id);
               setActiveRoute('detail');
@@ -1025,16 +1403,31 @@ export function App() {
         )}
         {activeRoute === 'add' && (
           <AddView
+            key={editingRecord?.id ?? selectedRecipeScrap?.id ?? 'new-record'}
+            record={editingRecord}
             recipeScrap={selectedRecipeScrap}
-            onSaved={() => {
+            onSaved={(recordId) => {
+              setDataVersion((version) => version + 1);
               setSelectedRecipeScrap(null);
-              setActiveRoute('home');
+              setEditingRecord(null);
+              setSelectedRecordId(recordId);
+              setActiveRoute('detail');
             }}
           />
         )}
         {activeRoute === 'detail' && (
           <DetailView
             recordId={selectedRecordId}
+            onEdit={(record) => {
+              setEditingRecord(record);
+              setSelectedRecipeScrap(null);
+              setActiveRoute('add');
+            }}
+            onDeleted={() => {
+              setDataVersion((version) => version + 1);
+              setSelectedRecordId(null);
+              setActiveRoute('home');
+            }}
             onBackClick={() => {
               setSelectedRecordId(null);
               setActiveRoute('home');
@@ -1045,22 +1438,27 @@ export function App() {
           <RecipeView
             onStartRecord={(recipeScrap) => {
               setSelectedRecipeScrap(recipeScrap);
+              setEditingRecord(null);
               setActiveRoute('add');
             }}
           />
         )}
         {activeRoute === 'search' && (
-          <PlaceholderView
-            eyebrow="검색"
-            title="요리 이름과 메모로 찾기"
-            copy="IndexedDB 검색 쿼리는 Phase 4에서 구현합니다."
+          <SearchView
+            key={`search-${dataVersion}`}
+            onOpenRecord={(record) => {
+              setSelectedRecordId(record.id);
+              setActiveRoute('detail');
+            }}
           />
         )}
         {activeRoute === 'recap' && (
-          <PlaceholderView
-            eyebrow="결산"
-            title="올해의 식탁 돌아보기"
-            copy="요리 횟수와 만족도 요약은 Phase 5에서 채웁니다."
+          <RecapView
+            key={`recap-${dataVersion}`}
+            onOpenRecord={(record) => {
+              setSelectedRecordId(record.id);
+              setActiveRoute('detail');
+            }}
           />
         )}
       </main>

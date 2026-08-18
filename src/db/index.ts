@@ -31,7 +31,11 @@ export {
   listMediaByMealRecordIdAsync,
   revokeMediaObjectUrl,
 } from './mediaRepository';
-export { createRecipeScrapAsync, listRecipeScrapsAsync } from './recipeScrapRepository';
+export {
+  createRecipeScrapAsync,
+  deleteRecipeScrapAsync,
+  listRecipeScrapsAsync,
+} from './recipeScrapRepository';
 export { databaseName, databaseVersion, stores } from './schema';
 export {
   attachTagToMealAsync,

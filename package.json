@@ -22,9 +22,10 @@
   "homepage": "https://github.com/hyeonch/tavolo#readme",
   "private": "true",
   "devDependencies": {
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "@types/react": "^19.2.15",
+    "agent-browser": "^0.34.0",
     "typescript": "^6.0.3",
     "vite": "^7.2.4"
   },

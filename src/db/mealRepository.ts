@@ -85,8 +85,8 @@ export async function updateMealAsync(id: string, input: UpdateMealInput) {
   const meal: MealRow = {
     ...existingMeal,
     name: input.name?.trim() ?? existingMeal.name,
-    recipeUrl: input.recipeUrl ?? existingMeal.recipeUrl,
-    memo: input.memo ?? existingMeal.memo,
+    recipeUrl: 'recipeUrl' in input ? input.recipeUrl?.trim() || undefined : existingMeal.recipeUrl,
+    memo: 'memo' in input ? input.memo?.trim() || undefined : existingMeal.memo,
     updatedAt: input.updatedAt ?? new Date().toISOString(),
   };
 
@@ -214,11 +214,13 @@ export async function updateMealRecordAsync(id: string, input: UpdateMealRecordI
     ...existingRecord,
     mealId: input.mealId ?? existingRecord.mealId,
     cookedAt: input.cookedAt ?? existingRecord.cookedAt,
-    rating: input.rating ?? existingRecord.rating,
-    memo: input.memo ?? existingRecord.memo,
-    ingredientGroups: input.ingredientGroups ?? existingRecord.ingredientGroups,
-    recipeSteps: input.recipeSteps ?? existingRecord.recipeSteps,
-    finishedMediaId: input.finishedMediaId ?? existingRecord.finishedMediaId,
+    rating: 'rating' in input ? input.rating ?? undefined : existingRecord.rating,
+    memo: 'memo' in input ? input.memo?.trim() || undefined : existingRecord.memo,
+    ingredientGroups:
+      'ingredientGroups' in input ? input.ingredientGroups ?? undefined : existingRecord.ingredientGroups,
+    recipeSteps: 'recipeSteps' in input ? input.recipeSteps ?? undefined : existingRecord.recipeSteps,
+    finishedMediaId:
+      'finishedMediaId' in input ? input.finishedMediaId ?? undefined : existingRecord.finishedMediaId,
     updatedAt: input.updatedAt ?? new Date().toISOString(),
   };
 
