@@ -12,7 +12,7 @@ Current direction:
 - Each `MealRecord` has at most one finished-dish representative photo; this should be the thumbnail source for home, list, search, and recap surfaces.
 - Signed-in users store structured records in Supabase; RLS makes each account's records private.
 - Attached photos are represented by `Media` metadata in Supabase and private files in Supabase Storage.
-- IndexedDB remains only as the legacy browser archive used by the explicit one-time import flow.
+- IndexedDB remains only as the legacy browser archive and is not used by signed-in account data.
 
 Current conceptual types:
 
@@ -82,4 +82,3 @@ Supabase persistence direction:
 - All account data is owned by `auth.users.id` through a `user_id` column and RLS; rows cannot cross user boundaries.
 - `meals`, `meal_records`, `tags`, `meal_tags`, and `recipe_scraps` map directly to the current conceptual types. Ingredient groups and recipe steps remain JSONB columns on `meal_records`.
 - `media` stores private Storage metadata (`storage_path`, MIME type, size, kind, and optional recipe-step ID); Blob data itself lives in the private `meal-media` bucket.
-- Existing IndexedDB records are imported only after the signed-in user explicitly requests it. Track completion per browser and account so the same browser archive is never copied into another account automatically.
