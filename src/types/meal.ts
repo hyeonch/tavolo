@@ -72,6 +72,31 @@ export type RecipeScrap = {
   updatedAt: string;
 };
 
+export type WorldCupStatus = 'in-progress' | 'completed';
+
+export type WorldCupSession = {
+  id: string;
+  candidateRecordIds: string[];
+  totalRounds: number;
+  currentRound: number;
+  status: WorldCupStatus;
+  winnerRecordId?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorldCupMatch = {
+  id: string;
+  sessionId: string;
+  round: number;
+  order: number;
+  leftRecordId: string;
+  rightRecordId: string;
+  winnerRecordId?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type CreateMealInput = {
   id: string;
   name: string;

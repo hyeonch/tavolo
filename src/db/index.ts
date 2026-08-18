@@ -3,6 +3,7 @@ import * as localMeal from './mealRepository';
 import * as localMedia from './mediaRepository';
 import * as localRecipeScrap from './recipeScrapRepository';
 import * as localTag from './tagRepository';
+import * as worldCup from './worldCupRepository';
 
 export { clearDatabaseAsync, getDatabaseAsync, requestToPromise, transactionDone, withStoreAsync, withStoresAsync } from './database';
 export { seedDebugDataAsync } from './debugSeed';
@@ -45,3 +46,7 @@ export const deleteTagAsync = (...args: Parameters<typeof localTag.deleteTagAsyn
 export const createRecipeScrapAsync = (...args: Parameters<typeof localRecipeScrap.createRecipeScrapAsync>) => scraps().createRecipeScrapAsync(...args);
 export const listRecipeScrapsAsync = () => scraps().listRecipeScrapsAsync();
 export const deleteRecipeScrapAsync = (...args: Parameters<typeof localRecipeScrap.deleteRecipeScrapAsync>) => scraps().deleteRecipeScrapAsync(...args);
+export const createWorldCupSessionAsync = (...args: Parameters<typeof worldCup.createWorldCupSessionAsync>) => worldCup.createWorldCupSessionAsync(...args);
+export const getLatestWorldCupSessionAsync = () => worldCup.getLatestWorldCupSessionAsync();
+export const listWorldCupMatchesAsync = (...args: Parameters<typeof worldCup.listWorldCupMatchesAsync>) => worldCup.listWorldCupMatchesAsync(...args);
+export const saveWorldCupProgressAsync = (...args: Parameters<typeof worldCup.saveWorldCupProgressAsync>) => worldCup.saveWorldCupProgressAsync(...args);
