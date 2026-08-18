@@ -1025,6 +1025,7 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
   const [title, setTitle] = useState('');
   const [memo, setMemo] = useState('');
   const [recipeScraps, setRecipeScraps] = useState<RecipeScrap[]>([]);
+  const [query, setQuery] = useState('');
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>('idle');
 
@@ -1075,6 +1076,19 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
     await loadRecipeScrapsAsync();
   }
 
+  const filteredRecipeScraps = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
+    if (!normalizedQuery) return recipeScraps;
+
+    return recipeScraps.filter((recipeScrap) =>
+      [getRecipeScrapTitle(recipeScrap), recipeScrap.memo, recipeScrap.url]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('ko-KR')
+        .includes(normalizedQuery)
+    );
+  }, [query, recipeScraps]);
+
   return (
     <section className="view recipe-view">
       <div className="section-heading">
@@ -1119,8 +1133,19 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
       <section className="recipe-scrap-list" aria-live="polite">
         <div className="panel-header">
           <h2>저장한 레시피</h2>
-          <span>{recipeScraps.length}개</span>
+          <span>{filteredRecipeScraps.length}개</span>
         </div>
+        {recipeScraps.length ? (
+          <label className="compact-search-field">
+            <span aria-hidden="true">⌕</span>
+            <input
+              type="search"
+              value={query}
+              placeholder="제목, 메모, 링크 검색"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+        ) : null}
         {loadState === 'loading' ? <p className="panel-state">레시피를 불러오는 중입니다.</p> : null}
         {loadState === 'error' ? <p className="panel-state">저장한 레시피를 불러오지 못했습니다.</p> : null}
         {loadState === 'ready' && recipeScraps.length === 0 ? (
@@ -1129,9 +1154,9 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
             <p>마음에 든 외부 레시피 링크를 먼저 모아보세요.</p>
           </div>
         ) : null}
-        {recipeScraps.length ? (
+        {filteredRecipeScraps.length ? (
           <ul className="scrap-list">
-            {recipeScraps.map((recipeScrap) => (
+            {filteredRecipeScraps.map((recipeScrap) => (
               <li key={recipeScrap.id}>
                 <RecipePreview recipeScrap={recipeScrap} />
                 <div className="scrap-body">
@@ -1153,6 +1178,12 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
             ))}
           </ul>
         ) : null}
+        {loadState === 'ready' && recipeScraps.length > 0 && filteredRecipeScraps.length === 0 ? (
+          <div className="empty-state">
+            <strong>조건에 맞는 레시피가 없어요.</strong>
+            <p>제목이나 메모, 링크의 다른 단어로 찾아보세요.</p>
+          </div>
+        ) : null}
       </section>
     </section>
   );
@@ -1171,6 +1202,55 @@ function RecordTextCard({
         <span className="record-date">{formatCookedAtLabel(record.cookedAt)}</span>
         <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
         <span>{record.meal?.tags.length ? record.meal.tags.map((tag) => `#${tag}`).join(' ') : formatRating(record.rating)}</span>
+      </button>
+    </li>
+  );
+}
+
+function RecordSearchCard({ record, onOpen }: { record: MealRecord; onOpen: (record: MealRecord) => void }) {
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrl: string | null = null;
+    const mediaId = record.finishedMediaId ?? record.mediaIds[0];
+
+    async function loadThumbnailAsync() {
+      if (!mediaId) {
+        setThumbnailUrl(null);
+        return;
+      }
+
+      try {
+        const media = await getMediaByIdAsync(mediaId);
+        const url = media ? createMediaObjectUrl(media) : null;
+        if (url?.startsWith('blob:')) objectUrl = url;
+        if (isMounted) setThumbnailUrl(url);
+      } catch (error) {
+        console.error(error);
+        if (isMounted) setThumbnailUrl(null);
+      }
+    }
+
+    void loadThumbnailAsync();
+
+    return () => {
+      isMounted = false;
+      revokeMediaObjectUrl(objectUrl);
+    };
+  }, [record.finishedMediaId, record.id, record.mediaIds]);
+
+  return (
+    <li>
+      <button className="record-search-card" type="button" onClick={() => onOpen(record)}>
+        <span className="record-search-thumbnail" aria-hidden="true">
+          {thumbnailUrl ? <img alt="" src={thumbnailUrl} /> : <span>{record.meal?.name.slice(0, 1) ?? 'T'}</span>}
+        </span>
+        <span className="record-search-body">
+          <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
+          <span>{record.meal?.tags.length ? record.meal.tags.map((tag) => `#${tag}`).join(' ') : '태그 없음'}</span>
+        </span>
+        <span className="record-date">{formatCookedAtLabel(record.cookedAt)}</span>
       </button>
     </li>
   );
@@ -1201,6 +1281,9 @@ function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => vo
         record.memo,
         record.meal?.memo,
         ...(record.meal?.tags ?? []),
+        ...(record.ingredientGroups?.flatMap((group) =>
+          group.items.flatMap((item) => [item.name, item.note])
+        ) ?? []),
       ]
         .filter(Boolean)
         .join(' ')
@@ -1217,15 +1300,15 @@ function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => vo
     <section className="view search-view">
       <div className="section-heading">
         <p className="eyebrow">검색</p>
-        <h1>기억나는 단어로<br />식탁을 찾아보세요.</h1>
-        <p>요리 이름, 메모, 태그를 함께 검색합니다.</p>
+        <h1>쌓인 식탁을<br />한눈에 찾아보세요.</h1>
+        <p>처음에는 최신 요리 기록을 모두 보여주고, 요리 이름·메모·태그·재료로 좁혀볼 수 있습니다.</p>
       </div>
       <label className="search-field">
         <span aria-hidden="true">⌕</span>
         <input
           type="search"
           value={query}
-          placeholder="요리, 메모, 태그 검색"
+          placeholder="요리, 태그, 메모, 재료 검색"
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
@@ -1246,11 +1329,11 @@ function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => vo
           ))}
         </div>
       ) : null}
-      <p className="result-count">{filteredRecords.length}개의 기록</p>
+      <p className="result-count">{query.trim() || selectedTag ? `${filteredRecords.length}개의 검색 결과` : `전체 ${filteredRecords.length}개의 기록`}</p>
       {filteredRecords.length ? (
-        <ul className="record-text-list">
+        <ul className="record-search-list">
           {filteredRecords.map((record) => (
-            <RecordTextCard key={record.id} record={record} onOpen={onOpenRecord} />
+            <RecordSearchCard key={record.id} record={record} onOpen={onOpenRecord} />
           ))}
         </ul>
       ) : (
