@@ -908,19 +908,17 @@ h2 {
   object-fit: cover;
 }
 
+.media-preview-label {
+  color: #52645a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .existing-media-card > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-}
-
-.existing-media-card small {
-  overflow: hidden;
-  color: #52645a;
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .file-action {
@@ -944,6 +942,52 @@ h2 {
   color: #a43e32;
   font-size: 20px;
   line-height: 1;
+}
+
+.selected-photo-preview {
+  display: grid;
+  width: min(100%, 260px);
+  gap: 6px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #a9c6b7;
+  border-radius: 9px;
+  background: #f5faf6;
+}
+
+.existing-media-card .selected-photo-preview {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.selected-photo-preview img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.selected-photo-preview figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #1f4f42;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.selected-photo-preview button {
+  border: 0;
+  border-radius: 5px;
+  background: #e4eee7;
+  color: #1f4f42;
+  font: inherit;
+  padding: 4px 7px;
 }
 
 .form-error {

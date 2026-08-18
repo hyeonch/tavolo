@@ -156,6 +156,39 @@ type RecipeStepDraft = RecipeStep & {
   photoFile?: File | null;
 };
 
+function SelectedPhotoPreview({
+  file,
+  alt,
+  label,
+  onClear,
+}: {
+  file: File;
+  alt: string;
+  label: string;
+  onClear: () => void;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <figure className="selected-photo-preview">
+      <img alt={alt} src={previewUrl ?? ''} />
+      <figcaption>
+        <span>{label}</span>
+        <button type="button" onClick={onClear}>
+          취소
+        </button>
+      </figcaption>
+    </figure>
+  );
+}
+
 function createIngredientItem() {
   return {
     id: createLocalId('ingredient'),
@@ -1068,6 +1101,7 @@ function AddView({
                     .filter((media) => media.recipeStepId === step.id)
                     .map((media) => (
                       <div className="existing-media-card" key={media.id}>
+                        <span className="media-preview-label">현재 사진</span>
                         {existingMediaUrls[media.id] ? <img alt={`Step ${index + 1} 기존 과정 사진`} src={existingMediaUrls[media.id]} /> : null}
                         <div>
                           <label className="small-action file-action">
@@ -1081,12 +1115,26 @@ function AddView({
                           </label>
                           <button aria-label={`Step ${index + 1} 기존 사진 삭제`} className="remove-media-action" type="button" onClick={() => markMediaForRemoval(media)}>×</button>
                         </div>
-                        {replacementFiles[media.id] ? <small>변경 예정: {replacementFiles[media.id].name}</small> : null}
+                        {replacementFiles[media.id] ? (
+                          <SelectedPhotoPreview
+                            alt={`Step ${index + 1} 교체할 과정 사진`}
+                            file={replacementFiles[media.id]}
+                            label="교체할 사진"
+                            onClear={() => setReplacementFile(media.id, null)}
+                          />
+                        ) : null}
                       </div>
                     ))}
                 </div>
               ) : null}
-              {step.photoFile ? <span className="field-hint">선택됨: {step.photoFile.name}</span> : null}
+              {step.photoFile ? (
+                <SelectedPhotoPreview
+                  alt={`Step ${index + 1} 추가할 과정 사진`}
+                  file={step.photoFile}
+                  label="추가할 사진"
+                  onClear={() => updateRecipeStep(step.id, { photoFile: null })}
+                />
+              ) : null}
             </div>
           ))}
           <button
@@ -1107,9 +1155,18 @@ function AddView({
           />
           <span className="field-hint">완성사진은 1장만 등록하며, 홈과 목록의 대표 썸네일로 사용됩니다.</span>
         </label>
+        {finishedPhoto && !existingFinishedMedia ? (
+          <SelectedPhotoPreview
+            alt="추가할 완성사진"
+            file={finishedPhoto}
+            label="추가할 완성사진"
+            onClear={() => setFinishedPhoto(null)}
+          />
+        ) : null}
         {existingFinishedMedia ? (
           <div className="existing-media-grid finished-media-grid" aria-label="기존 완성사진">
             <div className="existing-media-card">
+              <span className="media-preview-label">현재 사진</span>
               {existingMediaUrls[existingFinishedMedia.id] ? <img alt="기존 완성사진" src={existingMediaUrls[existingFinishedMedia.id]} /> : null}
               <div>
                 <label className="small-action file-action">
@@ -1123,7 +1180,14 @@ function AddView({
                 </label>
                 <button aria-label="기존 완성사진 삭제" className="remove-media-action" type="button" onClick={() => markMediaForRemoval(existingFinishedMedia)}>×</button>
               </div>
-              {finishedPhoto ? <small>변경 예정: {finishedPhoto.name}</small> : null}
+              {finishedPhoto ? (
+                <SelectedPhotoPreview
+                  alt="교체할 완성사진"
+                  file={finishedPhoto}
+                  label="교체할 사진"
+                  onClear={() => setFinishedPhoto(null)}
+                />
+              ) : null}
             </div>
           </div>
         ) : null}
