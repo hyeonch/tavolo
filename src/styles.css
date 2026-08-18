@@ -97,6 +97,73 @@ button {
   color: #1f4f42;
 }
 
+.account-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  border-top: 1px solid #e2ded3;
+  padding-top: 20px;
+}
+
+.account-copy,
+.account-message {
+  color: #6a716c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.account-message {
+  color: #9a4a40;
+}
+
+.account-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.account-actions button,
+.account-signed-in button,
+.mobile-account-menu summary,
+.mobile-account-menu button {
+  min-height: 38px;
+  border: 1px solid #cdd7cf;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #1f4f42;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 10px;
+}
+
+.account-actions button:first-child {
+  background: #356859;
+  border-color: #356859;
+  color: #ffffff;
+}
+
+.account-signed-in {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+  border-top: 1px solid #e2ded3;
+  padding-top: 20px;
+}
+
+.account-signed-in span {
+  overflow: hidden;
+  color: #52645a;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-loading {
+  margin-top: auto;
+  color: #6a716c;
+  font-size: 13px;
+}
+
 .content {
   width: min(100%, 980px);
   padding: 48px 32px;
@@ -865,11 +932,75 @@ h2 {
   }
 
   .mobile-topbar {
+    position: relative;
+    z-index: 5;
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 28px;
     color: #59605b;
+  }
+
+  .account-panel,
+  .sidebar > .account-signed-in,
+  .sidebar > .account-loading {
+    display: none;
+  }
+
+  .mobile-account-menu summary {
+    min-height: 32px;
+    display: grid;
+    place-items: center;
+    list-style: none;
+    font-size: 12px;
+  }
+
+  .mobile-account-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-account-menu {
+    position: relative;
+  }
+
+  .mobile-account-menu > div {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 6px);
+    right: 0;
+    display: grid;
+    min-width: 180px;
+    gap: 8px;
+    border: 1px solid #d9ded8;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 12px 24px rgb(30 33 31 / 12%);
+    padding: 10px;
+  }
+
+  .mobile-account-menu > div span {
+    overflow: hidden;
+    color: #52645a;
+    font-size: 12px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-account-menu button {
+    min-height: 34px;
+    font-size: 12px;
+  }
+
+  .mobile-account-menu button:first-child {
+    background: #356859;
+    border-color: #356859;
+    color: #ffffff;
+  }
+
+  .account-loading.compact {
+    margin: 0;
+    font-size: 12px;
   }
 
   .mobile-topbar strong {
