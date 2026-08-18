@@ -4,6 +4,8 @@ Tavolo is a personal cooking archive, not a social network.
 
 The product is now web-app-first. The earlier Expo/React Native work is prototype context; new MVP implementation should target a browser-based web app unless the user explicitly changes direction again.
 
+When Tavolo is added to a device home screen, it should launch in standalone app mode rather than a browser tab. This does not imply offline support.
+
 MVP focus:
 
 - Browser-based personal cooking archive.

@@ -880,6 +880,72 @@ h2 {
   white-space: nowrap;
 }
 
+.existing-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.finished-media-grid {
+  width: min(100%, 260px);
+}
+
+.existing-media-card {
+  display: grid;
+  gap: 7px;
+  overflow: hidden;
+  border: 1px solid #d9ded8;
+  border-radius: 9px;
+  background: #fff;
+  padding: 8px;
+}
+
+.existing-media-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.existing-media-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.existing-media-card small {
+  overflow: hidden;
+  color: #52645a;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-action {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.file-action input {
+  display: none;
+}
+
+.remove-media-action {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid #efc8c2;
+  border-radius: 7px;
+  background: #fff9f8;
+  color: #a43e32;
+  font-size: 20px;
+  line-height: 1;
+}
+
 .form-error {
   color: #b04436;
   font-weight: 700;

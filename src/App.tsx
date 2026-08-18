@@ -17,6 +17,7 @@ import {
   getTagByNameAsync,
   getMediaByIdAsync,
   listMealRecordsAsync,
+  listMediaByMealRecordIdAsync,
   listRecipeScrapsAsync,
   replaceMealTagsAsync,
   revokeMediaObjectUrl,
@@ -24,7 +25,7 @@ import {
   updateMealAsync,
   updateMealRecordAsync,
 } from './db';
-import type { IngredientGroup, MealRecord, RecipeScrap, RecipeStep } from './types/meal';
+import type { IngredientGroup, MealRecord, Media, RecipeScrap, RecipeStep } from './types/meal';
 
 type RouteKey = 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail';
 
@@ -663,7 +664,77 @@ function AddView({
       : [createRecipeStep(1)]
   );
   const [finishedPhoto, setFinishedPhoto] = useState<File | null>(null);
+  const [existingMedia, setExistingMedia] = useState<Media[]>([]);
+  const [existingMediaUrls, setExistingMediaUrls] = useState<Record<string, string>>({});
+  const [removedMediaIds, setRemovedMediaIds] = useState<Set<string>>(() => new Set());
+  const [replacementFiles, setReplacementFiles] = useState<Record<string, File>>({});
   const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>('idle');
+
+  useEffect(() => {
+    if (!record) return;
+
+    const recordId = record.id;
+    let isMounted = true;
+    const objectUrls: string[] = [];
+
+    async function loadExistingMediaAsync() {
+      try {
+        const media = await listMediaByMealRecordIdAsync(recordId);
+        const entries = media.map((item) => {
+          const url = createMediaObjectUrl(item);
+          if (url?.startsWith('blob:')) objectUrls.push(url);
+          return [item.id, url] as const;
+        });
+
+        if (!isMounted) return;
+        setExistingMedia(media);
+        setExistingMediaUrls(
+          Object.fromEntries(entries.filter((entry): entry is readonly [string, string] => Boolean(entry[1])))
+        );
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void loadExistingMediaAsync();
+    return () => {
+      isMounted = false;
+      objectUrls.forEach((url) => revokeMediaObjectUrl(url));
+    };
+  }, [record]);
+
+  const visibleExistingMedia = useMemo(
+    () => existingMedia.filter((media) => !removedMediaIds.has(media.id)),
+    [existingMedia, removedMediaIds]
+  );
+  const existingFinishedMedia = visibleExistingMedia.find((media) => media.id === record?.finishedMediaId);
+
+  function markMediaForRemoval(media: Media) {
+    setRemovedMediaIds((ids) => new Set(ids).add(media.id));
+    setReplacementFiles((files) => {
+      const nextFiles = { ...files };
+      delete nextFiles[media.id];
+      return nextFiles;
+    });
+    if (media.recipeStepId) {
+      setRecipeSteps((steps) =>
+        steps.map((step) =>
+          step.id === media.recipeStepId ? { ...step, mediaIds: step.mediaIds.filter((id) => id !== media.id) } : step
+        )
+      );
+    }
+  }
+
+  function setReplacementFile(mediaId: string, file: File | null) {
+    setReplacementFiles((files) => {
+      if (!file) {
+        const nextFiles = { ...files };
+        delete nextFiles[mediaId];
+        return nextFiles;
+      }
+      return { ...files, [mediaId]: file };
+    });
+  }
 
   function updateIngredientItem(
     groupId: string,
@@ -781,6 +852,11 @@ function AddView({
         });
       }
 
+      const mediaIdsToDelete = new Set(removedMediaIds);
+      let finishedMediaId = removedMediaIds.has(record?.finishedMediaId ?? '')
+        ? undefined
+        : record?.finishedMediaId;
+
       if (finishedPhoto) {
         const media = await createMediaAsync({
           id: createLocalId('media'),
@@ -790,14 +866,12 @@ function AddView({
         });
 
         if (media) {
-          if (record?.finishedMediaId) {
-            await deleteMediaAsync(record.finishedMediaId);
-          }
-          await updateMealRecordAsync(mealRecordId, { finishedMediaId: media.id });
+          if (record?.finishedMediaId) mediaIdsToDelete.add(record.finishedMediaId);
+          finishedMediaId = media.id;
         }
       }
 
-      const recipeStepsWithMedia = await Promise.all(
+      let recipeStepsWithMedia = await Promise.all(
         savedRecipeSteps.map(async (step) => {
           const draft = recipeSteps.find((item) => item.id === step.id);
 
@@ -820,9 +894,34 @@ function AddView({
         })
       );
 
-      if (recipeStepsWithMedia.some((step) => step.mediaIds.length > 0)) {
-        await updateMealRecordAsync(mealRecordId, { recipeSteps: recipeStepsWithMedia });
+      for (const [mediaId, file] of Object.entries(replacementFiles)) {
+        const existing = existingMedia.find((media) => media.id === mediaId);
+        if (!existing?.recipeStepId || removedMediaIds.has(mediaId)) continue;
+
+        const replacement = await createMediaAsync({
+          id: createLocalId('media'),
+          mealRecordId,
+          type: 'photo',
+          blob: file,
+          recipeStepId: existing.recipeStepId,
+        });
+        if (!replacement) continue;
+
+        mediaIdsToDelete.add(mediaId);
+        recipeStepsWithMedia = recipeStepsWithMedia.map((step) =>
+          step.id === existing.recipeStepId
+            ? { ...step, mediaIds: step.mediaIds.map((id) => (id === mediaId ? replacement.id : id)) }
+            : step
+        );
       }
+
+      if (isEditing || finishedPhoto || mediaIdsToDelete.size || Object.keys(replacementFiles).length) {
+        await updateMealRecordAsync(mealRecordId, {
+          recipeSteps: recipeStepsWithMedia,
+          finishedMediaId: finishedMediaId ?? null,
+        });
+      }
+      await Promise.all([...mediaIdsToDelete].map((mediaId) => deleteMediaAsync(mediaId)));
 
       onSaved(mealRecordId);
     } catch (error) {
@@ -963,6 +1062,30 @@ function AddView({
                 rows={3}
                 onChange={(event) => updateRecipeStep(step.id, { body: event.target.value })}
               />
+              {visibleExistingMedia.filter((media) => media.recipeStepId === step.id).length ? (
+                <div className="existing-media-grid" aria-label={`Step ${index + 1} 기존 사진`}>
+                  {visibleExistingMedia
+                    .filter((media) => media.recipeStepId === step.id)
+                    .map((media) => (
+                      <div className="existing-media-card" key={media.id}>
+                        {existingMediaUrls[media.id] ? <img alt={`Step ${index + 1} 기존 과정 사진`} src={existingMediaUrls[media.id]} /> : null}
+                        <div>
+                          <label className="small-action file-action">
+                            변경
+                            <input
+                              accept="image/*"
+                              aria-label={`Step ${index + 1} 기존 사진 변경`}
+                              type="file"
+                              onChange={(event) => setReplacementFile(media.id, event.target.files?.[0] ?? null)}
+                            />
+                          </label>
+                          <button aria-label={`Step ${index + 1} 기존 사진 삭제`} className="remove-media-action" type="button" onClick={() => markMediaForRemoval(media)}>×</button>
+                        </div>
+                        {replacementFiles[media.id] ? <small>변경 예정: {replacementFiles[media.id].name}</small> : null}
+                      </div>
+                    ))}
+                </div>
+              ) : null}
               {step.photoFile ? <span className="field-hint">선택됨: {step.photoFile.name}</span> : null}
             </div>
           ))}
@@ -984,6 +1107,26 @@ function AddView({
           />
           <span className="field-hint">완성사진은 1장만 등록하며, 홈과 목록의 대표 썸네일로 사용됩니다.</span>
         </label>
+        {existingFinishedMedia ? (
+          <div className="existing-media-grid finished-media-grid" aria-label="기존 완성사진">
+            <div className="existing-media-card">
+              {existingMediaUrls[existingFinishedMedia.id] ? <img alt="기존 완성사진" src={existingMediaUrls[existingFinishedMedia.id]} /> : null}
+              <div>
+                <label className="small-action file-action">
+                  변경
+                  <input
+                    accept="image/*"
+                    aria-label="기존 완성사진 변경"
+                    type="file"
+                    onChange={(event) => setFinishedPhoto(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <button aria-label="기존 완성사진 삭제" className="remove-media-action" type="button" onClick={() => markMediaForRemoval(existingFinishedMedia)}>×</button>
+              </div>
+              {finishedPhoto ? <small>변경 예정: {finishedPhoto.name}</small> : null}
+            </div>
+          </div>
+        ) : null}
         <label>
           메모
           <textarea
