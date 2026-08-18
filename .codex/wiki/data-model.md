@@ -10,9 +10,9 @@ Current direction:
 - Recipe notes are part of a cooking record for now: keep ingredient groups and recipe steps attached to `MealRecord` until a richer reusable recipe model is needed.
 - Step photos should still be represented as `Media`, with enough metadata to associate them to a recipe step when implemented.
 - Each `MealRecord` has at most one finished-dish representative photo; this should be the thumbnail source for home, list, search, and recap surfaces.
-- The web MVP should store structured records in IndexedDB.
-- Attached photos should be represented by `Media` and stored locally in the browser, using Blob/File data where practical.
-- TVL-29 uses a small native IndexedDB wrapper instead of adding an IndexedDB library.
+- Signed-in users store structured records in Supabase; RLS makes each account's records private.
+- Attached photos are represented by `Media` metadata in Supabase and private files in Supabase Storage.
+- IndexedDB remains only as the legacy browser archive used by the explicit one-time import flow.
 
 Current conceptual types:
 
@@ -82,4 +82,4 @@ Supabase persistence direction:
 - All account data is owned by `auth.users.id` through a `user_id` column and RLS; rows cannot cross user boundaries.
 - `meals`, `meal_records`, `tags`, `meal_tags`, and `recipe_scraps` map directly to the current conceptual types. Ingredient groups and recipe steps remain JSONB columns on `meal_records`.
 - `media` stores private Storage metadata (`storage_path`, MIME type, size, kind, and optional recipe-step ID); Blob data itself lives in the private `meal-media` bucket.
-- Existing IndexedDB records are imported only after the user explicitly approves a first-login migration. Keep the local copy until that import succeeds.
+- Existing IndexedDB records are imported only after the signed-in user explicitly requests it. Track completion per browser and account so the same browser archive is never copied into another account automatically.

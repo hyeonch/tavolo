@@ -6,11 +6,11 @@ The product is now web-app-first. The earlier Expo/React Native work is prototyp
 
 MVP focus:
 
-- Browser-based local-first web app.
-- The next delivery phase adds account-backed Supabase persistence with Google and Kakao sign-in; Supabase becomes the source of truth after sign-in.
-- IndexedDB-backed local data.
-- Browser File/Blob storage for attached photos where practical.
-- No server, login, sync, public feed, likes, comments, or follows.
+- Browser-based personal cooking archive.
+- Google-authenticated users read and write only their Supabase-owned records; browser-local records are explicitly imported once rather than shared across browser users.
+- IndexedDB is retained only to migrate legacy records.
+- Photos use private Supabase Storage.
+- No public feed, likes, comments, or follows.
 - Record meals quickly.
 - A cooking record can include recipe notes: ingredient and seasoning groups, plus step-by-step cooking instructions.
 - Recipe steps can have a photo attachment entry point so users can capture intermediate cooking states, not only the finished dish.
