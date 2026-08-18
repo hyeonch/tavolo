@@ -50,6 +50,12 @@ function migrateDatabase(database: IDBDatabase, transaction: IDBTransaction) {
   });
   ensureIndex(mealTags, 'mealId', 'mealId', { unique: false });
   ensureIndex(mealTags, 'tagId', 'tagId', { unique: false });
+
+  const recipeScraps = ensureObjectStore(database, transaction, stores.recipeScraps, {
+    keyPath: 'id',
+  });
+  ensureIndex(recipeScraps, 'updatedAt', 'updatedAt', { unique: false });
+  ensureIndex(recipeScraps, 'url', 'url', { unique: false });
 }
 
 export function requestToPromise<T>(request: IDBRequest<T>) {

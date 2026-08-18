@@ -8,6 +8,27 @@ export type Meal = {
   updatedAt: string;
 };
 
+export type IngredientItem = {
+  id: string;
+  name: string;
+  quantity?: string;
+  unit?: string;
+  note?: string;
+};
+
+export type IngredientGroup = {
+  id: string;
+  name: string;
+  items: IngredientItem[];
+};
+
+export type RecipeStep = {
+  id: string;
+  order: number;
+  body: string;
+  mediaIds: string[];
+};
+
 export type MealRecord = {
   id: string;
   mealId: string;
@@ -15,6 +36,9 @@ export type MealRecord = {
   cookedAt: string;
   rating?: number;
   memo?: string;
+  ingredientGroups?: IngredientGroup[];
+  recipeSteps?: RecipeStep[];
+  finishedMediaId?: string;
   mediaIds: string[];
   createdAt: string;
   updatedAt: string;
@@ -27,6 +51,7 @@ export type Media = {
   uri?: string;
   blob?: Blob;
   thumbnailUri?: string;
+  recipeStepId?: string;
   createdAt: string;
 };
 
@@ -36,6 +61,15 @@ export type Tag = {
   id: string;
   name: string;
   createdAt: string;
+};
+
+export type RecipeScrap = {
+  id: string;
+  url: string;
+  title?: string;
+  memo?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CreateMealInput = {
@@ -57,12 +91,18 @@ export type CreateMealRecordInput = {
   cookedAt: string;
   rating?: number;
   memo?: string;
+  ingredientGroups?: IngredientGroup[];
+  recipeSteps?: RecipeStep[];
+  finishedMediaId?: string;
   createdAt?: string;
   updatedAt?: string;
 };
 
 export type UpdateMealRecordInput = Partial<
-  Pick<MealRecord, 'mealId' | 'cookedAt' | 'rating' | 'memo'>
+  Pick<
+    MealRecord,
+    'mealId' | 'cookedAt' | 'rating' | 'memo' | 'ingredientGroups' | 'recipeSteps' | 'finishedMediaId'
+  >
 > & {
   updatedAt?: string;
 };
@@ -74,6 +114,7 @@ export type CreateMediaInput = {
   uri?: string;
   blob?: Blob;
   thumbnailUri?: string;
+  recipeStepId?: string;
   createdAt?: string;
 };
 
@@ -81,4 +122,13 @@ export type CreateTagInput = {
   id: string;
   name: string;
   createdAt?: string;
+};
+
+export type CreateRecipeScrapInput = {
+  id: string;
+  url: string;
+  title?: string;
+  memo?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };

@@ -145,6 +145,9 @@ export async function createMealRecordAsync(input: CreateMealRecordInput) {
     cookedAt: input.cookedAt,
     rating: input.rating,
     memo: input.memo,
+    ingredientGroups: input.ingredientGroups,
+    recipeSteps: input.recipeSteps,
+    finishedMediaId: input.finishedMediaId,
     createdAt: input.createdAt ?? now,
     updatedAt: input.updatedAt ?? input.createdAt ?? now,
   };
@@ -213,6 +216,9 @@ export async function updateMealRecordAsync(id: string, input: UpdateMealRecordI
     cookedAt: input.cookedAt ?? existingRecord.cookedAt,
     rating: input.rating ?? existingRecord.rating,
     memo: input.memo ?? existingRecord.memo,
+    ingredientGroups: input.ingredientGroups ?? existingRecord.ingredientGroups,
+    recipeSteps: input.recipeSteps ?? existingRecord.recipeSteps,
+    finishedMediaId: input.finishedMediaId ?? existingRecord.finishedMediaId,
     updatedAt: input.updatedAt ?? new Date().toISOString(),
   };
 

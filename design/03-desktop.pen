@@ -1,0 +1,961 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "type": "frame",
+      "id": "M8ol9J",
+      "x": 48,
+      "y": 48,
+      "name": "Desktop Home Calendar",
+      "clip": true,
+      "width": 780,
+      "height": 560,
+      "fill": "#FFFDF9",
+      "cornerRadius": 16,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "children": [
+        {
+          "type": "frame",
+          "id": "s4p5n",
+          "name": "Desktop Sidebar",
+          "width": 180,
+          "height": "fill_container",
+          "fill": "#F7F1E8",
+          "stroke": {
+            "thickness": {
+              "right": 1
+            },
+            "fill": "#E6DED2"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 18,
+          "children": [
+            {
+              "type": "text",
+              "id": "S4X9U",
+              "name": "Brand",
+              "fill": "#2B2723",
+              "content": "Tavolo",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "Yjyf7",
+              "name": "Nav 홈",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#FFF3E6",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lls8p",
+                  "name": "Nav Text 홈",
+                  "fill": "#D46A2A",
+                  "content": "홈",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "t1MRkc",
+              "name": "Nav 레시피",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "X2782M",
+                  "name": "Nav Text 레시피",
+                  "fill": "#6F665D",
+                  "content": "레시피",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "D46dKb",
+              "name": "Nav 추가",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Ob8av",
+                  "name": "Nav Text 추가",
+                  "fill": "#6F665D",
+                  "content": "추가",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "qrQsq",
+              "name": "Nav 검색",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "CWxwS",
+                  "name": "Nav Text 검색",
+                  "fill": "#6F665D",
+                  "content": "검색",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Z5w8MA",
+              "name": "Nav 결산",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "xrTar",
+                  "name": "Nav Text 결산",
+                  "fill": "#6F665D",
+                  "content": "결산",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "T984KT",
+          "name": "Desktop Home Calendar Main",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#FFFDF9",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "text",
+              "id": "fL6Ew",
+              "name": "Desktop Home Calendar Title",
+              "fill": "#2B2723",
+              "textGrowth": "fixed-width",
+              "width": 520,
+              "content": "홈",
+              "fontFamily": "Inter",
+              "fontSize": 26,
+              "fontWeight": "800"
+            },
+            {
+              "type": "text",
+              "id": "Lknrj",
+              "name": "Desktop Home Calendar Body",
+              "fill": "#6F665D",
+              "textGrowth": "fixed-width",
+              "width": 520,
+              "content": "달력과 선택 날짜 목록을 같은 화면에서 나란히 본다.",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "XxcQs",
+              "name": "Desktop Home Calendar Content Grid",
+              "width": "fill_container",
+              "gap": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "S8mRA",
+                  "name": "Month Calendar",
+                  "width": "fill_container",
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "k0sUbf",
+                      "name": "Month Calendar Title",
+                      "fill": "#2B2723",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "2026년 5월 달력",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "othuJ",
+                      "name": "Month Calendar Body",
+                      "fill": "#6F665D",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "날짜 선택 상태와 기록 있는 날짜를 구분",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "J6TNhN",
+                  "name": "Selected Date List",
+                  "width": "fill_container",
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Z0AKyK",
+                      "name": "Selected Date List Title",
+                      "fill": "#2B2723",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "5/24 기록 2개",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "rKFhn",
+                      "name": "Selected Date List Body",
+                      "fill": "#6F665D",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "대표 썸네일과 만족도 중심 목록",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "DnNdA",
+      "x": 876,
+      "y": 48,
+      "name": "Desktop Recipes",
+      "clip": true,
+      "width": 780,
+      "height": 560,
+      "fill": "#FFFDF9",
+      "cornerRadius": 16,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "children": [
+        {
+          "type": "frame",
+          "id": "XJJGB",
+          "name": "Desktop Sidebar",
+          "width": 180,
+          "height": "fill_container",
+          "fill": "#F7F1E8",
+          "stroke": {
+            "thickness": {
+              "right": 1
+            },
+            "fill": "#E6DED2"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 18,
+          "children": [
+            {
+              "type": "text",
+              "id": "CRWCz",
+              "name": "Brand",
+              "fill": "#2B2723",
+              "content": "Tavolo",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "ze23R",
+              "name": "Nav 홈",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WO9rS",
+                  "name": "Nav Text 홈",
+                  "fill": "#6F665D",
+                  "content": "홈",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JLdxT",
+              "name": "Nav 레시피",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#FFF3E6",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "vmzJb",
+                  "name": "Nav Text 레시피",
+                  "fill": "#D46A2A",
+                  "content": "레시피",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "zS07K",
+              "name": "Nav 추가",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "W8yD9L",
+                  "name": "Nav Text 추가",
+                  "fill": "#6F665D",
+                  "content": "추가",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "blbjl",
+              "name": "Nav 검색",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gYVDr",
+                  "name": "Nav Text 검색",
+                  "fill": "#6F665D",
+                  "content": "검색",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "j1mhpe",
+              "name": "Nav 결산",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "h3dZ7n",
+                  "name": "Nav Text 결산",
+                  "fill": "#6F665D",
+                  "content": "결산",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "by17x",
+          "name": "Desktop Recipes Main",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#FFFDF9",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "text",
+              "id": "V7vQyE",
+              "name": "Desktop Recipes Title",
+              "fill": "#2B2723",
+              "textGrowth": "fixed-width",
+              "width": 520,
+              "content": "레시피",
+              "fontFamily": "Inter",
+              "fontSize": 26,
+              "fontWeight": "800"
+            },
+            {
+              "type": "text",
+              "id": "YtufC",
+              "name": "Desktop Recipes Body",
+              "fill": "#6F665D",
+              "textGrowth": "fixed-width",
+              "width": 520,
+              "content": "외부 링크 레시피를 저장하고 기록 추가로 이어간다.",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "lKVOD",
+              "name": "Desktop Recipes Content Grid",
+              "width": "fill_container",
+              "gap": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ZXRv4",
+                  "name": "Recipe Inbox",
+                  "width": "fill_container",
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "tWRfr",
+                      "name": "Recipe Inbox Title",
+                      "fill": "#2B2723",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "저장한 링크",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DUZip",
+                      "name": "Recipe Inbox Body",
+                      "fill": "#6F665D",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "출처, 메모, 나중에 만들기 상태",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "k9573",
+                  "name": "Start From Recipe",
+                  "width": "fill_container",
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Am6iq",
+                      "name": "Start From Recipe Title",
+                      "fill": "#2B2723",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "기록으로 시작",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bmrQI",
+                      "name": "Start From Recipe Body",
+                      "fill": "#6F665D",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "링크를 바탕으로 기록 추가 폼 진입",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "i89ax7",
+      "x": 1704,
+      "y": 48,
+      "name": "Desktop Detail Search Recap",
+      "clip": true,
+      "width": 780,
+      "height": 560,
+      "fill": "#FFFDF9",
+      "cornerRadius": 16,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "children": [
+        {
+          "type": "frame",
+          "id": "KtcG7",
+          "name": "Desktop Sidebar",
+          "width": 180,
+          "height": "fill_container",
+          "fill": "#F7F1E8",
+          "stroke": {
+            "thickness": {
+              "right": 1
+            },
+            "fill": "#E6DED2"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 18,
+          "children": [
+            {
+              "type": "text",
+              "id": "N7GXMF",
+              "name": "Brand",
+              "fill": "#2B2723",
+              "content": "Tavolo",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "VNr5U",
+              "name": "Nav 홈",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "YdQKL",
+                  "name": "Nav Text 홈",
+                  "fill": "#6F665D",
+                  "content": "홈",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "fSxGG",
+              "name": "Nav 레시피",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "IIeWf",
+                  "name": "Nav Text 레시피",
+                  "fill": "#6F665D",
+                  "content": "레시피",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "iD9Ge",
+              "name": "Nav 추가",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "G5FyB",
+                  "name": "Nav Text 추가",
+                  "fill": "#6F665D",
+                  "content": "추가",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "sdKtr",
+              "name": "Nav 검색",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#FFF3E6",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "BJm5Y",
+                  "name": "Nav Text 검색",
+                  "fill": "#D46A2A",
+                  "content": "검색",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "MroO7",
+              "name": "Nav 결산",
+              "width": "fill_container",
+              "height": 38,
+              "fill": "#F7F1E8",
+              "cornerRadius": 10,
+              "padding": [
+                9,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "yKly3",
+                  "name": "Nav Text 결산",
+                  "fill": "#6F665D",
+                  "content": "결산",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ruLM1",
+          "name": "Desktop Detail Search Recap Main",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#FFFDF9",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "text",
+              "id": "GFfXh",
+              "name": "Desktop Detail Search Recap Title",
+              "fill": "#2B2723",
+              "textGrowth": "fixed-width",
+              "width": 520,
+              "content": "상세 / 검색 / 결산",
+              "fontFamily": "Inter",
+              "fontSize": 26,
+              "fontWeight": "800"
+            },
+            {
+              "type": "text",
+              "id": "TDihe",
+              "name": "Desktop Detail Search Recap Body",
+              "fill": "#6F665D",
+              "textGrowth": "fixed-width",
+              "width": 520,
+              "content": "컨텍스트 화면은 사이드바 목적지 안에서 넓게 보여준다.",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "lJZb3",
+              "name": "Desktop Detail Search Recap Content Grid",
+              "width": "fill_container",
+              "gap": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "c4uVI",
+                  "name": "Detail Panel",
+                  "width": "fill_container",
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "g7Mh3",
+                      "name": "Detail Panel Title",
+                      "fill": "#2B2723",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "기록 상세",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "RoN9n",
+                      "name": "Detail Panel Body",
+                      "fill": "#6F665D",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "완성사진, 태그, 재료정보, 조리순서",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Yavlf",
+                  "name": "Search Results",
+                  "width": "fill_container",
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YmdmQ",
+                      "name": "Search Results Title",
+                      "fill": "#2B2723",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "검색 결과",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "IAH7E",
+                      "name": "Search Results Body",
+                      "fill": "#6F665D",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "요리명과 태그 기반 재방문",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fDdXI",
+                  "name": "Recap Panel",
+                  "width": "fill_container",
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "jrAP0",
+                      "name": "Recap Panel Title",
+                      "fill": "#2B2723",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "결산 요약",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "A4ZoW",
+                      "name": "Recap Panel Body",
+                      "fill": "#6F665D",
+                      "textGrowth": "fixed-width",
+                      "width": 240,
+                      "content": "기간별 기록 수와 만족도",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

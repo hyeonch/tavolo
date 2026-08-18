@@ -1,0 +1,1496 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "type": "frame",
+      "id": "Vkj8N",
+      "x": 48,
+      "y": 48,
+      "name": "Mobile Add Record Scroll Wireframe",
+      "clip": true,
+      "width": 300,
+      "fill": "#FFFDF9",
+      "cornerRadius": 22,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "o9thVw",
+          "name": "Mobile Add Header",
+          "width": "fill_container",
+          "height": 76,
+          "fill": "#FFFDF9",
+          "layout": "vertical",
+          "gap": 4,
+          "padding": [
+            22,
+            18,
+            12,
+            18
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "BanSC",
+              "name": "Mobile Add Title",
+              "fill": "#2B2723",
+              "textGrowth": "fixed-width",
+              "width": 260,
+              "content": "기록 추가",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "800"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "PXHrx",
+          "name": "Mobile Add Scroll Content",
+          "width": "fill_container",
+          "fill": "#FFFDF9",
+          "layout": "vertical",
+          "gap": 18,
+          "padding": [
+            14,
+            18,
+            20,
+            18
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "EwzQQ",
+              "name": "요리 이름 Field",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 7,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ZNLUJ",
+                  "name": "요리 이름 Label",
+                  "fill": "#6F665D",
+                  "content": "요리 이름",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "frame",
+                  "id": "ZiBNL",
+                  "name": "요리 이름 Input",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 10,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "padding": [
+                    11,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "KfXTO",
+                      "name": "요리 이름 Placeholder",
+                      "fill": "#6F665D",
+                      "textGrowth": "fixed-width",
+                      "width": 180,
+                      "content": "예: 토마토 파스타",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "mvwrQ",
+              "name": "Date Rating Row",
+              "width": "fill_container",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "AV3OH",
+                  "name": "날짜 Field",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 7,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "wwtbO",
+                      "name": "날짜 Label",
+                      "fill": "#6F665D",
+                      "content": "날짜",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "SvSrj",
+                      "name": "날짜 Input",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "#F7F1E8",
+                      "cornerRadius": 10,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#E6DED2"
+                      },
+                      "padding": [
+                        11,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "fNY8c",
+                          "name": "날짜 Placeholder",
+                          "fill": "#6F665D",
+                          "textGrowth": "fixed-width",
+                          "width": 180,
+                          "content": "5/24",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "HgECw",
+                  "name": "만족도 Field",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 7,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Uvi08",
+                      "name": "만족도 Label",
+                      "fill": "#6F665D",
+                      "content": "만족도",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Uz5kK",
+                      "name": "만족도 Input",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "#F7F1E8",
+                      "cornerRadius": 10,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#E6DED2"
+                      },
+                      "padding": [
+                        11,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "b99Rzq",
+                          "name": "만족도 Placeholder",
+                          "fill": "#6F665D",
+                          "textGrowth": "fixed-width",
+                          "width": 180,
+                          "content": "5",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "G59QAY",
+              "name": "Tag Input Block",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "P9twCJ",
+                  "name": "Tag Input Label",
+                  "fill": "#6F665D",
+                  "content": "태그",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "frame",
+                  "id": "DnMfW",
+                  "name": "Tag Input",
+                  "width": "fill_container",
+                  "height": 42,
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 9999,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "r4wwbX",
+                      "name": "Tag Input Placeholder",
+                      "fill": "#6F665D",
+                      "textGrowth": "fixed-width",
+                      "width": 220,
+                      "content": "예: 파스타, 집밥, 매콤",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JbLa4",
+                  "name": "Tag Example Chips",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "W91Dmb",
+                      "name": "파스타 Chip",
+                      "fill": "#FFF3E6",
+                      "cornerRadius": 9999,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#D46A2A"
+                      },
+                      "padding": [
+                        7,
+                        10
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "U6dsV",
+                          "name": "파스타 Text",
+                          "fill": "#D46A2A",
+                          "content": "파스타",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JILUd",
+                      "name": "집밥 Chip",
+                      "fill": "#F7F1E8",
+                      "cornerRadius": 9999,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#E6DED2"
+                      },
+                      "padding": [
+                        7,
+                        10
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "H6OGb",
+                          "name": "집밥 Text",
+                          "fill": "#6F665D",
+                          "content": "집밥",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "qpDNt",
+                      "name": "매콤 Chip",
+                      "fill": "#F7F1E8",
+                      "cornerRadius": 9999,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#E6DED2"
+                      },
+                      "padding": [
+                        7,
+                        10
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "AXsXc",
+                          "name": "매콤 Text",
+                          "fill": "#6F665D",
+                          "content": "매콤",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "v3ajz",
+              "name": "Ingredient Info",
+              "width": "fill_container",
+              "fill": "#FFF3E6",
+              "cornerRadius": 16,
+              "stroke": {
+                "thickness": 1,
+                "fill": "#D46A2A"
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "atZrP",
+                  "name": "Ingredient Info Title",
+                  "fill": "#D46A2A",
+                  "content": "재료정보",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "frame",
+                  "id": "iu7SV",
+                  "name": "Ingredient Group 재료",
+                  "width": "fill_container",
+                  "fill": "#FFFDF9",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rLd7X",
+                      "name": "재료 Header",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "l57wmt",
+                          "name": "재료 Title",
+                          "fill": "#2B2723",
+                          "content": "재료",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "800"
+                        },
+                        {
+                          "type": "text",
+                          "id": "b0zf8",
+                          "name": "재료 Help",
+                          "fill": "#6F665D",
+                          "content": "이름 / 수량 / 단위",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "a2wRn",
+                      "name": "Ingredient Row 스파게티면",
+                      "width": "fill_container",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Hakl3",
+                          "name": "스파게티면 Name",
+                          "width": "fill_container",
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "UShe5",
+                              "name": "스파게티면 Text",
+                              "fill": "#6F665D",
+                              "textGrowth": "fixed-width",
+                              "width": 100,
+                              "content": "스파게티면",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "PeM5z",
+                          "name": "스파게티면 Qty",
+                          "width": 58,
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            8
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "C4hRbi",
+                              "name": "스파게티면 Qty Text",
+                              "fill": "#6F665D",
+                              "content": "1",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "LSQBv",
+                          "name": "스파게티면 Unit",
+                          "width": 50,
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            8
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "D6FECm",
+                              "name": "스파게티면 Unit Text",
+                              "fill": "#6F665D",
+                              "content": "인분",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kYQ9P",
+                      "name": "Ingredient Row 바질",
+                      "width": "fill_container",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "eYdsr",
+                          "name": "바질 Name",
+                          "width": "fill_container",
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Ymhvv",
+                              "name": "바질 Text",
+                              "fill": "#6F665D",
+                              "textGrowth": "fixed-width",
+                              "width": 100,
+                              "content": "바질",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "USixv",
+                          "name": "바질 Qty",
+                          "width": 58,
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            8
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "m4hKvH",
+                              "name": "바질 Qty Text",
+                              "fill": "#6F665D",
+                              "content": "5",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "p9obWA",
+                          "name": "바질 Unit",
+                          "width": 50,
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            8
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Qf62F",
+                              "name": "바질 Unit Text",
+                              "fill": "#6F665D",
+                              "content": "장",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "aHyl3",
+                      "name": "Add 재료",
+                      "width": "fill_container",
+                      "height": 36,
+                      "fill": "#F7F1E8",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "NMkKv",
+                          "name": "Add 재료 Text",
+                          "fill": "#D46A2A",
+                          "content": "+ 재료 추가",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yeWND",
+                  "name": "Ingredient Group 양념",
+                  "width": "fill_container",
+                  "fill": "#FFFDF9",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "FuDqh",
+                      "name": "양념 Header",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Y4ewW",
+                          "name": "양념 Title",
+                          "fill": "#2B2723",
+                          "content": "양념",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "800"
+                        },
+                        {
+                          "type": "text",
+                          "id": "U5Qo5",
+                          "name": "양념 Help",
+                          "fill": "#6F665D",
+                          "content": "이름 / 수량 / 단위",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QBky6",
+                      "name": "Ingredient Row 토마토소스",
+                      "width": "fill_container",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "XvOhE",
+                          "name": "토마토소스 Name",
+                          "width": "fill_container",
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "AJbEe",
+                              "name": "토마토소스 Text",
+                              "fill": "#6F665D",
+                              "textGrowth": "fixed-width",
+                              "width": 100,
+                              "content": "토마토소스",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "e7GjI",
+                          "name": "토마토소스 Qty",
+                          "width": 58,
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            8
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "evpTd",
+                              "name": "토마토소스 Qty Text",
+                              "fill": "#6F665D",
+                              "content": "200",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "JjahY",
+                          "name": "토마토소스 Unit",
+                          "width": 50,
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            8
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "D1uBL",
+                              "name": "토마토소스 Unit Text",
+                              "fill": "#6F665D",
+                              "content": "g",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "E0Kry",
+                      "name": "Ingredient Row 올리브오일",
+                      "width": "fill_container",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "T9bt6A",
+                          "name": "올리브오일 Name",
+                          "width": "fill_container",
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "MG0Ne",
+                              "name": "올리브오일 Text",
+                              "fill": "#6F665D",
+                              "textGrowth": "fixed-width",
+                              "width": 100,
+                              "content": "올리브오일",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "OeT41",
+                          "name": "올리브오일 Qty",
+                          "width": 58,
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            8
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Bv4G3",
+                              "name": "올리브오일 Qty Text",
+                              "fill": "#6F665D",
+                              "content": "1",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "MnwJr",
+                          "name": "올리브오일 Unit",
+                          "width": 50,
+                          "height": 38,
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            9,
+                            8
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ZIIFO",
+                              "name": "올리브오일 Unit Text",
+                              "fill": "#6F665D",
+                              "content": "큰술",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LqOUF",
+                      "name": "Add 양념",
+                      "width": "fill_container",
+                      "height": 36,
+                      "fill": "#F7F1E8",
+                      "cornerRadius": 9999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "bmeaH",
+                          "name": "Add 양념 Text",
+                          "fill": "#D46A2A",
+                          "content": "+ 양념 추가",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "miitV",
+                  "name": "Add Ingredient Group",
+                  "width": "fill_container",
+                  "height": 38,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 9999,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#D46A2A"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "laOsH",
+                      "name": "Add Ingredient Group Text",
+                      "fill": "#D46A2A",
+                      "content": "+ 재료 묶음 추가",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "800"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "W6P0ya",
+              "name": "Recipe Steps Input",
+              "width": "fill_container",
+              "fill": "#FFFDF9",
+              "cornerRadius": 16,
+              "stroke": {
+                "thickness": 1,
+                "fill": "#E6DED2"
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "xMngj",
+                  "name": "Recipe Steps Header",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "i2yXr",
+                      "name": "Recipe Steps Title",
+                      "fill": "#2B2723",
+                      "content": "요리순서",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "m2GFnX",
+                      "name": "Recipe Steps Photo Batch",
+                      "fill": "#6F665D",
+                      "content": "사진 한번에 넣기",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "800"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "AJH6z",
+                  "name": "Recipe Step 1",
+                  "width": "fill_container",
+                  "height": 174,
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "q0eeO",
+                      "name": "Recipe Step Title",
+                      "fill": "#2B2723",
+                      "content": "Step1",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KjvUh",
+                      "name": "Recipe Step Textarea",
+                      "width": "fill_container",
+                      "height": 74,
+                      "fill": "#FFFDF9",
+                      "cornerRadius": 10,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#E6DED2"
+                      },
+                      "padding": 10,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "t3J8m",
+                          "name": "Recipe Step Placeholder",
+                          "fill": "#6F665D",
+                          "textGrowth": "fixed-width",
+                          "width": 206,
+                          "content": "예) 소스를 만든다.",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "O1oVTe",
+                      "name": "Recipe Step Photo Slots",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "J7kmPS",
+                          "name": "+ 단계 사진 Chip",
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9999,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            7,
+                            10
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "oYZC6",
+                              "name": "+ 단계 사진 Text",
+                              "fill": "#6F665D",
+                              "content": "+ 단계 사진",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "800"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "vh3e4",
+                          "name": "재료 Chip",
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9999,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            7,
+                            10
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Uxsyc",
+                              "name": "재료 Text",
+                              "fill": "#6F665D",
+                              "content": "재료",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "800"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "U8l3F",
+                          "name": "불 Chip",
+                          "fill": "#F7F1E8",
+                          "cornerRadius": 9999,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#E6DED2"
+                          },
+                          "padding": [
+                            7,
+                            10
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "P4TKdZ",
+                              "name": "불 Text",
+                              "fill": "#6F665D",
+                              "content": "불",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "800"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "g2NNd",
+                  "name": "Add Recipe Step",
+                  "width": "fill_container",
+                  "height": 40,
+                  "fill": "#F7F1E8",
+                  "cornerRadius": 9999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Nqvqx",
+                      "name": "Add Recipe Step Text",
+                      "fill": "#D46A2A",
+                      "content": "+ 요리순서 추가",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "800"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nKuBI",
+              "name": "Finished Photo Single",
+              "width": "fill_container",
+              "fill": "#F7F1E8",
+              "cornerRadius": 16,
+              "stroke": {
+                "thickness": 1,
+                "fill": "#E6DED2"
+              },
+              "layout": "vertical",
+              "gap": 10,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "U3uw1M",
+                  "name": "Finished Photo Header",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "M53K0",
+                      "name": "Finished Photo Title",
+                      "fill": "#2B2723",
+                      "content": "요리 완성사진 1장",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZBVdI",
+                      "name": "Finished Photo Rule",
+                      "fill": "#6F665D",
+                      "content": "대표 썸네일",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "800"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "z49tn",
+                  "name": "Finished Photo Large Slot",
+                  "width": "fill_container",
+                  "height": 132,
+                  "fill": "#FFFDF9",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E6DED2"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rPk0d",
+                      "name": "Finished Photo Plus",
+                      "fill": "#6F665D",
+                      "content": "+",
+                      "fontFamily": "Inter",
+                      "fontSize": 32,
+                      "fontWeight": "800"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eBa1j",
+              "name": "Save Record Button",
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#2F7D46",
+              "cornerRadius": 14,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "xIytX",
+                  "name": "Save Record Label",
+                  "fill": "#FFFFFF",
+                  "content": "저장",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "yFPGj",
+          "name": "Mobile Bottom Tabs",
+          "width": "fill_container",
+          "height": 74,
+          "fill": "#FFFDF9",
+          "stroke": {
+            "thickness": {
+              "top": 1
+            },
+            "fill": "#E6DED2"
+          },
+          "gap": 6,
+          "padding": [
+            10,
+            12
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "e99Rd",
+              "name": "Tab 홈",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 9999,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "f0sruD",
+                  "name": "Tab Icon 홈",
+                  "fill": "#6F665D",
+                  "content": "•",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "s1RFI",
+                  "name": "Tab Label 홈",
+                  "fill": "#6F665D",
+                  "content": "홈",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ipFXA",
+              "name": "Tab 레시피",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 9999,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Egxei",
+                  "name": "Tab Icon 레시피",
+                  "fill": "#6F665D",
+                  "content": "•",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "HCB58",
+                  "name": "Tab Label 레시피",
+                  "fill": "#6F665D",
+                  "content": "레시피",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "SN3E4",
+              "name": "Tab 추가",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#FFF3E6",
+              "cornerRadius": 9999,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pFCPT",
+                  "name": "Tab Icon 추가",
+                  "fill": "#D46A2A",
+                  "content": "+",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "ENRYy",
+                  "name": "Tab Label 추가",
+                  "fill": "#D46A2A",
+                  "content": "추가",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "fULHr",
+              "name": "Tab 검색",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 9999,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "tl8lB",
+                  "name": "Tab Icon 검색",
+                  "fill": "#6F665D",
+                  "content": "•",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "mlqcB",
+                  "name": "Tab Label 검색",
+                  "fill": "#6F665D",
+                  "content": "검색",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "v6Qzl",
+              "name": "Tab 결산",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 9999,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pMac5",
+                  "name": "Tab Icon 결산",
+                  "fill": "#6F665D",
+                  "content": "•",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "B4Nc9S",
+                  "name": "Tab Label 결산",
+                  "fill": "#6F665D",
+                  "content": "결산",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

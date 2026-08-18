@@ -1,0 +1,323 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "type": "frame",
+      "id": "aquDB",
+      "x": 48,
+      "y": 48,
+      "name": "TVL-31 Overview",
+      "width": 780,
+      "height": 280,
+      "fill": "#FFFDF9",
+      "cornerRadius": 16,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "layout": "vertical",
+      "gap": 14,
+      "padding": 28,
+      "children": [
+        {
+          "type": "text",
+          "id": "hFTAL",
+          "name": "Issue Label",
+          "fill": "#D46A2A",
+          "content": "TVL-31 / Design Pass 0",
+          "fontFamily": "Inter",
+          "fontSize": 14,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "S0gLG",
+          "name": "Overview Title",
+          "fill": "#2B2723",
+          "textGrowth": "fixed-width",
+          "width": 700,
+          "content": "웹 MVP 정보구조와 와이어프레임",
+          "fontFamily": "Inter",
+          "fontSize": 26,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "TxUVk",
+          "name": "Overview Body",
+          "fill": "#6F665D",
+          "textGrowth": "fixed-width",
+          "width": 700,
+          "content": "홈을 달력 중심 화면으로 바꾸고, 기존 달력 탭은 외부 레시피 링크를 저장해두는 레시피 스크랩 공간으로 대체한다. 모바일은 하단 탭, 데스크톱은 사이드바를 사용한다.",
+          "fontFamily": "Inter",
+          "fontSize": 14,
+          "fontWeight": "500"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "T0Kby",
+      "x": 48,
+      "y": 380,
+      "name": "IA Home",
+      "width": 350,
+      "height": 150,
+      "fill": "#FFFDF9",
+      "cornerRadius": 14,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 20,
+      "children": [
+        {
+          "type": "text",
+          "id": "qQeZw",
+          "name": "IA Home Title",
+          "fill": "#2B2723",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "홈",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "E84Blu",
+          "name": "IA Home Body",
+          "fill": "#6F665D",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "달력 중심 탐색. 날짜 선택 시 해당 날짜 기록 썸네일과 만족도를 보여준다.",
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "500"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "CqnFj",
+      "x": 430,
+      "y": 380,
+      "name": "IA Recipes",
+      "width": 350,
+      "height": 150,
+      "fill": "#FFFDF9",
+      "cornerRadius": 14,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 20,
+      "children": [
+        {
+          "type": "text",
+          "id": "KAhkp",
+          "name": "IA Recipes Title",
+          "fill": "#2B2723",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "레시피",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "lqp3T",
+          "name": "IA Recipes Body",
+          "fill": "#6F665D",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "외부 레시피 링크를 저장하고 나중에 기록 추가의 출발점으로 쓴다.",
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "500"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "jQdoZ",
+      "x": 812,
+      "y": 380,
+      "name": "IA Add",
+      "width": 350,
+      "height": 150,
+      "fill": "#FFFDF9",
+      "cornerRadius": 14,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 20,
+      "children": [
+        {
+          "type": "text",
+          "id": "s2g2qR",
+          "name": "IA Add Title",
+          "fill": "#2B2723",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "추가",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "mrQJr",
+          "name": "IA Add Body",
+          "fill": "#6F665D",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "태그, 재료/양념, 조리순서, 완성사진 1장을 입력하는 스크롤 폼.",
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "500"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "b0OSr",
+      "x": 48,
+      "y": 560,
+      "name": "IA Search",
+      "width": 350,
+      "height": 150,
+      "fill": "#FFFDF9",
+      "cornerRadius": 14,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 20,
+      "children": [
+        {
+          "type": "text",
+          "id": "e04gBZ",
+          "name": "IA Search Title",
+          "fill": "#2B2723",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "검색",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "P0nkp",
+          "name": "IA Search Body",
+          "fill": "#6F665D",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "요리명과 태그로 기록을 다시 찾는다.",
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "500"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "oaWbu",
+      "x": 430,
+      "y": 560,
+      "name": "IA Recap",
+      "width": 350,
+      "height": 150,
+      "fill": "#FFFDF9",
+      "cornerRadius": 14,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 20,
+      "children": [
+        {
+          "type": "text",
+          "id": "P9K0dy",
+          "name": "IA Recap Title",
+          "fill": "#2B2723",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "결산",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "guTY9",
+          "name": "IA Recap Body",
+          "fill": "#6F665D",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "기간별 만족도와 요리 기록을 요약한다.",
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "500"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "MUzsu",
+      "x": 812,
+      "y": 560,
+      "name": "Responsive",
+      "width": 350,
+      "height": 150,
+      "fill": "#FFFDF9",
+      "cornerRadius": 14,
+      "stroke": {
+        "thickness": 1,
+        "fill": "#E6DED2"
+      },
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 20,
+      "children": [
+        {
+          "type": "text",
+          "id": "DUNxC",
+          "name": "Responsive Title",
+          "fill": "#2B2723",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "반응형 내비",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "Akoxm",
+          "name": "Responsive Body",
+          "fill": "#6F665D",
+          "textGrowth": "fixed-width",
+          "width": 310,
+          "content": "모바일은 홈/레시피/추가/검색/결산 하단 탭, 데스크톱은 같은 목적지를 사이드바로 제공한다.",
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "500"
+        }
+      ]
+    }
+  ]
+}

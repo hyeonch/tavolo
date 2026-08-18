@@ -5,15 +5,21 @@ import {
   createMealAsync,
   createMealRecordAsync,
   createMediaAsync,
+  createRecipeScrapAsync,
+  createTagAsync,
   createMediaObjectUrl,
+  getMealRecordByIdAsync,
+  getTagByNameAsync,
   getMediaByIdAsync,
   listMealRecordsAsync,
-  listRecentMealRecordsAsync,
+  listRecipeScrapsAsync,
+  replaceMealTagsAsync,
   revokeMediaObjectUrl,
+  updateMealRecordAsync,
 } from './db';
-import type { MealRecord } from './types/meal';
+import type { IngredientGroup, MealRecord, RecipeScrap, RecipeStep } from './types/meal';
 
-type RouteKey = 'home' | 'add' | 'calendar' | 'search' | 'recap' | 'detail';
+type RouteKey = 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail';
 
 type Route = {
   key: RouteKey;
@@ -22,8 +28,8 @@ type Route = {
 
 const routes: Route[] = [
   { key: 'home', label: '홈' },
-  { key: 'add', label: '기록' },
-  { key: 'calendar', label: '달력' },
+  { key: 'recipes', label: '레시피' },
+  { key: 'add', label: '추가' },
   { key: 'search', label: '검색' },
   { key: 'recap', label: '결산' },
 ];
@@ -33,6 +39,8 @@ type HomeMealCard = {
   thumbnailUrl: string | null;
 };
 
+const emptyMealRecords: MealRecord[] = [];
+
 function createLocalId(prefix: string) {
   if (typeof crypto.randomUUID === 'function') {
     return `${prefix}-${crypto.randomUUID()}`;
@@ -41,15 +49,44 @@ function createLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function getTodayLabel() {
-  return new Intl.DateTimeFormat('ko-KR', {
-    dateStyle: 'full',
-  }).format(new Date());
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate()
+  ).padStart(2, '0')}`;
 }
 
-function getCurrentMonthKey() {
-  const today = new Date();
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+function getMonthStart(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function moveMonth(month: Date, offset: number) {
+  return new Date(month.getFullYear(), month.getMonth() + offset, 1);
+}
+
+function getCalendarDays(month: Date) {
+  const firstWeekday = month.getDay();
+  const totalDays = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const totalCells = Math.ceil((firstWeekday + totalDays) / 7) * 7;
+
+  return Array.from({ length: totalCells }, (_, index) => {
+    const day = index - firstWeekday + 1;
+    return day > 0 && day <= totalDays ? day : null;
+  });
+}
+
+function formatMonthLabel(month: Date) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+  }).format(month);
+}
+
+function formatSelectedDateLabel(cookedAt: string) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  }).format(new Date(`${cookedAt}T00:00:00`));
 }
 
 function formatCookedAtLabel(cookedAt: string) {
@@ -62,6 +99,46 @@ function formatCookedAtLabel(cookedAt: string) {
 
 function formatRating(rating?: number) {
   return rating ? `만족도 ${rating}/5` : '만족도 미입력';
+}
+
+function getRecipeScrapTitle(recipeScrap: RecipeScrap) {
+  if (recipeScrap.title) return recipeScrap.title;
+
+  try {
+    return new URL(recipeScrap.url).hostname;
+  } catch {
+    return recipeScrap.url;
+  }
+}
+
+type RecipeStepDraft = RecipeStep & {
+  photoName?: string;
+};
+
+function createIngredientItem() {
+  return {
+    id: createLocalId('ingredient'),
+    name: '',
+    quantity: '',
+    unit: '',
+  };
+}
+
+function createIngredientGroup(name: string): IngredientGroup {
+  return {
+    id: createLocalId('ingredient-group'),
+    name,
+    items: [createIngredientItem()],
+  };
+}
+
+function createRecipeStep(order: number): RecipeStepDraft {
+  return {
+    id: createLocalId('recipe-step'),
+    order,
+    body: '',
+    mediaIds: [],
+  };
 }
 
 function MealCard({
@@ -92,32 +169,72 @@ function MealCard({
 }
 
 function HomeView({
-  onAddClick,
   onOpenRecord,
 }: {
-  onAddClick: () => void;
   onOpenRecord: (record: MealRecord) => void;
 }) {
-  const [recentMeals, setRecentMeals] = useState<HomeMealCard[]>([]);
-  const [currentMonthCount, setCurrentMonthCount] = useState(0);
+  const today = useMemo(() => new Date(), []);
+  const [month, setMonth] = useState(() => getMonthStart(today));
+  const [selectedDate, setSelectedDate] = useState(() => toDateKey(today));
+  const [records, setRecords] = useState<MealRecord[]>([]);
+  const [selectedMeals, setSelectedMeals] = useState<HomeMealCard[]>([]);
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const recordsByDate = useMemo(() => {
+    const groupedRecords = new Map<string, MealRecord[]>();
+
+    records.forEach((record) => {
+      const items = groupedRecords.get(record.cookedAt) ?? [];
+      items.push(record);
+      groupedRecords.set(record.cookedAt, items);
+    });
+
+    return groupedRecords;
+  }, [records]);
+  const calendarDays = useMemo(() => getCalendarDays(month), [month]);
+  const selectedRecords = useMemo(
+    () => recordsByDate.get(selectedDate) ?? emptyMealRecords,
+    [recordsByDate, selectedDate]
+  );
 
   useEffect(() => {
     let isMounted = true;
-    let objectUrls: string[] = [];
 
     async function loadHomeAsync() {
       setLoadState('loading');
 
       try {
-        const [recentRecords, allRecords] = await Promise.all([
-          listRecentMealRecordsAsync(6),
-          listMealRecordsAsync(),
-        ]);
+        const allRecords = await listMealRecordsAsync();
+
+        if (!isMounted) return;
+
+        setRecords(allRecords);
+        setLoadState('ready');
+      } catch (error) {
+        console.error(error);
+
+        if (isMounted) {
+          setLoadState('error');
+        }
+      }
+    }
+
+    void loadHomeAsync();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrls: string[] = [];
+
+    async function loadSelectedMealsAsync() {
+      try {
         const mealCards = await Promise.all(
-          recentRecords.map(async (record) => {
-            const firstMediaId = record.mediaIds[0];
-            const media = firstMediaId ? await getMediaByIdAsync(firstMediaId) : null;
+          selectedRecords.map(async (record) => {
+            const representativeMediaId = record.finishedMediaId ?? record.mediaIds[0];
+            const media = representativeMediaId ? await getMediaByIdAsync(representativeMediaId) : null;
             const thumbnailUrl = media ? createMediaObjectUrl(media) : null;
 
             if (thumbnailUrl?.startsWith('blob:')) {
@@ -133,11 +250,174 @@ function HomeView({
           return;
         }
 
-        const monthKey = getCurrentMonthKey();
-        setRecentMeals(mealCards);
-        setCurrentMonthCount(
-          allRecords.filter((record) => record.cookedAt.startsWith(monthKey)).length
-        );
+        setSelectedMeals(mealCards);
+      } catch (error) {
+        console.error(error);
+
+        if (isMounted) {
+          setSelectedMeals([]);
+        }
+      }
+    }
+
+    void loadSelectedMealsAsync();
+
+    return () => {
+      isMounted = false;
+      objectUrls.forEach((url) => revokeMediaObjectUrl(url));
+    };
+  }, [selectedRecords]);
+
+  function handleMonthChange(offset: number) {
+    const nextMonth = moveMonth(month, offset);
+    setMonth(nextMonth);
+    setSelectedDate(toDateKey(nextMonth));
+  }
+
+  return (
+    <section className="view home-view">
+      <div className="section-heading">
+        <p className="eyebrow">나의 요리 달력</p>
+        <h1>언제, 무엇을 만들었는지 다시 꺼내보세요.</h1>
+        <p>날짜를 선택하면 그날 남긴 요리 기록을 볼 수 있습니다.</p>
+      </div>
+
+      <div className="calendar-layout">
+        <section className="calendar-panel" aria-label={`${formatMonthLabel(month)} 요리 달력`}>
+          <div className="calendar-header">
+            <div>
+              <span className="eyebrow">요리한 날</span>
+              <h2>{formatMonthLabel(month)}</h2>
+            </div>
+            <div className="calendar-controls">
+              <button type="button" aria-label="이전 달" onClick={() => handleMonthChange(-1)}>
+                이전
+              </button>
+              <button type="button" aria-label="다음 달" onClick={() => handleMonthChange(1)}>
+                다음
+              </button>
+            </div>
+          </div>
+          <div className="calendar-weekdays" aria-hidden="true">
+            {['일', '월', '화', '수', '목', '금', '토'].map((weekday) => (
+              <span key={weekday}>{weekday}</span>
+            ))}
+          </div>
+          <div className="calendar-grid">
+            {calendarDays.map((day, index) => {
+              if (!day) {
+                return <span aria-hidden="true" className="calendar-empty-day" key={`empty-${index}`} />;
+              }
+
+              const date = new Date(month.getFullYear(), month.getMonth(), day);
+              const dateKey = toDateKey(date);
+              const count = recordsByDate.get(dateKey)?.length ?? 0;
+              const isSelected = selectedDate === dateKey;
+              const isToday = toDateKey(today) === dateKey;
+
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`calendar-day${count > 0 ? ' has-records' : ''}${
+                    isSelected ? ' is-selected' : ''
+                  }${isToday ? ' is-today' : ''}`}
+                  key={dateKey}
+                  type="button"
+                  onClick={() => setSelectedDate(dateKey)}
+                >
+                  <span>{day}</span>
+                  {count > 0 ? <small>{count}개</small> : null}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="selected-date-panel" aria-live="polite">
+          <div className="panel-header">
+            <div>
+              <span className="eyebrow">선택한 날</span>
+              <h2>{formatSelectedDateLabel(selectedDate)}</h2>
+            </div>
+            <span>{selectedRecords.length}개 기록</span>
+          </div>
+          {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
+          {loadState === 'error' ? (
+            <p className="panel-state">저장된 기록을 불러오지 못했습니다.</p>
+          ) : null}
+          {loadState === 'ready' && selectedMeals.length === 0 ? (
+            <div className="empty-state">
+              <strong>이날은 남긴 요리 기록이 없습니다.</strong>
+              <p>새 기록은 하단의 추가 탭에서 남길 수 있습니다.</p>
+            </div>
+          ) : null}
+          {selectedMeals.length > 0 ? (
+            <ul className="meal-list">
+              {selectedMeals.map((mealCard) => (
+                <MealCard
+                  key={mealCard.record.id}
+                  mealCard={mealCard}
+                  onOpen={onOpenRecord}
+                />
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      </div>
+    </section>
+  );
+}
+
+function DetailView({
+  recordId,
+  onBackClick,
+}: {
+  recordId: string | null;
+  onBackClick: () => void;
+}) {
+  const [record, setRecord] = useState<MealRecord | null>(null);
+  const [representativePhotoUrl, setRepresentativePhotoUrl] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
+
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrl: string | null = null;
+
+    async function loadRecordAsync() {
+      if (!recordId) {
+        setRecord(null);
+        setLoadState('not-found');
+        return;
+      }
+
+      setLoadState('loading');
+
+      try {
+        const loadedRecord = await getMealRecordByIdAsync(recordId);
+
+        if (!loadedRecord) {
+          if (isMounted) {
+            setRecord(null);
+            setLoadState('not-found');
+          }
+          return;
+        }
+
+        const representativeMediaId = loadedRecord.finishedMediaId ?? loadedRecord.mediaIds[0];
+        const media = representativeMediaId ? await getMediaByIdAsync(representativeMediaId) : null;
+        const photoUrl = media ? createMediaObjectUrl(media) : null;
+
+        if (photoUrl?.startsWith('blob:')) {
+          objectUrl = photoUrl;
+        }
+
+        if (!isMounted) {
+          revokeMediaObjectUrl(objectUrl);
+          return;
+        }
+
+        setRecord(loadedRecord);
+        setRepresentativePhotoUrl(photoUrl);
         setLoadState('ready');
       } catch (error) {
         console.error(error);
@@ -148,100 +428,90 @@ function HomeView({
       }
     }
 
-    void loadHomeAsync();
+    void loadRecordAsync();
 
     return () => {
       isMounted = false;
-      objectUrls.forEach((url) => revokeMediaObjectUrl(url));
-      objectUrls = [];
+      revokeMediaObjectUrl(objectUrl);
     };
-  }, []);
+  }, [recordId]);
 
   return (
-    <section className="view home-view">
-      <div className="section-heading">
-        <p className="eyebrow">오늘의 식탁</p>
-        <h1>요리를 남기고, 나중에 다시 꺼내보세요.</h1>
-        <p>{getTodayLabel()}</p>
-      </div>
-
-      <div className="summary-grid" aria-label="요리 기록 요약">
-        <div className="summary-item">
-          <span>이번 달</span>
-          <strong>{currentMonthCount}회</strong>
-        </div>
-        <div className="summary-item">
-          <span>최근 기록</span>
-          <strong>{recentMeals.length}개</strong>
-        </div>
-      </div>
-
-      <button className="primary-action" type="button" onClick={onAddClick}>
-        오늘 요리 기록하기
-      </button>
-
-      <div className="panel">
-        <div className="panel-header">
-          <h2>최근 기록</h2>
-          <span>최신순</span>
-        </div>
-        {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
-        {loadState === 'error' ? (
-          <p className="panel-state">저장된 기록을 불러오지 못했습니다.</p>
-        ) : null}
-        {loadState === 'ready' && recentMeals.length === 0 ? (
-          <div className="empty-state">
-            <strong>아직 저장된 요리가 없습니다.</strong>
-            <p>첫 요리를 기록하면 이곳에 최근 기록이 쌓입니다.</p>
-          </div>
-        ) : null}
-        {recentMeals.length > 0 ? (
-          <ul className="meal-list">
-            {recentMeals.map((mealCard) => (
-              <MealCard
-                key={mealCard.record.id}
-                mealCard={mealCard}
-                onOpen={onOpenRecord}
-              />
-            ))}
-          </ul>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
-function DetailPreviewView({
-  record,
-  onBackClick,
-}: {
-  record: MealRecord | null;
-  onBackClick: () => void;
-}) {
-  return (
-    <section className="view placeholder-view">
+    <section className="view detail-view">
       <div className="section-heading">
         <p className="eyebrow">기록 상세</p>
-        <h1>{record?.meal?.name ?? '요리 기록'}</h1>
-        <p>{record ? formatCookedAtLabel(record.cookedAt) : '선택한 기록을 찾을 수 없습니다.'}</p>
+        <h1>{record?.meal?.name ?? (loadState === 'loading' ? '기록을 불러오는 중' : '요리 기록')}</h1>
+        <p>{record ? formatCookedAtLabel(record.cookedAt) : '저장한 요리 기록을 다시 확인합니다.'}</p>
       </div>
+
+      {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
+      {loadState === 'not-found' ? <p className="panel-state">요청한 기록을 찾을 수 없습니다.</p> : null}
+      {loadState === 'error' ? <p className="panel-state">기록을 불러오지 못했습니다.</p> : null}
       {record ? (
-        <div className="detail-preview">
-          <div>
-            <span>만족도</span>
-            <strong>{record.rating ? `${record.rating}/5` : '미입력'}</strong>
+        <div className="detail-content">
+          <div className="detail-hero" aria-label="대표 완성사진">
+            {representativePhotoUrl ? (
+              <img alt={`${record.meal?.name ?? '요리'} 완성사진`} src={representativePhotoUrl} />
+            ) : (
+              <span>{record.meal?.name.slice(0, 1) ?? 'T'}</span>
+            )}
           </div>
-          {record.memo ? (
+          <div className="detail-preview">
             <div>
-              <span>메모</span>
-              <p>{record.memo}</p>
+              <span>만족도</span>
+              <strong>{record.rating ? `${record.rating}/5` : '미입력'}</strong>
             </div>
+            {record.meal?.tags.length ? (
+              <div>
+                <span>태그</span>
+                <p className="tag-list">{record.meal.tags.map((tag) => <em key={tag}>#{tag}</em>)}</p>
+              </div>
+            ) : null}
+            {record.memo ? (
+              <div>
+                <span>메모</span>
+                <p>{record.memo}</p>
+              </div>
+            ) : null}
+            {record.meal?.recipeUrl ? (
+              <div>
+                <span>원본 레시피</span>
+                <a href={record.meal.recipeUrl} rel="noreferrer" target="_blank">
+                  레시피 열기
+                </a>
+              </div>
+            ) : null}
+          </div>
+          {record.ingredientGroups?.length ? (
+            <section className="detail-section">
+              <h2>재료정보</h2>
+              {record.ingredientGroups.map((group) => (
+                <div className="detail-ingredient-group" key={group.id}>
+                  <strong>{group.name}</strong>
+                  <ul>
+                    {group.items.map((item) => (
+                      <li key={item.id}>
+                        <span>{item.name}</span>
+                        <span>{[item.quantity, item.unit].filter(Boolean).join(' ') || '수량 미입력'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
           ) : null}
-          {record.meal?.tags.length ? (
-            <div>
-              <span>태그</span>
-              <p>{record.meal.tags.join(', ')}</p>
-            </div>
+          {record.recipeSteps?.length ? (
+            <section className="detail-section">
+              <h2>요리순서</h2>
+              <ol className="detail-steps">
+                {record.recipeSteps.map((step) => (
+                  <li key={step.id}>
+                    <strong>Step {step.order}</strong>
+                    <p>{step.body}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
           ) : null}
         </div>
       ) : null}
@@ -252,13 +522,57 @@ function DetailPreviewView({
   );
 }
 
-function AddView({ onSaved }: { onSaved: () => void }) {
-  const [mealName, setMealName] = useState('');
+function AddView({
+  onSaved,
+  recipeScrap,
+}: {
+  onSaved: () => void;
+  recipeScrap: RecipeScrap | null;
+}) {
+  const [mealName, setMealName] = useState(() => recipeScrap?.title ?? '');
   const [cookedAt, setCookedAt] = useState(new Date().toISOString().slice(0, 10));
   const [rating, setRating] = useState('');
   const [memo, setMemo] = useState('');
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [tagsInput, setTagsInput] = useState('');
+  const [ingredientGroups, setIngredientGroups] = useState<IngredientGroup[]>(() => [
+    createIngredientGroup('재료'),
+    createIngredientGroup('양념'),
+  ]);
+  const [recipeSteps, setRecipeSteps] = useState<RecipeStepDraft[]>(() => [createRecipeStep(1)]);
+  const [finishedPhoto, setFinishedPhoto] = useState<File | null>(null);
   const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>('idle');
+
+  function updateIngredientItem(
+    groupId: string,
+    itemId: string,
+    field: 'name' | 'quantity' | 'unit',
+    value: string
+  ) {
+    setIngredientGroups((groups) =>
+      groups.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              items: group.items.map((item) =>
+                item.id === itemId ? { ...item, [field]: value } : item
+              ),
+            }
+          : group
+      )
+    );
+  }
+
+  function addIngredientItem(groupId: string) {
+    setIngredientGroups((groups) =>
+      groups.map((group) =>
+        group.id === groupId ? { ...group, items: [...group.items, createIngredientItem()] } : group
+      )
+    );
+  }
+
+  function updateRecipeStep(stepId: string, update: Partial<RecipeStepDraft>) {
+    setRecipeSteps((steps) => steps.map((step) => (step.id === stepId ? { ...step, ...update } : step)));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -275,26 +589,68 @@ function AddView({ onSaved }: { onSaved: () => void }) {
       const mealId = createLocalId('meal');
       const mealRecordId = createLocalId('meal-record');
       const trimmedMemo = memo.trim();
+      const tagNames = [...new Set(tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean))];
+      const savedIngredientGroups = ingredientGroups
+        .map((group) => ({
+          ...group,
+          items: group.items
+            .filter((item) => item.name.trim())
+            .map((item) => ({
+              ...item,
+              name: item.name.trim(),
+              quantity: item.quantity?.trim() || undefined,
+              unit: item.unit?.trim() || undefined,
+            })),
+        }))
+        .filter((group) => group.items.length > 0);
+      const savedRecipeSteps = recipeSteps
+        .filter((step) => step.body.trim())
+        .map((step, index) => ({
+          id: step.id,
+          order: index + 1,
+          body: step.body.trim(),
+          mediaIds: [],
+        }));
+
       await createMealAsync({
         id: mealId,
         name: trimmedMealName,
+        recipeUrl: recipeScrap?.url,
         memo: trimmedMemo || undefined,
       });
+      const tagIds = await Promise.all(
+        tagNames.map(async (tagName) => {
+          const existingTag = await getTagByNameAsync(tagName);
+
+          if (existingTag) return existingTag.id;
+
+          const tagId = createLocalId('tag');
+          await createTagAsync({ id: tagId, name: tagName });
+          return tagId;
+        })
+      );
+      await replaceMealTagsAsync(mealId, tagIds);
       await createMealRecordAsync({
         id: mealRecordId,
         mealId,
         cookedAt,
         rating: rating ? Number(rating) : undefined,
         memo: trimmedMemo || undefined,
+        ingredientGroups: savedIngredientGroups.length ? savedIngredientGroups : undefined,
+        recipeSteps: savedRecipeSteps.length ? savedRecipeSteps : undefined,
       });
 
-      if (photo) {
-        await createMediaAsync({
+      if (finishedPhoto) {
+        const media = await createMediaAsync({
           id: createLocalId('media'),
           mealRecordId,
           type: 'photo',
-          blob: photo,
+          blob: finishedPhoto,
         });
+
+        if (media) {
+          await updateMealRecordAsync(mealRecordId, { finishedMediaId: media.id });
+        }
       }
 
       onSaved();
@@ -309,7 +665,11 @@ function AddView({ onSaved }: { onSaved: () => void }) {
       <div className="section-heading">
         <p className="eyebrow">새 기록</p>
         <h1>오늘 만든 요리</h1>
-        <p>요리 이름과 날짜만 입력해도 바로 저장할 수 있습니다.</p>
+        <p>
+          {recipeScrap
+            ? `“${getRecipeScrapTitle(recipeScrap)}” 레시피를 바탕으로 기록합니다.`
+            : '요리 이름과 날짜만 입력해도 바로 저장할 수 있습니다.'}
+        </p>
       </div>
 
       <form className="meal-form" onSubmit={handleSubmit}>
@@ -344,12 +704,104 @@ function AddView({ onSaved }: { onSaved: () => void }) {
           </select>
         </label>
         <label>
-          사진
+          태그
+          <input
+            type="text"
+            value={tagsInput}
+            placeholder="한식, 간단요리"
+            onChange={(event) => setTagsInput(event.target.value)}
+          />
+          <span className="field-hint">쉼표로 나누어 입력하세요. 요리 자체에 저장됩니다.</span>
+        </label>
+
+        <fieldset className="recipe-section">
+          <legend>재료정보</legend>
+          <p>만든 날의 재료와 양념을 따로 남겨두세요.</p>
+          {ingredientGroups.map((group) => (
+            <div className="ingredient-group" key={group.id}>
+              <div className="ingredient-group-heading">
+                <h2>{group.name}</h2>
+                <button type="button" onClick={() => addIngredientItem(group.id)}>
+                  + {group.name} 추가
+                </button>
+              </div>
+              <div className="ingredient-labels" aria-hidden="true">
+                <span>이름</span>
+                <span>수량</span>
+                <span>단위</span>
+              </div>
+              {group.items.map((item, index) => (
+                <div className="ingredient-row" key={item.id}>
+                  <input
+                    aria-label={`${group.name} ${index + 1} 이름`}
+                    value={item.name}
+                    placeholder="예: 돼지고기"
+                    onChange={(event) => updateIngredientItem(group.id, item.id, 'name', event.target.value)}
+                  />
+                  <input
+                    aria-label={`${group.name} ${index + 1} 수량`}
+                    value={item.quantity}
+                    placeholder="200"
+                    onChange={(event) => updateIngredientItem(group.id, item.id, 'quantity', event.target.value)}
+                  />
+                  <input
+                    aria-label={`${group.name} ${index + 1} 단위`}
+                    value={item.unit}
+                    placeholder="g"
+                    onChange={(event) => updateIngredientItem(group.id, item.id, 'unit', event.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </fieldset>
+
+        <fieldset className="recipe-section">
+          <legend>요리순서</legend>
+          <p>순서별로 메모를 남기고, 필요하면 중간 사진도 골라두세요.</p>
+          {recipeSteps.map((step, index) => (
+            <div className="recipe-step" key={step.id}>
+              <div className="recipe-step-heading">
+                <strong>Step {index + 1}</strong>
+                <label className="step-photo-entry">
+                  사진 추가
+                  <input
+                    aria-label={`Step ${index + 1} 사진 추가`}
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      updateRecipeStep(step.id, { photoName: event.target.files?.[0]?.name })
+                    }
+                  />
+                </label>
+              </div>
+              <textarea
+                aria-label={`Step ${index + 1} 설명`}
+                value={step.body}
+                placeholder="예: 팬을 충분히 달군 뒤 재료를 볶아요."
+                rows={3}
+                onChange={(event) => updateRecipeStep(step.id, { body: event.target.value })}
+              />
+              {step.photoName ? <span className="field-hint">선택됨: {step.photoName}</span> : null}
+            </div>
+          ))}
+          <button
+            className="add-row-button"
+            type="button"
+            onClick={() => setRecipeSteps((steps) => [...steps, createRecipeStep(steps.length + 1)])}
+          >
+            + 요리순서 추가
+          </button>
+        </fieldset>
+
+        <label>
+          요리 완성사진
           <input
             type="file"
             accept="image/*"
-            onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+            onChange={(event) => setFinishedPhoto(event.target.files?.[0] ?? null)}
           />
+          <span className="field-hint">완성사진은 1장만 등록하며, 홈과 목록의 대표 썸네일로 사용됩니다.</span>
         </label>
         <label>
           메모
@@ -367,6 +819,129 @@ function AddView({ onSaved }: { onSaved: () => void }) {
           {submitState === 'saving' ? '저장 중' : '저장하기'}
         </button>
       </form>
+    </section>
+  );
+}
+
+function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScrap) => void }) {
+  const [url, setUrl] = useState('');
+  const [title, setTitle] = useState('');
+  const [memo, setMemo] = useState('');
+  const [recipeScraps, setRecipeScraps] = useState<RecipeScrap[]>([]);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>('idle');
+
+  async function loadRecipeScrapsAsync() {
+    setLoadState('loading');
+
+    try {
+      setRecipeScraps(await listRecipeScrapsAsync());
+      setLoadState('ready');
+    } catch (error) {
+      console.error(error);
+      setLoadState('error');
+    }
+  }
+
+  useEffect(() => {
+    void loadRecipeScrapsAsync();
+  }, []);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitState('saving');
+
+    try {
+      await createRecipeScrapAsync({
+        id: createLocalId('recipe-scrap'),
+        url,
+        title,
+        memo,
+      });
+      setUrl('');
+      setTitle('');
+      setMemo('');
+      setSubmitState('idle');
+      await loadRecipeScrapsAsync();
+    } catch (error) {
+      console.error(error);
+      setSubmitState('error');
+    }
+  }
+
+  return (
+    <section className="view recipe-view">
+      <div className="section-heading">
+        <p className="eyebrow">레시피 스크랩</p>
+        <h1>나중에 만들 레시피를 모아두세요.</h1>
+        <p>링크를 저장해두고, 마음이 가는 날 바로 요리 기록을 시작할 수 있습니다.</p>
+      </div>
+      <form className="recipe-scrap-form" onSubmit={handleSubmit}>
+        <label>
+          레시피 링크
+          <input
+            required
+            type="url"
+            value={url}
+            placeholder="https://example.com/recipe"
+            onChange={(event) => setUrl(event.target.value)}
+          />
+        </label>
+        <label>
+          제목
+          <input
+            type="text"
+            value={title}
+            placeholder="예: 얼큰한 닭볶음탕"
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        </label>
+        <label>
+          메모
+          <textarea
+            rows={3}
+            value={memo}
+            placeholder="다음 주말에 만들어 보기"
+            onChange={(event) => setMemo(event.target.value)}
+          />
+        </label>
+        {submitState === 'error' ? <p className="form-error">저장하지 못했습니다. 다시 시도해 주세요.</p> : null}
+        <button className="primary-action" disabled={submitState === 'saving'} type="submit">
+          {submitState === 'saving' ? '저장 중' : '레시피 저장'}
+        </button>
+      </form>
+      <section className="recipe-scrap-list" aria-live="polite">
+        <div className="panel-header">
+          <h2>저장한 레시피</h2>
+          <span>{recipeScraps.length}개</span>
+        </div>
+        {loadState === 'loading' ? <p className="panel-state">레시피를 불러오는 중입니다.</p> : null}
+        {loadState === 'error' ? <p className="panel-state">저장한 레시피를 불러오지 못했습니다.</p> : null}
+        {loadState === 'ready' && recipeScraps.length === 0 ? (
+          <div className="empty-state">
+            <strong>아직 저장한 레시피가 없습니다.</strong>
+            <p>마음에 든 외부 레시피 링크를 먼저 모아보세요.</p>
+          </div>
+        ) : null}
+        {recipeScraps.length ? (
+          <ul className="scrap-list">
+            {recipeScraps.map((recipeScrap) => (
+              <li key={recipeScrap.id}>
+                <div>
+                  <strong>{getRecipeScrapTitle(recipeScrap)}</strong>
+                  <a href={recipeScrap.url} rel="noreferrer" target="_blank">
+                    {recipeScrap.url}
+                  </a>
+                  {recipeScrap.memo ? <p>{recipeScrap.memo}</p> : null}
+                </div>
+                <button type="button" onClick={() => onStartRecord(recipeScrap)}>
+                  이 레시피로 기록
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
     </section>
   );
 }
@@ -393,7 +968,8 @@ function PlaceholderView({
 
 export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>('home');
-  const [selectedRecord, setSelectedRecord] = useState<MealRecord | null>(null);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [selectedRecipeScrap, setSelectedRecipeScrap] = useState<RecipeScrap | null>(null);
   const activeRouteLabel = useMemo(
     () =>
       activeRoute === 'detail'
@@ -419,7 +995,13 @@ export function App() {
               aria-current={activeRoute === route.key ? 'page' : undefined}
               key={route.key}
               type="button"
-              onClick={() => setActiveRoute(route.key)}
+              onClick={() => {
+                setActiveRoute(route.key);
+
+                if (route.key !== 'add') {
+                  setSelectedRecipeScrap(null);
+                }
+              }}
             >
               {route.label}
             </button>
@@ -435,34 +1017,36 @@ export function App() {
 
         {activeRoute === 'home' && (
           <HomeView
-            onAddClick={() => setActiveRoute('add')}
             onOpenRecord={(record) => {
-              setSelectedRecord(record);
+              setSelectedRecordId(record.id);
               setActiveRoute('detail');
             }}
           />
         )}
         {activeRoute === 'add' && (
           <AddView
+            recipeScrap={selectedRecipeScrap}
             onSaved={() => {
+              setSelectedRecipeScrap(null);
               setActiveRoute('home');
             }}
           />
         )}
         {activeRoute === 'detail' && (
-          <DetailPreviewView
-            record={selectedRecord}
+          <DetailView
+            recordId={selectedRecordId}
             onBackClick={() => {
-              setSelectedRecord(null);
+              setSelectedRecordId(null);
               setActiveRoute('home');
             }}
           />
         )}
-        {activeRoute === 'calendar' && (
-          <PlaceholderView
-            eyebrow="달력"
-            title="월별 요리 기록을 볼 준비"
-            copy="날짜별 기록 조회와 대표 사진 표시는 Phase 2에서 연결합니다."
+        {activeRoute === 'recipes' && (
+          <RecipeView
+            onStartRecord={(recipeScrap) => {
+              setSelectedRecipeScrap(recipeScrap);
+              setActiveRoute('add');
+            }}
           />
         )}
         {activeRoute === 'search' && (

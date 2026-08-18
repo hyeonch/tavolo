@@ -10,6 +10,7 @@ export async function createMediaAsync(input: CreateMediaInput) {
     uri: input.uri,
     blob: input.blob,
     thumbnailUri: input.thumbnailUri,
+    recipeStepId: input.recipeStepId,
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
 
