@@ -8,12 +8,11 @@ import {
   createMediaObjectUrl,
   getMediaByIdAsync,
   listMealRecordsAsync,
-  listRecentMealRecordsAsync,
   revokeMediaObjectUrl,
 } from './db';
 import type { MealRecord } from './types/meal';
 
-type RouteKey = 'home' | 'add' | 'calendar' | 'search' | 'recap' | 'detail';
+type RouteKey = 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail';
 
 type Route = {
   key: RouteKey;
@@ -22,8 +21,8 @@ type Route = {
 
 const routes: Route[] = [
   { key: 'home', label: '홈' },
-  { key: 'add', label: '기록' },
-  { key: 'calendar', label: '달력' },
+  { key: 'recipes', label: '레시피' },
+  { key: 'add', label: '추가' },
   { key: 'search', label: '검색' },
   { key: 'recap', label: '결산' },
 ];
@@ -33,6 +32,8 @@ type HomeMealCard = {
   thumbnailUrl: string | null;
 };
 
+const emptyMealRecords: MealRecord[] = [];
+
 function createLocalId(prefix: string) {
   if (typeof crypto.randomUUID === 'function') {
     return `${prefix}-${crypto.randomUUID()}`;
@@ -41,15 +42,44 @@ function createLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function getTodayLabel() {
-  return new Intl.DateTimeFormat('ko-KR', {
-    dateStyle: 'full',
-  }).format(new Date());
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate()
+  ).padStart(2, '0')}`;
 }
 
-function getCurrentMonthKey() {
-  const today = new Date();
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+function getMonthStart(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function moveMonth(month: Date, offset: number) {
+  return new Date(month.getFullYear(), month.getMonth() + offset, 1);
+}
+
+function getCalendarDays(month: Date) {
+  const firstWeekday = month.getDay();
+  const totalDays = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const totalCells = Math.ceil((firstWeekday + totalDays) / 7) * 7;
+
+  return Array.from({ length: totalCells }, (_, index) => {
+    const day = index - firstWeekday + 1;
+    return day > 0 && day <= totalDays ? day : null;
+  });
+}
+
+function formatMonthLabel(month: Date) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+  }).format(month);
+}
+
+function formatSelectedDateLabel(cookedAt: string) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  }).format(new Date(`${cookedAt}T00:00:00`));
 }
 
 function formatCookedAtLabel(cookedAt: string) {
@@ -92,30 +122,70 @@ function MealCard({
 }
 
 function HomeView({
-  onAddClick,
   onOpenRecord,
 }: {
-  onAddClick: () => void;
   onOpenRecord: (record: MealRecord) => void;
 }) {
-  const [recentMeals, setRecentMeals] = useState<HomeMealCard[]>([]);
-  const [currentMonthCount, setCurrentMonthCount] = useState(0);
+  const today = useMemo(() => new Date(), []);
+  const [month, setMonth] = useState(() => getMonthStart(today));
+  const [selectedDate, setSelectedDate] = useState(() => toDateKey(today));
+  const [records, setRecords] = useState<MealRecord[]>([]);
+  const [selectedMeals, setSelectedMeals] = useState<HomeMealCard[]>([]);
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const recordsByDate = useMemo(() => {
+    const groupedRecords = new Map<string, MealRecord[]>();
+
+    records.forEach((record) => {
+      const items = groupedRecords.get(record.cookedAt) ?? [];
+      items.push(record);
+      groupedRecords.set(record.cookedAt, items);
+    });
+
+    return groupedRecords;
+  }, [records]);
+  const calendarDays = useMemo(() => getCalendarDays(month), [month]);
+  const selectedRecords = useMemo(
+    () => recordsByDate.get(selectedDate) ?? emptyMealRecords,
+    [recordsByDate, selectedDate]
+  );
 
   useEffect(() => {
     let isMounted = true;
-    let objectUrls: string[] = [];
 
     async function loadHomeAsync() {
       setLoadState('loading');
 
       try {
-        const [recentRecords, allRecords] = await Promise.all([
-          listRecentMealRecordsAsync(6),
-          listMealRecordsAsync(),
-        ]);
+        const allRecords = await listMealRecordsAsync();
+
+        if (!isMounted) return;
+
+        setRecords(allRecords);
+        setLoadState('ready');
+      } catch (error) {
+        console.error(error);
+
+        if (isMounted) {
+          setLoadState('error');
+        }
+      }
+    }
+
+    void loadHomeAsync();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrls: string[] = [];
+
+    async function loadSelectedMealsAsync() {
+      try {
         const mealCards = await Promise.all(
-          recentRecords.map(async (record) => {
+          selectedRecords.map(async (record) => {
             const firstMediaId = record.mediaIds[0];
             const media = firstMediaId ? await getMediaByIdAsync(firstMediaId) : null;
             const thumbnailUrl = media ? createMediaObjectUrl(media) : null;
@@ -133,79 +203,119 @@ function HomeView({
           return;
         }
 
-        const monthKey = getCurrentMonthKey();
-        setRecentMeals(mealCards);
-        setCurrentMonthCount(
-          allRecords.filter((record) => record.cookedAt.startsWith(monthKey)).length
-        );
-        setLoadState('ready');
+        setSelectedMeals(mealCards);
       } catch (error) {
         console.error(error);
 
         if (isMounted) {
-          setLoadState('error');
+          setSelectedMeals([]);
         }
       }
     }
 
-    void loadHomeAsync();
+    void loadSelectedMealsAsync();
 
     return () => {
       isMounted = false;
       objectUrls.forEach((url) => revokeMediaObjectUrl(url));
-      objectUrls = [];
     };
-  }, []);
+  }, [selectedRecords]);
+
+  function handleMonthChange(offset: number) {
+    const nextMonth = moveMonth(month, offset);
+    setMonth(nextMonth);
+    setSelectedDate(toDateKey(nextMonth));
+  }
 
   return (
     <section className="view home-view">
       <div className="section-heading">
-        <p className="eyebrow">오늘의 식탁</p>
-        <h1>요리를 남기고, 나중에 다시 꺼내보세요.</h1>
-        <p>{getTodayLabel()}</p>
+        <p className="eyebrow">나의 요리 달력</p>
+        <h1>언제, 무엇을 만들었는지 다시 꺼내보세요.</h1>
+        <p>날짜를 선택하면 그날 남긴 요리 기록을 볼 수 있습니다.</p>
       </div>
 
-      <div className="summary-grid" aria-label="요리 기록 요약">
-        <div className="summary-item">
-          <span>이번 달</span>
-          <strong>{currentMonthCount}회</strong>
-        </div>
-        <div className="summary-item">
-          <span>최근 기록</span>
-          <strong>{recentMeals.length}개</strong>
-        </div>
-      </div>
-
-      <button className="primary-action" type="button" onClick={onAddClick}>
-        오늘 요리 기록하기
-      </button>
-
-      <div className="panel">
-        <div className="panel-header">
-          <h2>최근 기록</h2>
-          <span>최신순</span>
-        </div>
-        {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
-        {loadState === 'error' ? (
-          <p className="panel-state">저장된 기록을 불러오지 못했습니다.</p>
-        ) : null}
-        {loadState === 'ready' && recentMeals.length === 0 ? (
-          <div className="empty-state">
-            <strong>아직 저장된 요리가 없습니다.</strong>
-            <p>첫 요리를 기록하면 이곳에 최근 기록이 쌓입니다.</p>
+      <div className="calendar-layout">
+        <section className="calendar-panel" aria-label={`${formatMonthLabel(month)} 요리 달력`}>
+          <div className="calendar-header">
+            <div>
+              <span className="eyebrow">요리한 날</span>
+              <h2>{formatMonthLabel(month)}</h2>
+            </div>
+            <div className="calendar-controls">
+              <button type="button" aria-label="이전 달" onClick={() => handleMonthChange(-1)}>
+                이전
+              </button>
+              <button type="button" aria-label="다음 달" onClick={() => handleMonthChange(1)}>
+                다음
+              </button>
+            </div>
           </div>
-        ) : null}
-        {recentMeals.length > 0 ? (
-          <ul className="meal-list">
-            {recentMeals.map((mealCard) => (
-              <MealCard
-                key={mealCard.record.id}
-                mealCard={mealCard}
-                onOpen={onOpenRecord}
-              />
+          <div className="calendar-weekdays" aria-hidden="true">
+            {['일', '월', '화', '수', '목', '금', '토'].map((weekday) => (
+              <span key={weekday}>{weekday}</span>
             ))}
-          </ul>
-        ) : null}
+          </div>
+          <div className="calendar-grid">
+            {calendarDays.map((day, index) => {
+              if (!day) {
+                return <span aria-hidden="true" className="calendar-empty-day" key={`empty-${index}`} />;
+              }
+
+              const date = new Date(month.getFullYear(), month.getMonth(), day);
+              const dateKey = toDateKey(date);
+              const count = recordsByDate.get(dateKey)?.length ?? 0;
+              const isSelected = selectedDate === dateKey;
+              const isToday = toDateKey(today) === dateKey;
+
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`calendar-day${count > 0 ? ' has-records' : ''}${
+                    isSelected ? ' is-selected' : ''
+                  }${isToday ? ' is-today' : ''}`}
+                  key={dateKey}
+                  type="button"
+                  onClick={() => setSelectedDate(dateKey)}
+                >
+                  <span>{day}</span>
+                  {count > 0 ? <small>{count}개</small> : null}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="selected-date-panel" aria-live="polite">
+          <div className="panel-header">
+            <div>
+              <span className="eyebrow">선택한 날</span>
+              <h2>{formatSelectedDateLabel(selectedDate)}</h2>
+            </div>
+            <span>{selectedRecords.length}개 기록</span>
+          </div>
+          {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
+          {loadState === 'error' ? (
+            <p className="panel-state">저장된 기록을 불러오지 못했습니다.</p>
+          ) : null}
+          {loadState === 'ready' && selectedMeals.length === 0 ? (
+            <div className="empty-state">
+              <strong>이날은 남긴 요리 기록이 없습니다.</strong>
+              <p>새 기록은 하단의 추가 탭에서 남길 수 있습니다.</p>
+            </div>
+          ) : null}
+          {selectedMeals.length > 0 ? (
+            <ul className="meal-list">
+              {selectedMeals.map((mealCard) => (
+                <MealCard
+                  key={mealCard.record.id}
+                  mealCard={mealCard}
+                  onOpen={onOpenRecord}
+                />
+              ))}
+            </ul>
+          ) : null}
+        </section>
       </div>
     </section>
   );
@@ -435,7 +545,6 @@ export function App() {
 
         {activeRoute === 'home' && (
           <HomeView
-            onAddClick={() => setActiveRoute('add')}
             onOpenRecord={(record) => {
               setSelectedRecord(record);
               setActiveRoute('detail');
@@ -458,11 +567,11 @@ export function App() {
             }}
           />
         )}
-        {activeRoute === 'calendar' && (
+        {activeRoute === 'recipes' && (
           <PlaceholderView
-            eyebrow="달력"
-            title="월별 요리 기록을 볼 준비"
-            copy="날짜별 기록 조회와 대표 사진 표시는 Phase 2에서 연결합니다."
+            eyebrow="레시피 스크랩"
+            title="나중에 만들 레시피를 모아두세요."
+            copy="외부 레시피 링크 저장과 기록 시작 흐름은 다음 단계에서 연결합니다."
           />
         )}
         {activeRoute === 'search' && (

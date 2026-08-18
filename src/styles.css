@@ -204,6 +204,131 @@ h2 {
   padding: 20px;
 }
 
+.calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr);
+  align-items: start;
+  gap: 20px;
+  max-width: 980px;
+}
+
+.calendar-panel,
+.selected-date-panel {
+  display: grid;
+  gap: 18px;
+  border: 1px solid #e2ded3;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 22px;
+}
+
+.calendar-header,
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-header h2,
+.selected-date-panel h2 {
+  margin-top: 4px;
+}
+
+.calendar-controls button {
+  min-height: 36px;
+  border: 1px solid #d9ded8;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #1f4f42;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 10px;
+}
+
+.calendar-controls button:hover {
+  background: #eef3ef;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekdays {
+  color: #6a716c;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.calendar-grid {
+  overflow: hidden;
+  border-top: 1px solid #eef0eb;
+  border-left: 1px solid #eef0eb;
+}
+
+.calendar-day,
+.calendar-empty-day {
+  min-height: 74px;
+  border: 0;
+  border-right: 1px solid #eef0eb;
+  border-bottom: 1px solid #eef0eb;
+}
+
+.calendar-empty-day {
+  background: #fcfcfa;
+}
+
+.calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: #ffffff;
+  color: #303632;
+  padding: 9px;
+  text-align: left;
+}
+
+.calendar-day:hover {
+  background: #f7faf7;
+}
+
+.calendar-day small {
+  border-radius: 999px;
+  background: #eef3ef;
+  color: #1f4f42;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 6px;
+}
+
+.calendar-day.has-records > span {
+  color: #1f4f42;
+  font-weight: 900;
+}
+
+.calendar-day.is-today > span {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.calendar-day.is-selected {
+  background: #356859;
+  color: #ffffff;
+}
+
+.calendar-day.is-selected small {
+  background: #ffffff;
+  color: #1f4f42;
+}
+
+.calendar-day.is-selected > span {
+  color: #ffffff;
+}
+
 .panel-header {
   display: flex;
   align-items: baseline;
@@ -433,6 +558,29 @@ h2 {
 
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .calendar-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-panel,
+  .selected-date-panel {
+    padding: 18px;
+  }
+
+  .calendar-day,
+  .calendar-empty-day {
+    min-height: 58px;
+  }
+
+  .calendar-day {
+    padding: 7px 5px;
+  }
+
+  .calendar-day small {
+    font-size: 10px;
+    padding: 2px 4px;
   }
 
   .primary-action {
