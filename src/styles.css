@@ -536,8 +536,7 @@ h2 {
 
 .detail-hero {
   display: grid;
-  width: 100%;
-  aspect-ratio: 4 / 3;
+  min-height: 280px;
   place-items: center;
   overflow: hidden;
   border-radius: 12px;
@@ -548,7 +547,6 @@ h2 {
 }
 
 .detail-hero img {
-  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1041,7 +1039,7 @@ h2 {
   }
 
   .detail-hero {
-    aspect-ratio: 4 / 3;
+    min-height: 220px;
   }
 
   .detail-section {
@@ -1193,15 +1191,14 @@ button {
 
 .detail-step-photos {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   grid-column: 1 / -1;
 }
 
 .detail-step-photos img {
-  display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  min-height: 150px;
   border-radius: 10px;
   object-fit: cover;
 }
