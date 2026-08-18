@@ -27,3 +27,14 @@ export async function listRecipeScrapsAsync() {
     return recipeScraps.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   });
 }
+
+export async function deleteRecipeScrapAsync(id: string) {
+  return withStoreAsync(stores.recipeScraps, 'readwrite', async (store) => {
+    const existing = await requestToPromise<RecipeScrap | undefined>(store.get(id));
+
+    if (!existing) return false;
+
+    await requestToPromise(store.delete(id));
+    return true;
+  });
+}

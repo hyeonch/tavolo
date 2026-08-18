@@ -81,7 +81,9 @@ export type CreateMealInput = {
   updatedAt?: string;
 };
 
-export type UpdateMealInput = Partial<Pick<Meal, 'name' | 'recipeUrl' | 'memo'>> & {
+export type UpdateMealInput = Partial<Pick<Meal, 'name'>> & {
+  recipeUrl?: string | null;
+  memo?: string | null;
   updatedAt?: string;
 };
 
@@ -98,12 +100,12 @@ export type CreateMealRecordInput = {
   updatedAt?: string;
 };
 
-export type UpdateMealRecordInput = Partial<
-  Pick<
-    MealRecord,
-    'mealId' | 'cookedAt' | 'rating' | 'memo' | 'ingredientGroups' | 'recipeSteps' | 'finishedMediaId'
-  >
-> & {
+export type UpdateMealRecordInput = Partial<Pick<MealRecord, 'mealId' | 'cookedAt'>> & {
+  rating?: number | null;
+  memo?: string | null;
+  ingredientGroups?: IngredientGroup[] | null;
+  recipeSteps?: RecipeStep[] | null;
+  finishedMediaId?: string | null;
   updatedAt?: string;
 };
 
