@@ -1,5 +1,5 @@
 export const databaseName = 'tavolo';
-export const databaseVersion = 1;
+export const databaseVersion = 2;
 
 export const stores = {
   meals: 'meals',
@@ -7,4 +7,5 @@ export const stores = {
   media: 'media',
   tags: 'tags',
   mealTags: 'mealTags',
+  recipeScraps: 'recipeScraps',
 } as const;

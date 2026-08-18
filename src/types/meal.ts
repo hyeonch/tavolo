@@ -63,6 +63,15 @@ export type Tag = {
   createdAt: string;
 };
 
+export type RecipeScrap = {
+  id: string;
+  url: string;
+  title?: string;
+  memo?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type CreateMealInput = {
   id: string;
   name: string;
@@ -113,4 +122,13 @@ export type CreateTagInput = {
   id: string;
   name: string;
   createdAt?: string;
+};
+
+export type CreateRecipeScrapInput = {
+  id: string;
+  url: string;
+  title?: string;
+  memo?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };

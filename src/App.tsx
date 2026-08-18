@@ -5,17 +5,19 @@ import {
   createMealAsync,
   createMealRecordAsync,
   createMediaAsync,
+  createRecipeScrapAsync,
   createTagAsync,
   createMediaObjectUrl,
   getMealRecordByIdAsync,
   getTagByNameAsync,
   getMediaByIdAsync,
   listMealRecordsAsync,
+  listRecipeScrapsAsync,
   replaceMealTagsAsync,
   revokeMediaObjectUrl,
   updateMealRecordAsync,
 } from './db';
-import type { IngredientGroup, MealRecord, RecipeStep } from './types/meal';
+import type { IngredientGroup, MealRecord, RecipeScrap, RecipeStep } from './types/meal';
 
 type RouteKey = 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail';
 
@@ -97,6 +99,16 @@ function formatCookedAtLabel(cookedAt: string) {
 
 function formatRating(rating?: number) {
   return rating ? `만족도 ${rating}/5` : '만족도 미입력';
+}
+
+function getRecipeScrapTitle(recipeScrap: RecipeScrap) {
+  if (recipeScrap.title) return recipeScrap.title;
+
+  try {
+    return new URL(recipeScrap.url).hostname;
+  } catch {
+    return recipeScrap.url;
+  }
 }
 
 type RecipeStepDraft = RecipeStep & {
@@ -510,8 +522,14 @@ function DetailView({
   );
 }
 
-function AddView({ onSaved }: { onSaved: () => void }) {
-  const [mealName, setMealName] = useState('');
+function AddView({
+  onSaved,
+  recipeScrap,
+}: {
+  onSaved: () => void;
+  recipeScrap: RecipeScrap | null;
+}) {
+  const [mealName, setMealName] = useState(() => recipeScrap?.title ?? '');
   const [cookedAt, setCookedAt] = useState(new Date().toISOString().slice(0, 10));
   const [rating, setRating] = useState('');
   const [memo, setMemo] = useState('');
@@ -597,6 +615,7 @@ function AddView({ onSaved }: { onSaved: () => void }) {
       await createMealAsync({
         id: mealId,
         name: trimmedMealName,
+        recipeUrl: recipeScrap?.url,
         memo: trimmedMemo || undefined,
       });
       const tagIds = await Promise.all(
@@ -646,7 +665,11 @@ function AddView({ onSaved }: { onSaved: () => void }) {
       <div className="section-heading">
         <p className="eyebrow">새 기록</p>
         <h1>오늘 만든 요리</h1>
-        <p>요리 이름과 날짜만 입력해도 바로 저장할 수 있습니다.</p>
+        <p>
+          {recipeScrap
+            ? `“${getRecipeScrapTitle(recipeScrap)}” 레시피를 바탕으로 기록합니다.`
+            : '요리 이름과 날짜만 입력해도 바로 저장할 수 있습니다.'}
+        </p>
       </div>
 
       <form className="meal-form" onSubmit={handleSubmit}>
@@ -800,6 +823,129 @@ function AddView({ onSaved }: { onSaved: () => void }) {
   );
 }
 
+function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScrap) => void }) {
+  const [url, setUrl] = useState('');
+  const [title, setTitle] = useState('');
+  const [memo, setMemo] = useState('');
+  const [recipeScraps, setRecipeScraps] = useState<RecipeScrap[]>([]);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>('idle');
+
+  async function loadRecipeScrapsAsync() {
+    setLoadState('loading');
+
+    try {
+      setRecipeScraps(await listRecipeScrapsAsync());
+      setLoadState('ready');
+    } catch (error) {
+      console.error(error);
+      setLoadState('error');
+    }
+  }
+
+  useEffect(() => {
+    void loadRecipeScrapsAsync();
+  }, []);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitState('saving');
+
+    try {
+      await createRecipeScrapAsync({
+        id: createLocalId('recipe-scrap'),
+        url,
+        title,
+        memo,
+      });
+      setUrl('');
+      setTitle('');
+      setMemo('');
+      setSubmitState('idle');
+      await loadRecipeScrapsAsync();
+    } catch (error) {
+      console.error(error);
+      setSubmitState('error');
+    }
+  }
+
+  return (
+    <section className="view recipe-view">
+      <div className="section-heading">
+        <p className="eyebrow">레시피 스크랩</p>
+        <h1>나중에 만들 레시피를 모아두세요.</h1>
+        <p>링크를 저장해두고, 마음이 가는 날 바로 요리 기록을 시작할 수 있습니다.</p>
+      </div>
+      <form className="recipe-scrap-form" onSubmit={handleSubmit}>
+        <label>
+          레시피 링크
+          <input
+            required
+            type="url"
+            value={url}
+            placeholder="https://example.com/recipe"
+            onChange={(event) => setUrl(event.target.value)}
+          />
+        </label>
+        <label>
+          제목
+          <input
+            type="text"
+            value={title}
+            placeholder="예: 얼큰한 닭볶음탕"
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        </label>
+        <label>
+          메모
+          <textarea
+            rows={3}
+            value={memo}
+            placeholder="다음 주말에 만들어 보기"
+            onChange={(event) => setMemo(event.target.value)}
+          />
+        </label>
+        {submitState === 'error' ? <p className="form-error">저장하지 못했습니다. 다시 시도해 주세요.</p> : null}
+        <button className="primary-action" disabled={submitState === 'saving'} type="submit">
+          {submitState === 'saving' ? '저장 중' : '레시피 저장'}
+        </button>
+      </form>
+      <section className="recipe-scrap-list" aria-live="polite">
+        <div className="panel-header">
+          <h2>저장한 레시피</h2>
+          <span>{recipeScraps.length}개</span>
+        </div>
+        {loadState === 'loading' ? <p className="panel-state">레시피를 불러오는 중입니다.</p> : null}
+        {loadState === 'error' ? <p className="panel-state">저장한 레시피를 불러오지 못했습니다.</p> : null}
+        {loadState === 'ready' && recipeScraps.length === 0 ? (
+          <div className="empty-state">
+            <strong>아직 저장한 레시피가 없습니다.</strong>
+            <p>마음에 든 외부 레시피 링크를 먼저 모아보세요.</p>
+          </div>
+        ) : null}
+        {recipeScraps.length ? (
+          <ul className="scrap-list">
+            {recipeScraps.map((recipeScrap) => (
+              <li key={recipeScrap.id}>
+                <div>
+                  <strong>{getRecipeScrapTitle(recipeScrap)}</strong>
+                  <a href={recipeScrap.url} rel="noreferrer" target="_blank">
+                    {recipeScrap.url}
+                  </a>
+                  {recipeScrap.memo ? <p>{recipeScrap.memo}</p> : null}
+                </div>
+                <button type="button" onClick={() => onStartRecord(recipeScrap)}>
+                  이 레시피로 기록
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
+    </section>
+  );
+}
+
 function PlaceholderView({
   eyebrow,
   title,
@@ -823,6 +969,7 @@ function PlaceholderView({
 export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>('home');
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [selectedRecipeScrap, setSelectedRecipeScrap] = useState<RecipeScrap | null>(null);
   const activeRouteLabel = useMemo(
     () =>
       activeRoute === 'detail'
@@ -848,7 +995,13 @@ export function App() {
               aria-current={activeRoute === route.key ? 'page' : undefined}
               key={route.key}
               type="button"
-              onClick={() => setActiveRoute(route.key)}
+              onClick={() => {
+                setActiveRoute(route.key);
+
+                if (route.key !== 'add') {
+                  setSelectedRecipeScrap(null);
+                }
+              }}
             >
               {route.label}
             </button>
@@ -872,7 +1025,9 @@ export function App() {
         )}
         {activeRoute === 'add' && (
           <AddView
+            recipeScrap={selectedRecipeScrap}
             onSaved={() => {
+              setSelectedRecipeScrap(null);
               setActiveRoute('home');
             }}
           />
@@ -887,10 +1042,11 @@ export function App() {
           />
         )}
         {activeRoute === 'recipes' && (
-          <PlaceholderView
-            eyebrow="레시피 스크랩"
-            title="나중에 만들 레시피를 모아두세요."
-            copy="외부 레시피 링크 저장과 기록 시작 흐름은 다음 단계에서 연결합니다."
+          <RecipeView
+            onStartRecord={(recipeScrap) => {
+              setSelectedRecipeScrap(recipeScrap);
+              setActiveRoute('add');
+            }}
           />
         )}
         {activeRoute === 'search' && (

@@ -600,6 +600,87 @@ h2 {
   resize: vertical;
 }
 
+.recipe-scrap-form,
+.recipe-scrap-list {
+  display: grid;
+  width: min(100%, 700px);
+  gap: 16px;
+  border: 1px solid #e2ded3;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 20px;
+}
+
+.recipe-scrap-form label {
+  display: grid;
+  gap: 8px;
+  color: #303632;
+  font-weight: 800;
+}
+
+.recipe-scrap-form input,
+.recipe-scrap-form textarea {
+  min-height: 48px;
+  border: 1px solid #d9ded8;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e211f;
+  padding: 12px 14px;
+}
+
+.recipe-scrap-form textarea {
+  resize: vertical;
+}
+
+.scrap-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scrap-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid #eef0eb;
+  padding-top: 14px;
+}
+
+.scrap-list li > div {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.scrap-list a {
+  overflow: hidden;
+  color: #1f4f42;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scrap-list p {
+  color: #59605b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.scrap-list button {
+  flex: none;
+  min-height: 38px;
+  border: 1px solid #cdd7cf;
+  border-radius: 7px;
+  background: #fbfcfa;
+  color: #1f4f42;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 10px;
+}
+
 .field-hint {
   color: #6a716c;
   font-size: 13px;
@@ -808,6 +889,15 @@ h2 {
 
   .recipe-section {
     padding: 16px;
+  }
+
+  .recipe-scrap-form,
+  .recipe-scrap-list {
+    padding: 16px;
+  }
+
+  .scrap-list li {
+    display: grid;
   }
 
   .ingredient-labels {
