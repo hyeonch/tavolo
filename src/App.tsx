@@ -7,6 +7,7 @@ import {
   createMediaAsync,
   createTagAsync,
   createMediaObjectUrl,
+  getMealRecordByIdAsync,
   getTagByNameAsync,
   getMediaByIdAsync,
   listMealRecordsAsync,
@@ -355,37 +356,150 @@ function HomeView({
   );
 }
 
-function DetailPreviewView({
-  record,
+function DetailView({
+  recordId,
   onBackClick,
 }: {
-  record: MealRecord | null;
+  recordId: string | null;
   onBackClick: () => void;
 }) {
+  const [record, setRecord] = useState<MealRecord | null>(null);
+  const [representativePhotoUrl, setRepresentativePhotoUrl] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
+
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrl: string | null = null;
+
+    async function loadRecordAsync() {
+      if (!recordId) {
+        setRecord(null);
+        setLoadState('not-found');
+        return;
+      }
+
+      setLoadState('loading');
+
+      try {
+        const loadedRecord = await getMealRecordByIdAsync(recordId);
+
+        if (!loadedRecord) {
+          if (isMounted) {
+            setRecord(null);
+            setLoadState('not-found');
+          }
+          return;
+        }
+
+        const representativeMediaId = loadedRecord.finishedMediaId ?? loadedRecord.mediaIds[0];
+        const media = representativeMediaId ? await getMediaByIdAsync(representativeMediaId) : null;
+        const photoUrl = media ? createMediaObjectUrl(media) : null;
+
+        if (photoUrl?.startsWith('blob:')) {
+          objectUrl = photoUrl;
+        }
+
+        if (!isMounted) {
+          revokeMediaObjectUrl(objectUrl);
+          return;
+        }
+
+        setRecord(loadedRecord);
+        setRepresentativePhotoUrl(photoUrl);
+        setLoadState('ready');
+      } catch (error) {
+        console.error(error);
+
+        if (isMounted) {
+          setLoadState('error');
+        }
+      }
+    }
+
+    void loadRecordAsync();
+
+    return () => {
+      isMounted = false;
+      revokeMediaObjectUrl(objectUrl);
+    };
+  }, [recordId]);
+
   return (
-    <section className="view placeholder-view">
+    <section className="view detail-view">
       <div className="section-heading">
         <p className="eyebrow">기록 상세</p>
-        <h1>{record?.meal?.name ?? '요리 기록'}</h1>
-        <p>{record ? formatCookedAtLabel(record.cookedAt) : '선택한 기록을 찾을 수 없습니다.'}</p>
+        <h1>{record?.meal?.name ?? (loadState === 'loading' ? '기록을 불러오는 중' : '요리 기록')}</h1>
+        <p>{record ? formatCookedAtLabel(record.cookedAt) : '저장한 요리 기록을 다시 확인합니다.'}</p>
       </div>
+
+      {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
+      {loadState === 'not-found' ? <p className="panel-state">요청한 기록을 찾을 수 없습니다.</p> : null}
+      {loadState === 'error' ? <p className="panel-state">기록을 불러오지 못했습니다.</p> : null}
       {record ? (
-        <div className="detail-preview">
-          <div>
-            <span>만족도</span>
-            <strong>{record.rating ? `${record.rating}/5` : '미입력'}</strong>
+        <div className="detail-content">
+          <div className="detail-hero" aria-label="대표 완성사진">
+            {representativePhotoUrl ? (
+              <img alt={`${record.meal?.name ?? '요리'} 완성사진`} src={representativePhotoUrl} />
+            ) : (
+              <span>{record.meal?.name.slice(0, 1) ?? 'T'}</span>
+            )}
           </div>
-          {record.memo ? (
+          <div className="detail-preview">
             <div>
-              <span>메모</span>
-              <p>{record.memo}</p>
+              <span>만족도</span>
+              <strong>{record.rating ? `${record.rating}/5` : '미입력'}</strong>
             </div>
+            {record.meal?.tags.length ? (
+              <div>
+                <span>태그</span>
+                <p className="tag-list">{record.meal.tags.map((tag) => <em key={tag}>#{tag}</em>)}</p>
+              </div>
+            ) : null}
+            {record.memo ? (
+              <div>
+                <span>메모</span>
+                <p>{record.memo}</p>
+              </div>
+            ) : null}
+            {record.meal?.recipeUrl ? (
+              <div>
+                <span>원본 레시피</span>
+                <a href={record.meal.recipeUrl} rel="noreferrer" target="_blank">
+                  레시피 열기
+                </a>
+              </div>
+            ) : null}
+          </div>
+          {record.ingredientGroups?.length ? (
+            <section className="detail-section">
+              <h2>재료정보</h2>
+              {record.ingredientGroups.map((group) => (
+                <div className="detail-ingredient-group" key={group.id}>
+                  <strong>{group.name}</strong>
+                  <ul>
+                    {group.items.map((item) => (
+                      <li key={item.id}>
+                        <span>{item.name}</span>
+                        <span>{[item.quantity, item.unit].filter(Boolean).join(' ') || '수량 미입력'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
           ) : null}
-          {record.meal?.tags.length ? (
-            <div>
-              <span>태그</span>
-              <p>{record.meal.tags.join(', ')}</p>
-            </div>
+          {record.recipeSteps?.length ? (
+            <section className="detail-section">
+              <h2>요리순서</h2>
+              <ol className="detail-steps">
+                {record.recipeSteps.map((step) => (
+                  <li key={step.id}>
+                    <strong>Step {step.order}</strong>
+                    <p>{step.body}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
           ) : null}
         </div>
       ) : null}
@@ -708,7 +822,7 @@ function PlaceholderView({
 
 export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteKey>('home');
-  const [selectedRecord, setSelectedRecord] = useState<MealRecord | null>(null);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const activeRouteLabel = useMemo(
     () =>
       activeRoute === 'detail'
@@ -751,7 +865,7 @@ export function App() {
         {activeRoute === 'home' && (
           <HomeView
             onOpenRecord={(record) => {
-              setSelectedRecord(record);
+              setSelectedRecordId(record.id);
               setActiveRoute('detail');
             }}
           />
@@ -764,10 +878,10 @@ export function App() {
           />
         )}
         {activeRoute === 'detail' && (
-          <DetailPreviewView
-            record={selectedRecord}
+          <DetailView
+            recordId={selectedRecordId}
             onBackClick={() => {
-              setSelectedRecord(null);
+              setSelectedRecordId(null);
               setActiveRoute('home');
             }}
           />
