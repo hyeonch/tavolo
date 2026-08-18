@@ -1553,6 +1553,176 @@ button {
   padding: 20px;
 }
 
+.recap-section-tabs,
+.world-cup-size-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recap-section-tabs button {
+  min-height: 38px;
+  border: 1px solid #d9ded8;
+  border-radius: 8px;
+  background: #fff;
+  color: #52645a;
+  font-weight: 800;
+  padding: 0 12px;
+}
+
+.recap-section-tabs button.is-active {
+  border-color: #356859;
+  background: #356859;
+  color: #fff;
+}
+
+.recap-year-select {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 10px;
+  color: #52645a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.recap-year-select select {
+  min-height: 40px;
+  width: auto;
+  font: inherit;
+}
+
+.month-bar-list {
+  display: grid;
+  gap: 9px;
+}
+
+.month-bar-list > div {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 8px;
+  color: #52645a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.month-bar-list i {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf1eb;
+}
+
+.month-bar-list b {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: #356859;
+}
+
+.recap-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.recap-tag-list span {
+  border-radius: 999px;
+  background: #edf3ef;
+  color: #1f4f42;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 10px;
+}
+
+.world-cup-panel,
+.world-cup-start,
+.world-cup-match,
+.world-cup-winner {
+  display: grid;
+  gap: 16px;
+}
+
+.world-cup-panel {
+  width: min(100%, 700px);
+  border: 1px solid #e2ded3;
+  border-radius: 12px;
+  background: #fff;
+  padding: 20px;
+}
+
+.world-cup-start > p,
+.world-cup-match > p {
+  margin: 0;
+  color: #6a716c;
+  line-height: 1.6;
+}
+
+.world-cup-winner {
+  border-radius: 10px;
+  background: #f5f0e6;
+  padding: 16px;
+}
+
+.world-cup-winner span,
+.world-cup-match > span {
+  color: #52645a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.world-cup-winner strong {
+  color: #1f4f42;
+  font-size: 22px;
+}
+
+.world-cup-winner button {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  color: #1f4f42;
+  font-weight: 800;
+  padding: 0;
+}
+
+.world-cup-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.world-cup-choice-grid button {
+  display: grid;
+  min-height: 156px;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid #d9ded8;
+  border-radius: 12px;
+  background: #fbfcfa;
+  color: #1f2722;
+  padding: 16px;
+  text-align: left;
+}
+
+.world-cup-choice-grid button:hover {
+  border-color: #356859;
+  background: #edf3ef;
+}
+
+.world-cup-choice-grid strong {
+  font-size: 19px;
+}
+
+.world-cup-choice-grid small,
+.world-cup-choice-grid em {
+  color: #52645a;
+  font-size: 12px;
+  font-style: normal;
+}
+
 .scrap-preview {
   display: grid;
   width: 108px;
@@ -1694,6 +1864,14 @@ button {
 
   .recap-grid section {
     min-height: 116px;
+  }
+
+  .world-cup-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .world-cup-choice-grid button {
+    min-height: 106px;
   }
 
   .scrap-preview {

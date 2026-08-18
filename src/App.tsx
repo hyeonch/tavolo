@@ -9,6 +9,7 @@ import {
   createMediaAsync,
   createRecipeScrapAsync,
   createTagAsync,
+  createWorldCupSessionAsync,
   deleteMealRecordAsync,
   deleteMediaAsync,
   deleteRecipeScrapAsync,
@@ -16,16 +17,29 @@ import {
   getMealRecordByIdAsync,
   getTagByNameAsync,
   getMediaByIdAsync,
+  getLatestWorldCupSessionAsync,
   listMealRecordsAsync,
   listMediaByMealRecordIdAsync,
+  listWorldCupMatchesAsync,
   listRecipeScrapsAsync,
   replaceMealTagsAsync,
   revokeMediaObjectUrl,
+  saveWorldCupProgressAsync,
   setDataSource,
   updateMealAsync,
   updateMealRecordAsync,
 } from './db';
-import type { IngredientGroup, MealRecord, Media, RecipeScrap, RecipeStep } from './types/meal';
+import { buildRecapSummary, getRecordYears } from './recap';
+import type {
+  IngredientGroup,
+  MealRecord,
+  Media,
+  RecipeScrap,
+  RecipeStep,
+  WorldCupMatch,
+  WorldCupSession,
+} from './types/meal';
+import { advanceWorldCup, createWorldCup, getWorldCupCandidates, getWorldCupSizes } from './worldCup';
 
 type RouteKey = 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail';
 
@@ -1570,59 +1584,123 @@ function SearchView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => vo
   );
 }
 
-function RecapView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void }) {
-  const [records, setRecords] = useState<MealRecord[]>([]);
+function WorldCupView({ records, onOpenRecord }: { records: MealRecord[]; onOpenRecord: (record: MealRecord) => void }) {
+  const [session, setSession] = useState<WorldCupSession | null>(null);
+  const [matches, setMatches] = useState<WorldCupMatch[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const candidates = useMemo(() => getWorldCupCandidates(records), [records]);
+  const recordById = useMemo(() => new Map(records.map((record) => [record.id, record])), [records]);
 
   useEffect(() => {
-    void listMealRecordsAsync().then(setRecords).catch((error) => console.error(error));
+    let isMounted = true;
+    async function loadWorldCupAsync() {
+      try {
+        const savedSession = await getLatestWorldCupSessionAsync();
+        const savedMatches = savedSession ? await listWorldCupMatchesAsync(savedSession.id) : [];
+        if (!isMounted) return;
+        setSession(savedSession);
+        setMatches(savedMatches);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    void loadWorldCupAsync();
+    return () => { isMounted = false; };
   }, []);
 
-  const ratedRecords = records.filter((record) => record.rating);
-  const averageRating = ratedRecords.length
-    ? (ratedRecords.reduce((sum, record) => sum + (record.rating ?? 0), 0) / ratedRecords.length).toFixed(1)
-    : null;
-  const favoriteTag = useMemo(() => {
-    const counts = new Map<string, number>();
-    records.flatMap((record) => record.meal?.tags ?? []).forEach((tag) => {
-      counts.set(tag, (counts.get(tag) ?? 0) + 1);
-    });
+  async function startWorldCup(size: number) {
+    const next = createWorldCup(records, size);
+    await createWorldCupSessionAsync(next.session, next.matches);
+    setSession(next.session);
+    setMatches(next.matches);
+  }
 
-    return [...counts.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? null;
-  }, [records]);
-  const bestRating = Math.max(0, ...records.map((record) => record.rating ?? 0));
-  const bestRecords = records.filter((record) => record.rating === bestRating).slice(0, 3);
+  async function chooseWinner(match: WorldCupMatch, winnerRecordId: string) {
+    if (!session || match.winnerRecordId) return;
+    const next = advanceWorldCup(session, matches, match.id, winnerRecordId);
+    await saveWorldCupProgressAsync(next.session, next.matches);
+    setSession(next.session);
+    setMatches(next.matches);
+  }
+
+  const currentMatch = session
+    ? matches.find((match) => match.round === session.currentRound && !match.winnerRecordId) ?? null
+    : null;
+  const roundSize = session ? 2 ** (session.totalRounds - session.currentRound + 1) : 0;
+  const winner = session?.winnerRecordId ? recordById.get(session.winnerRecordId) : null;
+
+  return (
+    <section className="world-cup-panel">
+      <div className="panel-header"><div><p className="eyebrow">요리 월드컵</p><h2>오늘은 무엇이 제일 맛있었나?</h2></div></div>
+      {isLoading ? <p className="panel-state">월드컵을 불러오는 중입니다.</p> : null}
+      {!isLoading && (!session || session.status === 'completed') ? (
+        <div className="world-cup-start">
+          {winner ? <div className="world-cup-winner"><span>지난 우승</span><strong>{winner.meal?.name ?? '이름 없는 요리'}</strong><button type="button" onClick={() => onOpenRecord(winner)}>기록 보기</button></div> : null}
+          {getWorldCupSizes(candidates.length).length ? (
+            <><p>같은 요리는 최근 기록 하나만 후보로 삼아, 랜덤으로 대결을 만들어요.</p><div className="world-cup-size-actions">{getWorldCupSizes(candidates.length).map((size) => <button className="primary-action" key={size} type="button" onClick={() => void startWorldCup(size)}>{size}강 시작</button>)}</div></>
+          ) : <p className="panel-state">서로 다른 요리 기록을 2개 이상 남기면 월드컵을 시작할 수 있어요.</p>}
+        </div>
+      ) : null}
+      {!isLoading && session?.status === 'in-progress' && currentMatch ? (
+        <div className="world-cup-match">
+          <span>{roundSize}강 · {currentMatch.order}번째 대결</span>
+          <div className="world-cup-choice-grid">
+            {[currentMatch.leftRecordId, currentMatch.rightRecordId].map((recordId) => {
+              const record = recordById.get(recordId);
+              return <button key={recordId} type="button" onClick={() => void chooseWinner(currentMatch, recordId)}><strong>{record?.meal?.name ?? '이름 없는 요리'}</strong><small>{record ? formatCookedAtLabel(record.cookedAt) : '기록을 찾을 수 없어요'}</small>{record?.rating ? <em>만족도 {record.rating}/5</em> : null}</button>;
+            })}
+          </div>
+          <p>더 마음에 드는 요리를 골라주세요.</p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function RecapView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void }) {
+  const [records, setRecords] = useState<MealRecord[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [section, setSection] = useState<'recap' | 'world-cup'>('recap');
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+
+  useEffect(() => {
+    async function loadRecapAsync() {
+      try {
+        const nextRecords = await listMealRecordsAsync();
+        setRecords(nextRecords);
+        setSelectedYear((year) => year ?? getRecordYears(nextRecords)[0] ?? new Date().getFullYear());
+        setLoadState('ready');
+      } catch (error) {
+        console.error(error);
+        setLoadState('error');
+      }
+    }
+    void loadRecapAsync();
+  }, []);
+
+  const years = getRecordYears(records);
+  const summary = selectedYear ? buildRecapSummary(records, selectedYear) : null;
+  const peakMonth = summary ? Math.max(1, ...summary.monthCounts) : 1;
 
   return (
     <section className="view recap-view">
-      <div className="section-heading">
-        <p className="eyebrow">결산</p>
-        <h1>쌓인 식탁을<br />한눈에 돌아봐요.</h1>
-        <p>지금 이 브라우저에 저장된 기록을 바탕으로 계산합니다.</p>
-      </div>
-      {records.length ? (
+      <div className="section-heading"><p className="eyebrow">결산</p><h1>{section === 'recap' ? <>쌓인 식탁을<br />한눈에 돌아봐요.</> : <>내 취향의 우승을<br />골라봐요.</>}</h1><p>{section === 'recap' ? '연도별 요리 기록을 바탕으로 계산합니다.' : '내가 남긴 요리 기록만 후보로 사용합니다.'}</p></div>
+      <div className="recap-section-tabs" role="tablist" aria-label="결산 메뉴"><button className={section === 'recap' ? 'is-active' : ''} type="button" onClick={() => setSection('recap')}>연도 결산</button><button className={section === 'world-cup' ? 'is-active' : ''} type="button" onClick={() => setSection('world-cup')}>요리 월드컵</button></div>
+      {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
+      {loadState === 'error' ? <p className="panel-state">결산을 불러오지 못했습니다.</p> : null}
+      {loadState === 'ready' && section === 'world-cup' ? <WorldCupView records={records} onOpenRecord={onOpenRecord} /> : null}
+      {loadState === 'ready' && section === 'recap' && summary && summary.totalCount ? (
         <>
-          <div className="recap-grid">
-            <section><span>남긴 요리</span><strong>{records.length}<small>개</small></strong></section>
-            <section><span>평균 만족도</span><strong>{averageRating ?? '–'}<small>{averageRating ? ' / 5' : ''}</small></strong></section>
-            <section><span>가장 많이 쓴 태그</span><strong className="tag-stat">{favoriteTag ? `#${favoriteTag}` : '–'}</strong></section>
-          </div>
-          <section className="recap-highlight">
-            <div className="panel-header">
-              <div><p className="eyebrow">가장 만족한 요리</p><h2>{bestRating ? `${bestRating}점 기록` : '평점을 남겨보세요'}</h2></div>
-            </div>
-            {bestRecords.length ? (
-              <ul className="record-text-list">
-                {bestRecords.map((record) => <RecordTextCard key={record.id} record={record} onOpen={onOpenRecord} />)}
-              </ul>
-            ) : null}
-          </section>
+          <label className="recap-year-select"><span>결산 연도</span><select value={summary.year} onChange={(event) => setSelectedYear(Number(event.target.value))}>{years.map((year) => <option key={year} value={year}>{year}년</option>)}</select></label>
+          <div className="recap-grid"><section><span>남긴 요리</span><strong>{summary.totalCount}<small>개</small></strong></section><section><span>평균 만족도</span><strong>{summary.averageRating ?? '–'}<small>{summary.averageRating ? ' / 5' : ''}</small></strong></section><section><span>가장 많이 쓴 태그</span><strong className="tag-stat">{summary.favoriteTag ? `#${summary.favoriteTag}` : '–'}</strong></section></div>
+          <section className="recap-highlight recap-months"><div className="panel-header"><div><p className="eyebrow">월별 기록</p><h2>{summary.year}년의 식탁</h2></div></div><div className="month-bar-list">{summary.monthCounts.map((count, index) => <div key={index}><span>{index + 1}월</span><i><b style={{ width: `${(count / peakMonth) * 100}%` }} /></i><strong>{count}</strong></div>)}</div></section>
+          <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">자주 사용한 태그</p><h2>{summary.topTags.length ? '올해의 취향' : '태그를 남겨보세요'}</h2></div></div>{summary.topTags.length ? <p className="recap-tag-list">{summary.topTags.map((tag) => <span key={tag.name}>#{tag.name} <b>{tag.count}</b></span>)}</p> : null}</section>
+          <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">가장 만족한 요리</p><h2>{summary.bestRecords.length ? `${summary.bestRecords[0].rating}점 기록` : '평점을 남겨보세요'}</h2></div></div>{summary.bestRecords.length ? <ul className="record-text-list">{summary.bestRecords.map((record) => <RecordTextCard key={record.id} record={record} onOpen={onOpenRecord} />)}</ul> : null}</section>
         </>
-      ) : (
-        <div className="empty-state">
-          <strong>아직 결산할 기록이 없어요.</strong>
-          <p>요리를 몇 번 남기면 좋아한 맛과 자주 만든 요리가 보이기 시작해요.</p>
-        </div>
-      )}
+      ) : null}
+      {loadState === 'ready' && section === 'recap' && summary && !summary.totalCount ? <div className="empty-state"><strong>아직 결산할 기록이 없어요.</strong><p>첫 요리 기록을 남기면 연도 결산이 시작됩니다.</p></div> : null}
     </section>
   );
 }
