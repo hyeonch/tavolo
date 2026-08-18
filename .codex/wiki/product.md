@@ -22,6 +22,7 @@ MVP focus:
 - Add record must retain tag entry alongside recipe authoring fields.
 - Browse past cooking records through a calendar-centered home, selected date lists, detail, search, and recap surfaces.
 - Search is the full-record browsing surface: show all records newest-first by default, then filter personal records by meal name, tags, notes, and ingredient names. It does not perform external web search.
+- Recap is also a discovery entry point: selecting a non-empty month or frequent tag opens the personal-search surface with that filter applied.
 - Save external recipe links in a dedicated recipe space so they can later seed a cooking record.
 - The recipe space has its own lightweight search for saved link titles, notes, and URLs.
 
