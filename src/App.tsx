@@ -5,12 +5,16 @@ import {
   createMealAsync,
   createMealRecordAsync,
   createMediaAsync,
+  createTagAsync,
   createMediaObjectUrl,
+  getTagByNameAsync,
   getMediaByIdAsync,
   listMealRecordsAsync,
+  replaceMealTagsAsync,
   revokeMediaObjectUrl,
+  updateMealRecordAsync,
 } from './db';
-import type { MealRecord } from './types/meal';
+import type { IngredientGroup, MealRecord, RecipeStep } from './types/meal';
 
 type RouteKey = 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail';
 
@@ -92,6 +96,36 @@ function formatCookedAtLabel(cookedAt: string) {
 
 function formatRating(rating?: number) {
   return rating ? `만족도 ${rating}/5` : '만족도 미입력';
+}
+
+type RecipeStepDraft = RecipeStep & {
+  photoName?: string;
+};
+
+function createIngredientItem() {
+  return {
+    id: createLocalId('ingredient'),
+    name: '',
+    quantity: '',
+    unit: '',
+  };
+}
+
+function createIngredientGroup(name: string): IngredientGroup {
+  return {
+    id: createLocalId('ingredient-group'),
+    name,
+    items: [createIngredientItem()],
+  };
+}
+
+function createRecipeStep(order: number): RecipeStepDraft {
+  return {
+    id: createLocalId('recipe-step'),
+    order,
+    body: '',
+    mediaIds: [],
+  };
 }
 
 function MealCard({
@@ -186,8 +220,8 @@ function HomeView({
       try {
         const mealCards = await Promise.all(
           selectedRecords.map(async (record) => {
-            const firstMediaId = record.mediaIds[0];
-            const media = firstMediaId ? await getMediaByIdAsync(firstMediaId) : null;
+            const representativeMediaId = record.finishedMediaId ?? record.mediaIds[0];
+            const media = representativeMediaId ? await getMediaByIdAsync(representativeMediaId) : null;
             const thumbnailUrl = media ? createMediaObjectUrl(media) : null;
 
             if (thumbnailUrl?.startsWith('blob:')) {
@@ -367,8 +401,46 @@ function AddView({ onSaved }: { onSaved: () => void }) {
   const [cookedAt, setCookedAt] = useState(new Date().toISOString().slice(0, 10));
   const [rating, setRating] = useState('');
   const [memo, setMemo] = useState('');
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [tagsInput, setTagsInput] = useState('');
+  const [ingredientGroups, setIngredientGroups] = useState<IngredientGroup[]>(() => [
+    createIngredientGroup('재료'),
+    createIngredientGroup('양념'),
+  ]);
+  const [recipeSteps, setRecipeSteps] = useState<RecipeStepDraft[]>(() => [createRecipeStep(1)]);
+  const [finishedPhoto, setFinishedPhoto] = useState<File | null>(null);
   const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>('idle');
+
+  function updateIngredientItem(
+    groupId: string,
+    itemId: string,
+    field: 'name' | 'quantity' | 'unit',
+    value: string
+  ) {
+    setIngredientGroups((groups) =>
+      groups.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              items: group.items.map((item) =>
+                item.id === itemId ? { ...item, [field]: value } : item
+              ),
+            }
+          : group
+      )
+    );
+  }
+
+  function addIngredientItem(groupId: string) {
+    setIngredientGroups((groups) =>
+      groups.map((group) =>
+        group.id === groupId ? { ...group, items: [...group.items, createIngredientItem()] } : group
+      )
+    );
+  }
+
+  function updateRecipeStep(stepId: string, update: Partial<RecipeStepDraft>) {
+    setRecipeSteps((steps) => steps.map((step) => (step.id === stepId ? { ...step, ...update } : step)));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -385,26 +457,67 @@ function AddView({ onSaved }: { onSaved: () => void }) {
       const mealId = createLocalId('meal');
       const mealRecordId = createLocalId('meal-record');
       const trimmedMemo = memo.trim();
+      const tagNames = [...new Set(tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean))];
+      const savedIngredientGroups = ingredientGroups
+        .map((group) => ({
+          ...group,
+          items: group.items
+            .filter((item) => item.name.trim())
+            .map((item) => ({
+              ...item,
+              name: item.name.trim(),
+              quantity: item.quantity?.trim() || undefined,
+              unit: item.unit?.trim() || undefined,
+            })),
+        }))
+        .filter((group) => group.items.length > 0);
+      const savedRecipeSteps = recipeSteps
+        .filter((step) => step.body.trim())
+        .map((step, index) => ({
+          id: step.id,
+          order: index + 1,
+          body: step.body.trim(),
+          mediaIds: [],
+        }));
+
       await createMealAsync({
         id: mealId,
         name: trimmedMealName,
         memo: trimmedMemo || undefined,
       });
+      const tagIds = await Promise.all(
+        tagNames.map(async (tagName) => {
+          const existingTag = await getTagByNameAsync(tagName);
+
+          if (existingTag) return existingTag.id;
+
+          const tagId = createLocalId('tag');
+          await createTagAsync({ id: tagId, name: tagName });
+          return tagId;
+        })
+      );
+      await replaceMealTagsAsync(mealId, tagIds);
       await createMealRecordAsync({
         id: mealRecordId,
         mealId,
         cookedAt,
         rating: rating ? Number(rating) : undefined,
         memo: trimmedMemo || undefined,
+        ingredientGroups: savedIngredientGroups.length ? savedIngredientGroups : undefined,
+        recipeSteps: savedRecipeSteps.length ? savedRecipeSteps : undefined,
       });
 
-      if (photo) {
-        await createMediaAsync({
+      if (finishedPhoto) {
+        const media = await createMediaAsync({
           id: createLocalId('media'),
           mealRecordId,
           type: 'photo',
-          blob: photo,
+          blob: finishedPhoto,
         });
+
+        if (media) {
+          await updateMealRecordAsync(mealRecordId, { finishedMediaId: media.id });
+        }
       }
 
       onSaved();
@@ -454,12 +567,104 @@ function AddView({ onSaved }: { onSaved: () => void }) {
           </select>
         </label>
         <label>
-          사진
+          태그
+          <input
+            type="text"
+            value={tagsInput}
+            placeholder="한식, 간단요리"
+            onChange={(event) => setTagsInput(event.target.value)}
+          />
+          <span className="field-hint">쉼표로 나누어 입력하세요. 요리 자체에 저장됩니다.</span>
+        </label>
+
+        <fieldset className="recipe-section">
+          <legend>재료정보</legend>
+          <p>만든 날의 재료와 양념을 따로 남겨두세요.</p>
+          {ingredientGroups.map((group) => (
+            <div className="ingredient-group" key={group.id}>
+              <div className="ingredient-group-heading">
+                <h2>{group.name}</h2>
+                <button type="button" onClick={() => addIngredientItem(group.id)}>
+                  + {group.name} 추가
+                </button>
+              </div>
+              <div className="ingredient-labels" aria-hidden="true">
+                <span>이름</span>
+                <span>수량</span>
+                <span>단위</span>
+              </div>
+              {group.items.map((item, index) => (
+                <div className="ingredient-row" key={item.id}>
+                  <input
+                    aria-label={`${group.name} ${index + 1} 이름`}
+                    value={item.name}
+                    placeholder="예: 돼지고기"
+                    onChange={(event) => updateIngredientItem(group.id, item.id, 'name', event.target.value)}
+                  />
+                  <input
+                    aria-label={`${group.name} ${index + 1} 수량`}
+                    value={item.quantity}
+                    placeholder="200"
+                    onChange={(event) => updateIngredientItem(group.id, item.id, 'quantity', event.target.value)}
+                  />
+                  <input
+                    aria-label={`${group.name} ${index + 1} 단위`}
+                    value={item.unit}
+                    placeholder="g"
+                    onChange={(event) => updateIngredientItem(group.id, item.id, 'unit', event.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </fieldset>
+
+        <fieldset className="recipe-section">
+          <legend>요리순서</legend>
+          <p>순서별로 메모를 남기고, 필요하면 중간 사진도 골라두세요.</p>
+          {recipeSteps.map((step, index) => (
+            <div className="recipe-step" key={step.id}>
+              <div className="recipe-step-heading">
+                <strong>Step {index + 1}</strong>
+                <label className="step-photo-entry">
+                  사진 추가
+                  <input
+                    aria-label={`Step ${index + 1} 사진 추가`}
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      updateRecipeStep(step.id, { photoName: event.target.files?.[0]?.name })
+                    }
+                  />
+                </label>
+              </div>
+              <textarea
+                aria-label={`Step ${index + 1} 설명`}
+                value={step.body}
+                placeholder="예: 팬을 충분히 달군 뒤 재료를 볶아요."
+                rows={3}
+                onChange={(event) => updateRecipeStep(step.id, { body: event.target.value })}
+              />
+              {step.photoName ? <span className="field-hint">선택됨: {step.photoName}</span> : null}
+            </div>
+          ))}
+          <button
+            className="add-row-button"
+            type="button"
+            onClick={() => setRecipeSteps((steps) => [...steps, createRecipeStep(steps.length + 1)])}
+          >
+            + 요리순서 추가
+          </button>
+        </fieldset>
+
+        <label>
+          요리 완성사진
           <input
             type="file"
             accept="image/*"
-            onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+            onChange={(event) => setFinishedPhoto(event.target.files?.[0] ?? null)}
           />
+          <span className="field-hint">완성사진은 1장만 등록하며, 홈과 목록의 대표 썸네일로 사용됩니다.</span>
         </label>
         <label>
           메모

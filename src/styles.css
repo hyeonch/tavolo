@@ -465,6 +465,7 @@ h2 {
   display: grid;
   width: min(100%, 620px);
   gap: 16px;
+  padding-bottom: 24px;
 }
 
 .meal-form label {
@@ -487,6 +488,106 @@ h2 {
 
 .meal-form textarea {
   resize: vertical;
+}
+
+.field-hint {
+  color: #6a716c;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.recipe-section {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  border: 1px solid #e2ded3;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 20px;
+}
+
+.recipe-section legend {
+  padding: 0 6px;
+  color: #1f4f42;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.recipe-section > p {
+  color: #6a716c;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ingredient-group,
+.recipe-step {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #eef0eb;
+  padding-top: 16px;
+}
+
+.ingredient-group-heading,
+.recipe-step-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ingredient-group-heading h2 {
+  font-size: 16px;
+}
+
+.ingredient-group-heading button,
+.add-row-button,
+.step-photo-entry {
+  width: fit-content;
+  min-height: 36px;
+  border: 1px solid #cdd7cf;
+  border-radius: 7px;
+  background: #fbfcfa;
+  color: #1f4f42;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 10px;
+}
+
+.ingredient-labels,
+.ingredient-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 86px 76px;
+  gap: 8px;
+}
+
+.ingredient-labels {
+  color: #6a716c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ingredient-row input {
+  min-width: 0;
+}
+
+.recipe-step textarea {
+  width: 100%;
+}
+
+.step-photo-entry {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.step-photo-entry input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .form-error {
@@ -585,6 +686,18 @@ h2 {
 
   .primary-action {
     width: 100%;
+  }
+
+  .recipe-section {
+    padding: 16px;
+  }
+
+  .ingredient-labels {
+    display: none;
+  }
+
+  .ingredient-row {
+    grid-template-columns: minmax(0, 1fr) 74px 64px;
   }
 
   .secondary-action {
