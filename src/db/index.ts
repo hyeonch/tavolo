@@ -6,7 +6,6 @@ import * as localTag from './tagRepository';
 
 export { clearDatabaseAsync, getDatabaseAsync, requestToPromise, transactionDone, withStoreAsync, withStoresAsync } from './database';
 export { seedDebugDataAsync } from './debugSeed';
-export { importLocalDataAsync } from './importLocalData';
 export { databaseName, databaseVersion, stores } from './schema';
 export { createMediaObjectUrl, revokeMediaObjectUrl } from './mediaRepository';
 

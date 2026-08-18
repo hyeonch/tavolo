@@ -15,7 +15,6 @@ import {
   createMediaObjectUrl,
   getMealRecordByIdAsync,
   getTagByNameAsync,
-  importLocalDataAsync,
   getMediaByIdAsync,
   listMealRecordsAsync,
   listRecipeScrapsAsync,
@@ -1350,7 +1349,6 @@ export function App() {
   const [selectedRecipeScrap, setSelectedRecipeScrap] = useState<RecipeScrap | null>(null);
   const [editingRecord, setEditingRecord] = useState<MealRecord | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
-  const [isImporting, setIsImporting] = useState(false);
   const activeRouteLabel = useMemo(
     () =>
       activeRoute === 'detail'
@@ -1365,19 +1363,6 @@ export function App() {
     setEditingRecord(null);
     setDataVersion((version) => version + 1);
   }, [activeDataScope]);
-
-  const importLocalData = async () => {
-    if (auth.status !== 'signed-in') return;
-    setIsImporting(true);
-    try {
-      await importLocalDataAsync(auth.user.id);
-      setDataVersion((version) => version + 1);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsImporting(false);
-    }
-  };
 
   if (auth.status === 'loading') {
     return <div className="app-shell"><main className="content"><span className="account-loading">계정 확인 중</span></main></div>;
@@ -1417,13 +1402,13 @@ export function App() {
           ))}
         </nav>
 
-        <AccountControls auth={auth} message={authMessage} onSignIn={signIn} onSignOut={signOut} onImportLocalData={importLocalData} isImporting={isImporting} />
+        <AccountControls auth={auth} message={authMessage} onSignIn={signIn} onSignOut={signOut} />
       </aside>
 
       <main className="content">
         <div className="mobile-topbar">
           <strong>{activeRouteLabel}</strong>
-          <AccountControls auth={auth} compact message={authMessage} onSignIn={signIn} onSignOut={signOut} onImportLocalData={importLocalData} isImporting={isImporting} />
+          <AccountControls auth={auth} compact message={authMessage} onSignIn={signIn} onSignOut={signOut} />
         </div>
 
         {activeRoute === 'home' && (
