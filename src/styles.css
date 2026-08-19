@@ -817,13 +817,24 @@ h2 {
   gap: 12px;
 }
 
+.recipe-step-actions,
+.recipe-step-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .ingredient-group-heading h2 {
   font-size: 16px;
 }
 
 .ingredient-group-heading button,
 .add-row-button,
-.step-photo-entry {
+.step-photo-entry,
+.step-order-action,
+.step-insert-action,
+.step-delete-action {
   width: fit-content;
   min-height: 36px;
   border: 1px solid #cdd7cf;
@@ -833,6 +844,36 @@ h2 {
   font-size: 13px;
   font-weight: 800;
   padding: 0 10px;
+}
+
+.step-order-action {
+  display: grid;
+  width: 32px;
+  min-width: 32px;
+  place-items: center;
+  padding: 0;
+}
+
+.step-order-action:disabled {
+  cursor: default;
+  opacity: .38;
+}
+
+.recipe-step-footer {
+  justify-content: space-between;
+  border-top: 1px solid #eef0eb;
+  padding-top: 10px;
+}
+
+.step-insert-action,
+.step-delete-action {
+  min-height: 32px;
+  padding: 0 8px;
+}
+
+.step-delete-action {
+  border-color: transparent;
+  color: #a43e32;
 }
 
 .ingredient-labels,
@@ -1891,6 +1932,10 @@ button {
   .recipe-step-heading,
   .panel-header {
     align-items: flex-start;
+  }
+
+  .recipe-step-heading {
+    align-items: center;
   }
 
   .ingredient-row {

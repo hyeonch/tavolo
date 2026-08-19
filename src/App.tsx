@@ -832,6 +832,44 @@ function AddView({
     setRecipeSteps((steps) => steps.map((step) => (step.id === stepId ? { ...step, ...update } : step)));
   }
 
+  function moveRecipeStep(stepId: string, offset: -1 | 1) {
+    setRecipeSteps((steps) => {
+      const currentIndex = steps.findIndex((step) => step.id === stepId);
+      const nextIndex = currentIndex + offset;
+
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= steps.length) return steps;
+
+      const nextSteps = [...steps];
+      [nextSteps[currentIndex], nextSteps[nextIndex]] = [nextSteps[nextIndex], nextSteps[currentIndex]];
+      return nextSteps;
+    });
+  }
+
+  function insertRecipeStepAfter(stepId: string) {
+    setRecipeSteps((steps) => {
+      const currentIndex = steps.findIndex((step) => step.id === stepId);
+      if (currentIndex < 0) return steps;
+
+      const nextSteps = [...steps];
+      nextSteps.splice(currentIndex + 1, 0, createRecipeStep(currentIndex + 2));
+      return nextSteps;
+    });
+  }
+
+  function removeRecipeStep(stepId: string) {
+    const mediaIdsToRemove = existingMedia
+      .filter((media) => getRecipeStepIdForMedia(media) === stepId)
+      .map((media) => media.id);
+
+    setRemovedMediaIds((ids) => new Set([...ids, ...mediaIdsToRemove]));
+    setReplacementFiles((files) => {
+      const nextFiles = { ...files };
+      mediaIdsToRemove.forEach((mediaId) => delete nextFiles[mediaId]);
+      return nextFiles;
+    });
+    setRecipeSteps((steps) => steps.filter((step) => step.id !== stepId));
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -1108,17 +1146,37 @@ function AddView({
             <div className="recipe-step" key={step.id}>
               <div className="recipe-step-heading">
                 <strong>Step {index + 1}</strong>
-                <label className="step-photo-entry">
-                  사진 추가
-                  <input
-                    aria-label={`Step ${index + 1} 사진 추가`}
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) =>
-                      updateRecipeStep(step.id, { photoFile: event.target.files?.[0] ?? null })
-                    }
-                  />
-                </label>
+                <div className="recipe-step-actions">
+                  <button
+                    aria-label={`Step ${index + 1} 위로 이동`}
+                    className="step-order-action"
+                    disabled={index === 0}
+                    type="button"
+                    onClick={() => moveRecipeStep(step.id, -1)}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    aria-label={`Step ${index + 1} 아래로 이동`}
+                    className="step-order-action"
+                    disabled={index === recipeSteps.length - 1}
+                    type="button"
+                    onClick={() => moveRecipeStep(step.id, 1)}
+                  >
+                    ↓
+                  </button>
+                  <label className="step-photo-entry">
+                    사진 추가
+                    <input
+                      aria-label={`Step ${index + 1} 사진 추가`}
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) =>
+                        updateRecipeStep(step.id, { photoFile: event.target.files?.[0] ?? null })
+                      }
+                    />
+                  </label>
+                </div>
               </div>
               <textarea
                 aria-label={`Step ${index + 1} 설명`}
@@ -1170,6 +1228,14 @@ function AddView({
                   onClear={() => updateRecipeStep(step.id, { photoFile: null })}
                 />
               ) : null}
+              <div className="recipe-step-footer">
+                <button className="step-insert-action" type="button" onClick={() => insertRecipeStepAfter(step.id)}>
+                  + 이 단계 뒤에 추가
+                </button>
+                <button className="step-delete-action" type="button" onClick={() => removeRecipeStep(step.id)}>
+                  이 단계 삭제
+                </button>
+              </div>
             </div>
           ))}
           <button
