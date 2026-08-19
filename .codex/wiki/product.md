@@ -17,6 +17,7 @@ MVP focus:
 - No public feed, likes, comments, or follows.
 - Record meals quickly.
 - A cooking record can include recipe notes: ingredient and seasoning groups, plus step-by-step cooking instructions.
+- Recipe steps support insertion after any step, button-based reordering, and deletion while retaining each step's attached-photo association.
 - Recipe steps can have a photo attachment entry point so users can capture intermediate cooking states, not only the finished dish.
 - Each cooking record has one finished-dish photo; this photo is the representative thumbnail used on home, list, search, and recap surfaces.
 - Add record must retain tag entry alongside recipe authoring fields.
