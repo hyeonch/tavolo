@@ -89,3 +89,11 @@ Supabase persistence direction:
 - `revision` guards against stale writes across tabs/devices. The UI loads session and matches in one request.
 - Legacy IndexedDB world cups remain local only, without automatic import into an account. Unknown ownership must not be guessed.
 - Applying the `account_world_cups` migration is required before deploying the client change.
+
+## TVL-52 shared archive foundation
+
+- Journals group at most two accounts through `journal_members`; `user_id` stays the original author. Sharing is an access relationship, not a copy or a rewrite of existing record/photo identities.
+- Members can read/edit one another's existing records, photos and recipe scraps. Membership writes require the authenticated invite RPCs added in TVL-53; clients cannot insert memberships directly.
+- Records, scraps and media have `deleted_at` for reversible deletion. Clients cannot hard-delete these rows or Storage files. TVL-53 must filter active records and implement trash/restore before this migration is applied to production.
+- Archive sharing does not share world-cup progress. TVL-53 must allow accessible shared candidates while retaining the tournament's account owner.
+- Signed photo URLs already issued before membership revocation remain usable until their expiry; new Storage requests obey current membership.
