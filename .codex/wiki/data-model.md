@@ -97,3 +97,12 @@ Supabase persistence direction:
 - Records, scraps and media have `deleted_at` for reversible deletion. Clients cannot hard-delete these rows or Storage files. TVL-53 must filter active records and implement trash/restore before this migration is applied to production.
 - Archive sharing does not share world-cup progress. TVL-53 must allow accessible shared candidates while retaining the tournament's account owner.
 - Signed photo URLs already issued before membership revocation remain usable until their expiry; new Storage requests obey current membership.
+
+## TVL-53 invitation and recovery flow
+
+- Invite codes are random, stored only as SHA-256 hashes in the private schema, bound to the recipient's confirmed login email, valid for 24 hours and single-use. Regenerating/revoking invalidates previous codes. Clients manually deliver codes; Tavolo sends no messages.
+- Invite/join operations lock the authenticated account and journal; membership is still capped at two. A one-member journal may join another invitation without copying/deleting archive data.
+- `set_meal_tags` atomically maps names into the original meal author's namespace. New photos on a shared record keep its existing owner/path for composite foreign keys.
+- Cloud lists exclude trashed items. Restoring a record restores visibility of its attached photos; individually trashed photos remain in trash. Restoring a finished photo trashes its replacement; a removed step is recreated for a recovered step photo.
+- Apply shared_journal_access followed by journal_invites_and_restore with the compatible client. Existing tabs must refresh; old hard-delete calls are denied after migration.
+- Hosted MCP migration timestamps can differ from repository filenames: account_world_cups was registered as 20261109220307. Do not blindly run CLI db push against production without reconciling migration history.

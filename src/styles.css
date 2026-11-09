@@ -2006,3 +2006,21 @@ button {
     flex-wrap: wrap;
   }
 }
+
+/* Shared archive controls retain the current visual language until TVL-38. */
+.journal-panel { margin-bottom: 24px; padding: 16px; border: 1px solid #ddd8ce; border-radius: 16px; background: #fffdf8; }
+.journal-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.journal-panel p { font-size: 14px; line-height: 1.6; color: #625e56; }
+.journal-heading p { margin: 6px 0 0; }
+.journal-panel button { min-height: 44px; padding: 8px 12px; border: 1px solid #ccc4b6; border-radius: 10px; background: #fff; color: #343b2e; cursor: pointer; flex-shrink: 0; }
+.journal-panel button:disabled { opacity: .5; cursor: wait; }
+.journal-settings { display: grid; gap: 16px; padding-top: 16px; }
+.journal-settings form, .journal-settings label { display: grid; gap: 10px; }
+.journal-settings input, .journal-settings textarea { width: 100%; box-sizing: border-box; padding: 12px; min-height: 44px; border: 1px solid #ccc4b6; border-radius: 8px; font: inherit; }
+.journal-invite { padding: 12px; background: #f0f2e9; border-radius: 12px; overflow-wrap: anywhere; }
+.journal-trash { list-style: none; padding: 0; margin: 0; }
+.journal-trash li { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid #e5dfd4; }
+.journal-trash li > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.journal-trash small { display: block; margin-top: 6px; }
+.journal-trash img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
+@media (max-width: 480px) { .journal-heading { align-items: flex-start; } .journal-heading > div { min-width: 0; } }
