@@ -50,16 +50,15 @@ async function createPrivateMediaUrl(storagePath: string) {
 
 async function loadMealsAndRecordsAsync() {
   const { supabase, userId } = await getCloudContext();
-  const [mealsResult, recordsResult, tagsResult, mealTagsResult, mediaResult, membersResult] = await Promise.all([
+  const [mealsResult, recordsResult, tagsResult, mealTagsResult, mediaResult] = await Promise.all([
     supabase.from('meals').select('*').order('name'),
-    supabase.from('meal_records').select('*').is('deleted_at', null).order('cooked_at', { ascending: false }),
+    supabase.from('meal_records').select('*').order('cooked_at', { ascending: false }),
     supabase.from('tags').select('*'),
     supabase.from('meal_tags').select('*'),
-    supabase.from('media').select('*').is('deleted_at', null),
-    supabase.from('journal_members').select('user_id,display_name'),
+    supabase.from('media').select('*'),
   ]);
 
-  [mealsResult, recordsResult, tagsResult, mealTagsResult, mediaResult, membersResult].forEach((result) =>
+  [mealsResult, recordsResult, tagsResult, mealTagsResult, mediaResult].forEach((result) =>
     throwIfError(result.error)
   );
 
@@ -106,7 +105,6 @@ async function loadMealsAndRecordsAsync() {
     )?.id;
     return {
       id: record.id,
-      authorName: (membersResult.data ?? []).find(m => m.user_id === record.user_id)?.display_name ?? (record.user_id === userId ? '나' : '함께한 사람'),
       mealId: record.meal_id,
       meal: mealsById.get(record.meal_id),
       cookedAt: record.cooked_at,
@@ -157,7 +155,7 @@ export async function updateMealAsync(id: string, input: UpdateMealInput) {
     ...('memo' in input ? { memo: input.memo?.trim() || null } : {}),
     updated_at: input.updatedAt ?? new Date().toISOString(),
   };
-  const { error } = await supabase.from('meals').update(updates).eq('id', id).select('id').single();
+  const { error } = await supabase.from('meals').update(updates).eq('id', id);
   throwIfError(error);
   return getMealByIdAsync(id);
 }
@@ -220,22 +218,23 @@ export async function updateMealRecordAsync(id: string, input: UpdateMealRecordI
     ...('recipeSteps' in input ? { recipe_steps: input.recipeSteps ?? [] } : {}),
     updated_at: input.updatedAt ?? new Date().toISOString(),
   };
-  const { error } = await supabase.from('meal_records').update(updates).eq('id', id).select('id').single();
+  const { error } = await supabase.from('meal_records').update(updates).eq('id', id);
   throwIfError(error);
   return getMealRecordByIdAsync(id);
 }
 
 export async function deleteMealRecordAsync(id: string) {
-  return trashItem('meal_records', id);
+  const media = await listMediaByMealRecordIdAsync(id);
+  await Promise.all(media.map((item) => deleteMediaAsync(item.id)));
+  const { supabase } = await getCloudContext();
+  const { error, count } = await supabase.from('meal_records').delete({ count: 'exact' }).eq('id', id);
+  throwIfError(error);
+  return Boolean(count);
 }
 
 export async function createMediaAsync(input: CreateMediaInput) {
   if (!input.blob) throw new Error('사진 파일을 찾을 수 없습니다.');
-  const { supabase } = await getCloudContext();
-  const { data: parent, error: parentError } = await supabase.from('meal_records').select('user_id').eq('id', input.mealRecordId).is('deleted_at', null).single();
-  throwIfError(parentError);
-  if (!parent) throw new Error('사진을 추가할 기록을 찾을 수 없습니다.');
-  const userId = parent.user_id;
+  const { supabase, userId } = await getCloudContext();
   const extension = input.blob.type.split('/')[1] || 'jpg';
   const storagePath = `${userId}/${input.mealRecordId}/${input.id}.${extension}`;
   const { error: uploadError } = await supabase.storage.from(mediaBucket).upload(storagePath, input.blob, {
@@ -255,7 +254,7 @@ export async function createMediaAsync(input: CreateMediaInput) {
     created_at: input.createdAt,
   });
   if (error) {
-    // Keep uploaded files recoverable; orphan cleanup belongs to server maintenance.
+    await supabase.storage.from(mediaBucket).remove([storagePath]);
     throwIfError(error);
   }
   return {
@@ -270,7 +269,7 @@ export async function createMediaAsync(input: CreateMediaInput) {
 
 export async function getMediaByIdAsync(id: string) {
   const { supabase } = await getCloudContext();
-  const { data, error } = await supabase.from('media').select('*').eq('id', id).is('deleted_at', null).maybeSingle();
+  const { data, error } = await supabase.from('media').select('*').eq('id', id).maybeSingle();
   throwIfError(error);
   if (!data) return null;
   return {
@@ -289,7 +288,15 @@ export async function listMediaByMealRecordIdAsync(mealRecordId: string) {
 }
 
 export async function deleteMediaAsync(id: string) {
-  return trashItem('media', id);
+  const { supabase } = await getCloudContext();
+  const { data, error } = await supabase.from('media').select('storage_path').eq('id', id).maybeSingle();
+  throwIfError(error);
+  if (!data) return false;
+  const { error: storageError } = await supabase.storage.from(mediaBucket).remove([data.storage_path]);
+  throwIfError(storageError);
+  const { error: deleteError } = await supabase.from('media').delete().eq('id', id);
+  throwIfError(deleteError);
+  return true;
 }
 
 export async function deleteMediaByMealRecordIdAsync(mealRecordId: string) {
@@ -313,8 +320,8 @@ export async function getTagByIdAsync(id: string) {
 }
 
 export async function getTagByNameAsync(name: string) {
-  const { supabase, userId } = await getCloudContext();
-  const { data, error } = await supabase.from('tags').select('*').eq('user_id', userId).eq('name', name.trim()).maybeSingle();
+  const { supabase } = await getCloudContext();
+  const { data, error } = await supabase.from('tags').select('*').eq('name', name.trim()).maybeSingle();
   throwIfError(error);
   return data ? { id: data.id, name: data.name, createdAt: data.created_at } satisfies Tag : null;
 }
@@ -339,32 +346,15 @@ export async function createRecipeScrapAsync(input: CreateRecipeScrapInput) {
 }
 
 export async function listRecipeScrapsAsync() {
-  const { supabase, userId } = await getCloudContext();
-  const [scraps, members] = await Promise.all([
-    supabase.from('recipe_scraps').select('*').is('deleted_at', null).order('updated_at', { ascending: false }),
-    supabase.from('journal_members').select('user_id,display_name'),
-  ]);
-  throwIfError(scraps.error); throwIfError(members.error);
-  return (scraps.data ?? []).map(item => ({
-    id: item.id, url: item.url, title: item.title ?? undefined, memo: item.memo ?? undefined,
-    authorName: members.data?.find(m => m.user_id === item.user_id)?.display_name ?? (item.user_id === userId ? '나' : '함께한 사람'),
-    createdAt: item.created_at, updatedAt: item.updated_at,
-  } satisfies RecipeScrap));
+  const { supabase } = await getCloudContext();
+  const { data, error } = await supabase.from('recipe_scraps').select('*').order('updated_at', { ascending: false });
+  throwIfError(error);
+  return (data ?? []).map((item) => ({ id: item.id, url: item.url, title: item.title ?? undefined, memo: item.memo ?? undefined, createdAt: item.created_at, updatedAt: item.updated_at } satisfies RecipeScrap));
 }
 
 export async function deleteRecipeScrapAsync(id: string) {
-  return trashItem('recipe_scraps', id);
-}
-
-async function trashItem(table: 'meal_records' | 'recipe_scraps' | 'media', id: string) {
   const { supabase } = await getCloudContext();
-  const { data, error } = await supabase.from(table).update({ deleted_at: new Date().toISOString() }).eq('id', id).select('id').single();
+  const { error, count } = await supabase.from('recipe_scraps').delete({ count: 'exact' }).eq('id', id);
   throwIfError(error);
-  return Boolean(data);
-}
-
-export async function setMealTagNamesAsync(mealId: string, names: string[]) {
-  const { supabase } = await getCloudContext();
-  const { error } = await supabase.rpc('set_meal_tags', { target_id: mealId, names });
-  throwIfError(error);
+  return Boolean(count);
 }

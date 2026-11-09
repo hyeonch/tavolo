@@ -30,7 +30,6 @@ export type RecipeStep = {
 };
 
 export type MealRecord = {
-  authorName?: string;
   id: string;
   mealId: string;
   meal?: Meal;
@@ -65,7 +64,6 @@ export type Tag = {
 };
 
 export type RecipeScrap = {
-  authorName?: string;
   id: string;
   url: string;
   title?: string;

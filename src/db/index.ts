@@ -56,16 +56,3 @@ export async function getWorldCupStateAsync() {
   const matches = session ? await worldCup.listWorldCupMatchesAsync(session.id) : [];
   return { session, matches };
 }
-
-export function isCloudDataSource() { return dataSource === 'cloud'; }
-export async function setMealTagNamesAsync(mealId: string, names: string[]) {
-  if (dataSource === 'cloud') return cloud.setMealTagNamesAsync(mealId, names);
-  const ids = await Promise.all(names.map(async name => {
-    const existing = await localTag.getTagByNameAsync(name);
-    if (existing) return existing.id;
-    const id = crypto.randomUUID();
-    await localTag.createTagAsync({ id, name });
-    return id;
-  }));
-  await localTag.replaceMealTagsAsync(mealId, ids);
-}

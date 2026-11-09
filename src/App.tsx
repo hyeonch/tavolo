@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { JournalPanel } from './journal/JournalPanel';
-import { getUserLabel } from './auth/useAuth';
 import { AccountControls } from './auth/AccountControls';
 import { useAuth } from './auth/useAuth';
 import {
@@ -10,19 +8,20 @@ import {
   createMealRecordAsync,
   createMediaAsync,
   createRecipeScrapAsync,
+  createTagAsync,
   createWorldCupSessionAsync,
   deleteMealRecordAsync,
   deleteMediaAsync,
   deleteRecipeScrapAsync,
   createMediaObjectUrl,
   getMealRecordByIdAsync,
+  getTagByNameAsync,
   getMediaByIdAsync,
   getWorldCupStateAsync,
   listMealRecordsAsync,
   listMediaByMealRecordIdAsync,
   listRecipeScrapsAsync,
-  setMealTagNamesAsync,
-  isCloudDataSource,
+  replaceMealTagsAsync,
   revokeMediaObjectUrl,
   saveWorldCupProgressAsync,
   setDataSource,
@@ -255,7 +254,7 @@ function MealCard({
         <span className="meal-card-body">
           <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
           <span>
-            {formatCookedAtLabel(record.cookedAt)} · {formatRating(record.rating)}{record.authorName ? ` · ${record.authorName}` : ''}
+            {formatCookedAtLabel(record.cookedAt)} · {formatRating(record.rating)}
           </span>
           {record.memo ? <span className="meal-card-memo">{record.memo}</span> : null}
         </span>
@@ -563,7 +562,7 @@ function DetailView({
   async function handleDelete() {
     if (
       !record ||
-      !window.confirm(`“${record.meal?.name ?? '이 기록'}”을(를) 삭제할까요? ${isCloudDataSource() ? '사진과 함께 휴지통에 보관되며 복구할 수 있어요.' : '사진도 함께 삭제되며 되돌릴 수 없습니다.'}`)
+      !window.confirm(`“${record.meal?.name ?? '이 기록'}”을(를) 삭제할까요? 사진도 함께 삭제되며 되돌릴 수 없습니다.`)
     ) {
       return;
     }
@@ -584,7 +583,7 @@ function DetailView({
       <div className="section-heading">
         <p className="eyebrow">기록 상세</p>
         <h1>{record?.meal?.name ?? (loadState === 'loading' ? '기록을 불러오는 중' : '요리 기록')}</h1>
-        <p>{record ? `${formatCookedAtLabel(record.cookedAt)}${record.authorName ? ` · 작성자 ${record.authorName}` : ''}` : '저장한 요리 기록을 다시 확인합니다.'}</p>
+        <p>{record ? formatCookedAtLabel(record.cookedAt) : '저장한 요리 기록을 다시 확인합니다.'}</p>
       </div>
 
       {record ? (
@@ -922,7 +921,18 @@ function AddView({
           memo: trimmedMemo || undefined,
         });
       }
-      await setMealTagNamesAsync(mealId, tagNames);
+      const tagIds = await Promise.all(
+        tagNames.map(async (tagName) => {
+          const existingTag = await getTagByNameAsync(tagName);
+
+          if (existingTag) return existingTag.id;
+
+          const tagId = createLocalId('tag');
+          await createTagAsync({ id: tagId, name: tagName });
+          return tagId;
+        })
+      );
+      await replaceMealTagsAsync(mealId, tagIds);
       if (isEditing) {
         await updateMealRecordAsync(mealRecordId, {
           cookedAt,
@@ -1368,7 +1378,7 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
   }
 
   async function handleDelete(recipeScrap: RecipeScrap) {
-    if (!window.confirm(`“${getRecipeScrapTitle(recipeScrap)}” 스크랩을 ${isCloudDataSource() ? '휴지통으로 옮길까요? 언제든 복구할 수 있어요.' : '삭제할까요?'}`)) {
+    if (!window.confirm(`“${getRecipeScrapTitle(recipeScrap)}” 스크랩을 삭제할까요?`)) {
       return;
     }
 
@@ -1461,7 +1471,6 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
                 <RecipePreview recipeScrap={recipeScrap} />
                 <div className="scrap-body">
                   <strong>{getRecipeScrapTitle(recipeScrap)}</strong>
-                  {recipeScrap.authorName && <small>저장한 사람 · {recipeScrap.authorName}</small>}
                   <a href={recipeScrap.url} rel="noreferrer" target="_blank">
                     {getRecipePreview(recipeScrap.url).host || recipeScrap.url} ↗
                   </a>
@@ -1993,8 +2002,6 @@ export function App() {
           <strong>{activeRouteLabel}</strong>
           <AccountControls auth={auth} compact message={authMessage} onSignIn={signIn} onSignOut={signOut} />
         </div>
-
-        {auth.status === 'signed-in' && <JournalPanel key={activeDataScope} defaultName={getUserLabel(auth.user)} onChanged={() => { setDataVersion(v => v + 1); setEditingRecord(null); setSelectedRecordId(null); setActiveRoute('home'); }} />}
 
         {activeRoute === 'home' && (
           <HomeView
