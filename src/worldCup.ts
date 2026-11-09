@@ -29,6 +29,9 @@ export function getWorldCupSizes(candidateCount: number) {
 }
 
 export function createWorldCup(records: MealRecord[], size: number) {
+  if (!getWorldCupSizes(getWorldCupCandidates(records).length).includes(size)) {
+    throw new Error('선택한 대회를 시작할 요리 기록이 부족합니다.');
+  }
   const candidates = shuffle(getWorldCupCandidates(records)).slice(0, size);
   const now = new Date().toISOString();
   const session: WorldCupSession = {
@@ -66,6 +69,12 @@ export function advanceWorldCup(
   matchId: string,
   winnerRecordId: string
 ) {
+  const target = matches.find((match) => match.id === matchId);
+  if (session.status !== 'in-progress' || !target || target.sessionId !== session.id
+    || target.round !== session.currentRound || target.winnerRecordId
+    || ![target.leftRecordId, target.rightRecordId].includes(winnerRecordId)) {
+    throw new Error('현재 대결의 후보를 선택해주세요.');
+  }
   const now = new Date().toISOString();
   const updatedMatches = matches.map((match) =>
     match.id === matchId ? { ...match, winnerRecordId, updatedAt: now } : match

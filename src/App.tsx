@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { AccountControls } from './auth/AccountControls';
@@ -17,10 +17,9 @@ import {
   getMealRecordByIdAsync,
   getTagByNameAsync,
   getMediaByIdAsync,
-  getLatestWorldCupSessionAsync,
+  getWorldCupStateAsync,
   listMealRecordsAsync,
   listMediaByMealRecordIdAsync,
-  listWorldCupMatchesAsync,
   listRecipeScrapsAsync,
   replaceMealTagsAsync,
   revokeMediaObjectUrl,
@@ -1697,9 +1696,11 @@ function SearchView({
 function WorldCupChoice({
   record,
   onChoose,
+  disabled,
 }: {
   record: MealRecord | undefined;
   onChoose: () => void;
+  disabled: boolean;
 }) {
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
@@ -1736,7 +1737,7 @@ function WorldCupChoice({
   const mealName = record?.meal?.name ?? '이름 없는 요리';
 
   return (
-    <button type="button" onClick={onChoose}>
+    <button type="button" disabled={disabled || !record} onClick={onChoose}>
       <span className="world-cup-thumbnail" aria-hidden="true">
         {thumbnailUrl ? <img alt="" src={thumbnailUrl} /> : <span>{mealName.slice(0, 1)}</span>}
       </span>
@@ -1753,43 +1754,74 @@ function WorldCupView({ records, onOpenRecord }: { records: MealRecord[]; onOpen
   const [session, setSession] = useState<WorldCupSession | null>(null);
   const [matches, setMatches] = useState<WorldCupMatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const saving = useRef(false);
   const candidates = useMemo(() => getWorldCupCandidates(records), [records]);
   const recordById = useMemo(() => new Map(records.map((record) => [record.id, record])), [records]);
 
   useEffect(() => {
     let isMounted = true;
+    setIsLoading(true);
+    setLoadError(false);
+    setErrorMessage('');
     async function loadWorldCupAsync() {
       try {
-        const savedSession = await getLatestWorldCupSessionAsync();
-        const savedMatches = savedSession ? await listWorldCupMatchesAsync(savedSession.id) : [];
+        const { session: savedSession, matches: savedMatches } = await getWorldCupStateAsync();
         if (!isMounted) return;
         setSession(savedSession);
         setMatches(savedMatches);
       } catch (error) {
         console.error(error);
+        if (isMounted) {
+          setLoadError(true);
+          setErrorMessage('월드컵을 불러오지 못했어요. 연결을 확인하고 다시 시도해주세요.');
+        }
       } finally {
         if (isMounted) setIsLoading(false);
       }
     }
     void loadWorldCupAsync();
     return () => { isMounted = false; };
-  }, []);
+  }, [reloadVersion]);
+
+  async function persist(action: () => Promise<void>) {
+    if (saving.current || isLoading || loadError) return;
+    saving.current = true;
+    setIsSaving(true);
+    setErrorMessage('');
+    try {
+      await action();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '저장하지 못했어요. 다시 시도해주세요.');
+    } finally {
+      saving.current = false;
+      setIsSaving(false);
+    }
+  }
 
   async function startWorldCup(size: number) {
-    const next = createWorldCup(records, size);
-    await createWorldCupSessionAsync(next.session, next.matches);
-    setSession(next.session);
-    setMatches(next.matches);
+    await persist(async () => {
+      const next = createWorldCup(records, size);
+      const savedSession = await createWorldCupSessionAsync(next.session, next.matches);
+      setSession(savedSession);
+      setMatches(next.matches);
+    });
   }
 
   async function chooseWinner(match: WorldCupMatch, winnerRecordId: string) {
     if (!session || match.winnerRecordId) return;
-    const next = advanceWorldCup(session, matches, match.id, winnerRecordId);
-    await saveWorldCupProgressAsync(next.session, next.matches);
-    setSession(next.session);
-    setMatches(next.matches);
+    await persist(async () => {
+      const next = advanceWorldCup(session, matches, match.id, winnerRecordId);
+      const savedSession = await saveWorldCupProgressAsync(next.session, next.matches);
+      setSession(savedSession);
+      setMatches(next.matches);
+    });
   }
 
+  const missingCandidates = session?.candidateRecordIds.some((id) => !recordById.has(id)) ?? false;
   const currentMatch = session
     ? matches.find((match) => match.round === session.currentRound && !match.winnerRecordId) ?? null
     : null;
@@ -1800,21 +1832,24 @@ function WorldCupView({ records, onOpenRecord }: { records: MealRecord[]; onOpen
     <section className="world-cup-panel">
       <div className="panel-header"><div><p className="eyebrow">요리 월드컵</p><h2>오늘은 무엇이 제일 맛있었나?</h2></div></div>
       {isLoading ? <p className="panel-state">월드컵을 불러오는 중입니다.</p> : null}
-      {!isLoading && (!session || session.status === 'completed') ? (
+      {errorMessage ? <div role="alert"><p>{errorMessage}</p><button type="button" disabled={isSaving || isLoading} onClick={() => setReloadVersion((version) => version + 1)}>다시 불러오기</button></div> : null}
+      {isSaving ? <p role="status">선택을 저장하고 있어요.</p> : null}
+      {!isLoading && !loadError && missingCandidates ? <p role="status">대회에 포함된 기록이 삭제되었거나 더 이상 볼 수 없어요. 새 대회를 시작해주세요.</p> : null}
+      {!isLoading && !loadError && (!session || session.status === 'completed' || missingCandidates) ? (
         <div className="world-cup-start">
           {winner ? <div className="world-cup-winner"><span>지난 우승</span><strong>{winner.meal?.name ?? '이름 없는 요리'}</strong><button type="button" onClick={() => onOpenRecord(winner)}>기록 보기</button></div> : null}
           {getWorldCupSizes(candidates.length).length ? (
-            <><p>같은 요리는 최근 기록 하나만 후보로 삼아, 랜덤으로 대결을 만들어요.</p><div className="world-cup-size-actions">{getWorldCupSizes(candidates.length).map((size) => <button className="primary-action" key={size} type="button" onClick={() => void startWorldCup(size)}>{size}강 시작</button>)}</div></>
+            <><p>같은 요리는 최근 기록 하나만 후보로 삼아, 랜덤으로 대결을 만들어요.</p><div className="world-cup-size-actions">{getWorldCupSizes(candidates.length).map((size) => <button className="primary-action" key={size} type="button" disabled={isSaving} onClick={() => void startWorldCup(size)}>{size}강 시작</button>)}</div></>
           ) : <p className="panel-state">서로 다른 요리 기록을 2개 이상 남기면 월드컵을 시작할 수 있어요.</p>}
         </div>
       ) : null}
-      {!isLoading && session?.status === 'in-progress' && currentMatch ? (
+      {!isLoading && !loadError && !missingCandidates && session?.status === 'in-progress' && currentMatch ? (
         <div className="world-cup-match">
           <span>{roundSize}강 · {currentMatch.order}번째 대결</span>
           <div className="world-cup-choice-grid">
             {[currentMatch.leftRecordId, currentMatch.rightRecordId].map((recordId) => {
               const record = recordById.get(recordId);
-              return <WorldCupChoice key={recordId} record={record} onChoose={() => void chooseWinner(currentMatch, recordId)} />;
+              return <WorldCupChoice key={recordId} disabled={isSaving} record={record} onChoose={() => void chooseWinner(currentMatch, recordId)} />;
             })}
           </div>
           <p>더 마음에 드는 요리를 골라주세요.</p>
