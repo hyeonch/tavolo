@@ -72,3 +72,5 @@ Keep implementation aligned with the active Linear milestone and issue.
 - Reduce authoring effort: ChatGPT is the preferred client for saving recipe links and turning photos plus short notes into structured records via Tavolo MCP. Validate client authentication and attachment transfer before promising this flow.
 - Redesign directly in code and rendered screens; Figma is no longer the required design source. Review applicable design skills before implementing TVL-38.
 - These are staged Phase 2 goals; they do not imply that sharing or MCP is implemented.
+
+Confirmed sharing interview: include both accounts' existing records/photos/scraps; both people may edit and move items to recoverable trash. World-cup candidates are shared, but progress/results remain personal. No automatic permanent deletion is part of this scope.
