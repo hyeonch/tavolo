@@ -1,3 +1,4 @@
+import * as cloudWorldCup from './cloudWorldCupRepository';
 import * as cloud from './cloudRepository';
 import * as localMeal from './mealRepository';
 import * as localMedia from './mediaRepository';
@@ -46,7 +47,12 @@ export const deleteTagAsync = (...args: Parameters<typeof localTag.deleteTagAsyn
 export const createRecipeScrapAsync = (...args: Parameters<typeof localRecipeScrap.createRecipeScrapAsync>) => scraps().createRecipeScrapAsync(...args);
 export const listRecipeScrapsAsync = () => scraps().listRecipeScrapsAsync();
 export const deleteRecipeScrapAsync = (...args: Parameters<typeof localRecipeScrap.deleteRecipeScrapAsync>) => scraps().deleteRecipeScrapAsync(...args);
-export const createWorldCupSessionAsync = (...args: Parameters<typeof worldCup.createWorldCupSessionAsync>) => worldCup.createWorldCupSessionAsync(...args);
-export const getLatestWorldCupSessionAsync = () => worldCup.getLatestWorldCupSessionAsync();
-export const listWorldCupMatchesAsync = (...args: Parameters<typeof worldCup.listWorldCupMatchesAsync>) => worldCup.listWorldCupMatchesAsync(...args);
-export const saveWorldCupProgressAsync = (...args: Parameters<typeof worldCup.saveWorldCupProgressAsync>) => worldCup.saveWorldCupProgressAsync(...args);
+export const createWorldCupSessionAsync = (...args: Parameters<typeof worldCup.createWorldCupSessionAsync>) => (dataSource === 'cloud' ? cloudWorldCup : worldCup).createWorldCupSessionAsync(...args);
+export const saveWorldCupProgressAsync = (...args: Parameters<typeof worldCup.saveWorldCupProgressAsync>) => (dataSource === 'cloud' ? cloudWorldCup : worldCup).saveWorldCupProgressAsync(...args);
+
+export async function getWorldCupStateAsync() {
+  if (dataSource === 'cloud') return cloudWorldCup.getWorldCupStateAsync();
+  const session = await worldCup.getLatestWorldCupSessionAsync();
+  const matches = session ? await worldCup.listWorldCupMatchesAsync(session.id) : [];
+  return { session, matches };
+}

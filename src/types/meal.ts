@@ -75,6 +75,7 @@ export type RecipeScrap = {
 export type WorldCupStatus = 'in-progress' | 'completed';
 
 export type WorldCupSession = {
+  revision?: number;
   id: string;
   candidateRecordIds: string[];
   totalRounds: number;

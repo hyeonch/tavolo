@@ -82,3 +82,10 @@ Supabase persistence direction:
 - All account data is owned by `auth.users.id` through a `user_id` column and RLS; rows cannot cross user boundaries.
 - `meals`, `meal_records`, `tags`, `meal_tags`, and `recipe_scraps` map directly to the current conceptual types. Ingredient groups and recipe steps remain JSONB columns on `meal_records`.
 - `media` stores private Storage metadata (`storage_path`, MIME type, size, kind, and optional recipe-step ID); Blob data itself lives in the private `meal-media` bucket.
+
+## TVL-51 world cups
+
+- Signed-in world cups use `public.world_cups`, one atomic JSONB session/match snapshot per tournament (max eight candidates). User-owned RLS and a validation trigger reject foreign candidate IDs.
+- `revision` guards against stale writes across tabs/devices. The UI loads session and matches in one request.
+- Legacy IndexedDB world cups remain local only, without automatic import into an account. Unknown ownership must not be guessed.
+- Applying the `account_world_cups` migration is required before deploying the client change.

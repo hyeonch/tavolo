@@ -65,3 +65,10 @@ TVL-31 Design Pass 0:
 - Later phase QA should compare implementation against the wireframe for hierarchy, responsive behavior, empty states, and reusable UI candidates.
 
 Keep implementation aligned with the active Linear milestone and issue.
+
+## Phase 2 direction (2026-11-09)
+
+- A shared cooking journal for the user and their partner: invited members can view and edit records, with authorship retained. Sharing existing records, deletion, and leaving the journal need a product interview before implementation.
+- Reduce authoring effort: ChatGPT is the preferred client for saving recipe links and turning photos plus short notes into structured records via Tavolo MCP. Validate client authentication and attachment transfer before promising this flow.
+- Redesign directly in code and rendered screens; Figma is no longer the required design source. Review applicable design skills before implementing TVL-38.
+- These are staged Phase 2 goals; they do not imply that sharing or MCP is implemented.
