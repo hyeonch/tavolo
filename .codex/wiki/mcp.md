@@ -4,7 +4,7 @@ The user confirmed the web ChatGPT custom MCP menu is available (2026-11-10).
 
 ## Connection probe
 
-- URL: https://tavolo-two.vercel.app/api/mcp-probe
+- URL: https://tavolo-kr.vercel.app/api/mcp-probe
 - Transport: stateless Streamable HTTP, JSON responses, official MCP SDK.
 - Authentication: No authentication for this diagnostic endpoint only.
 - Tools: `tavolo_connection_test`, `tavolo_photo_transfer_test`.
