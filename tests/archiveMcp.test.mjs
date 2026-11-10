@@ -3,7 +3,24 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {PGlite} from '@electric-sql/pglite';
 import {authenticate} from '../server/mcpAuth.mjs';
-import {draftSchema,stableId} from '../server/archiveMcp.mjs';
+import {createArchiveServer,draftSchema,stableId} from '../server/archiveMcp.mjs';
+import {WebStandardStreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
+
+test('archive tools are discoverable with OAuth and invalid write input never reaches the database', async () => {
+  const call=async(method,params={})=>{
+    const server=createArchiveServer({db:{from:()=>{throw new Error('unexpected DB access');}},userId:'test'});
+    const transport=new WebStandardStreamableHTTPServerTransport({sessionIdGenerator:undefined,enableJsonResponse:true});
+    await server.connect(transport);
+    try { return await (await transport.handleRequest(new Request('https://example.com/api/mcp',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})}))).json(); }
+    finally { await server.close(); }
+  };
+    await call('initialize',{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'test',version:'1'}});
+    const list=(await call('tools/list')).result.tools;
+    assert.equal(list.length,7);
+    assert.ok(list.every(t=>t._meta.securitySchemes[0].type==='oauth2'));
+    const invalid=await call('tools/call',{name:'tavolo_save_link',arguments:{url:'javascript:alert(1)'}});
+    assert.ok(invalid.result?.isError || invalid.error);
+});
 
 test('MCP authentication rejects session tokens, wrong audience/issuer, expired and invalid signatures', async () => {
   const claims = {iss:'https://project.supabase.co/auth/v1',aud:'authenticated',role:'authenticated',sub:'user',client_id:'client',exp:Date.now()/1000+60};
@@ -37,7 +54,9 @@ test('draft RLS isolates authors and prevents forged ownership, stale updates an
       grant usage on schema auth to authenticated;
       grant execute on function auth.uid() to authenticated;`);
     await db.query('insert into auth.users values ($1),($2)',[a,b]);
+    await db.exec('alter default privileges in schema public grant all on tables to anon, authenticated');
     await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261110133652_mcp_record_drafts.sql',import.meta.url),'utf8'));
+    await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261110134053_restrict_mcp_draft_grants.sql',import.meta.url),'utf8'));
     await db.exec('set role authenticated');
     await db.query("select set_config('request.jwt.claim.sub',$1,false)",[a]);
     await db.query('insert into mcp_record_drafts(id,user_id,payload) values($1,$1,$2)',[a,{name:'파스타'}]);
