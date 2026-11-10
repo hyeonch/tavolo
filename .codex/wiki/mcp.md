@@ -26,3 +26,13 @@ Use authorization-code OAuth with S256 PKCE. Identify the Tavolo account from a 
 - https://developers.openai.com/plugins/build/auth
 - https://developers.openai.com/plugins/reference (openai/fileParams)
 - https://developers.openai.com/plugins/build/app-quickstart
+
+## TVL-55 authenticated tools
+
+- Real ChatGPT connection and file transfer were verified on 2026-11-10. A 130866-byte attachment arrived with the same SHA-256 as the original. The diagnostic did not persist it.
+- Production endpoint: `https://tavolo-kr.vercel.app/api/mcp`. Probe remains separate and unauthenticated.
+- Native Supabase OAuth authorization-code/PKCE; consent UI `/oauth/consent`, protected resource discovery `/.well-known/oauth-protected-resource`. Existing Google login and journal RLS are retained. No service-role credentials.
+- Verify signature, expiry, issuer, authenticated audience, OAuth client_id and current user. Standard Supabase email scope identifies the account; it is NOT a granular archive permission. Consent explicitly describes full existing archive permissions.
+- Tools: journal lookup, idempotent URL save, paginated link list and record-name search, private structured draft create/read/revision-guarded update. Drafts are private until committed, separate from dated cooking records.
+- Deployment prerequisite: apply mcp_record_drafts migration. OAuth setup: enable Supabase OAuth Server, set authorization path `/oauth/consent`, Site URL `https://tavolo-kr.vercel.app`, allow `https://tavolo-kr.vercel.app/oauth/consent**` Google return URL, enable dynamic client registration. Connect the real MCP endpoint with OAuth in ChatGPT.
+- OAuth server was observed disabled. Dashboard requires user sign-in in this workspace; actual OAuth and authenticated ChatGPT writes remain unverified until enabled and connected. Do not mark TVL-55 Done before that test.

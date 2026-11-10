@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
 import { App } from './App';
+import { OAuthConsent } from './auth/OAuthConsent';
 import './styles.css';
 
 const rootElement = document.getElementById('root');
@@ -14,7 +15,7 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    {window.location.pathname === '/oauth/consent' ? <OAuthConsent /> : <App />}
     <Analytics />
     <SpeedInsights />
   </StrictMode>

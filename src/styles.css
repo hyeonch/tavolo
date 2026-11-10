@@ -2024,3 +2024,8 @@ button {
 .journal-trash small { display: block; margin-top: 6px; }
 .journal-trash img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
 @media (max-width: 480px) { .journal-heading { align-items: flex-start; } .journal-heading > div { min-width: 0; } }
+:root .oauth-consent { max-width: 640px; margin: 8vh auto; padding: 28px; }
+.oauth-consent p { line-height: 1.7; overflow-wrap: anywhere; }
+.oauth-consent section { padding: 24px; margin: 24px 0; border: 1px solid #d9d3c8; border-radius: 20px; }
+.oauth-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.oauth-consent button { min-height: 44px; padding: 12px 20px; cursor: pointer; }
