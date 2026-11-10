@@ -76,3 +76,5 @@ Keep implementation aligned with the active Linear milestone and issue.
 Confirmed sharing interview: include both accounts' existing records/photos/scraps; both people may edit and move items to recoverable trash. World-cup candidates are shared, but progress/results remain personal. No automatic permanent deletion is part of this scope.
 
 TVL-53 sharing UI: signed-in users open `공유 · 휴지통`, enter a display name and their partner's login email to create a code. The partner enters that code and explicitly agrees to share existing records. Both may recover records, links and removed photos; no automatic permanent deletion or leave-journal UI is included.
+
+2026-11-10 feedback: shared-journal settings and trash must become distinct destinations during TVL-38. Tracked in TVL-58; do not revise the current UI while implementing MCP.
