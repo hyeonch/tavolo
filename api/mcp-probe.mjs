@@ -3,7 +3,7 @@ import { createProbeServer } from '../server/mcpProbe.mjs';
 
 export async function POST(request) {
   const origin = request.headers.get('origin');
-  if (origin && !['https://chatgpt.com', 'https://tavolo-two.vercel.app'].includes(origin)) return new Response('Forbidden origin', { status: 403 });
+  if (origin && !['https://chatgpt.com', 'https://tavolo-kr.vercel.app'].includes(origin)) return new Response('Forbidden origin', { status: 403 });
   const server = createProbeServer();
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   try {

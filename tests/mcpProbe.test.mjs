@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { POST } from '../api/mcp-probe.mjs';
 import { allowedFileUrl, inspectFile } from '../server/mcpProbe.mjs';
-const rpc = (method, params={}) => POST(new Request('https://tavolo-two.vercel.app/api/mcp-probe', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc:'2.0', id:1, method, params }) }));
+const rpc = (method, params={}) => POST(new Request('https://tavolo-kr.vercel.app/api/mcp-probe', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc:'2.0', id:1, method, params }) }));
 test('MCP initialization, discovery and connection probe work without archive access', async () => {
   const init = await rpc('initialize',{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'test',version:'1'}});
   assert.equal(init.status,200);
@@ -16,7 +16,7 @@ test('MCP initialization, discovery and connection probe work without archive ac
   assert.equal(called.structuredContent.connected,true);
   assert.equal(called.structuredContent.archiveAccess,false);
   assert.equal(called.structuredContent.persistence,false);
-  const invalid = await POST(new Request('https://tavolo-two.vercel.app/api/mcp-probe',{method:'POST',headers:{Origin:'https://evil.example'}}));
+  const invalid = await POST(new Request('https://tavolo-kr.vercel.app/api/mcp-probe',{method:'POST',headers:{Origin:'https://evil.example'}}));
   assert.equal(invalid.status,403);
 });
 test('photo probe rejects arbitrary hosts and bounded download does not persist content',async()=>{
