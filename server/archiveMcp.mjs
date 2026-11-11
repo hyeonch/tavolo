@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { attachPhoto } from './draftPhotos.mjs';
 
 const text = max => z.string().trim().max(max);
 const link = z.string().url().max(2048).refine(value => {
@@ -26,10 +27,10 @@ function result(data) { return { content: [{ type: 'text', text: JSON.stringify(
 function checked(response) { if (response.error) throw response.error; return response.data; }
 export function createArchiveServer({ db, userId }) {
   const server = new McpServer({ name: 'tavolo', version: '1.0.0' });
-  function tool(name, description, inputSchema, readOnly, fn) {
+  function tool(name, description, inputSchema, readOnly, fn, meta = {}) {
     server.registerTool(name, { description, inputSchema,
-      annotations: { readOnlyHint: readOnly, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['email'] }] },
+      annotations: { readOnlyHint: readOnly, destructiveHint: false, idempotentHint: true, openWorldHint: Boolean(meta['openai/fileParams']) },
+      _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['email'] }], ...meta },
     }, async args => {
       try { return result(await fn(args)); }
       catch { return { isError: true, content: [{ type: 'text', text: '요청을 완료하지 못했어요. 권한, 입력값 또는 초안 버전을 확인해주세요. 같은 요청 ID로 다시 시도하면 중복 저장되지 않아요.' }] }; }
@@ -68,10 +69,22 @@ export function createArchiveServer({ db, userId }) {
     return { draft: checked(await db.from('mcp_record_drafts').select('*').eq('id',id).single()) };
   });
   tool('tavolo_get_draft', '내가 만든 요리 초안과 현재 버전을 조회합니다.', { id: z.string().uuid() }, true,
-    async ({id}) => ({ draft: checked(await db.from('mcp_record_drafts').select('*').eq('id',id).single()) }));
-  tool('tavolo_update_draft', '초안을 전체 교체합니다. 먼저 조회한 revision을 expectedRevision으로 보내세요. 이미 확정된 초안은 수정하지 않습니다.', {
+    async ({id}) => ({ draft: checked(await db.from('mcp_record_drafts').select('*').eq('id',id).single()),
+      photos: checked(await db.from('mcp_draft_photos').select('id,slot,mime_type,byte_size').eq('draft_id',id)) }));
+  tool('tavolo_update_draft', '초안을 전체 교체합니다. 먼저 조회한 revision을 expectedRevision으로 보내세요. 조리순서 사진은 순서 편집을 마친 뒤 첨부하세요. 순서 사진 첨부 후에는 순서를 변경할 수 없고, 확정된 초안도 수정하지 않습니다. 확정 후 편집은 앱에서 합니다.', {
     id: z.string().uuid(), expectedRevision: z.number().int().min(1), draft: draftSchema,
   }, false, async ({id,expectedRevision,draft}) => ({draft: checked(await db.from('mcp_record_drafts').update({payload:draft,revision:expectedRevision+1})
     .eq('id',id).eq('revision',expectedRevision).is('record_id',null).select('*').single())}));
+  tool('tavolo_attach_draft_photo', '사용자가 첨부한 원본 사진을 요리 초안에 연결합니다. slot은 완성사진 finished 또는 0부터 시작하는 조리순서 step:0입니다. 먼저 초안을 조회하고 최신 revision을 보내세요. 성공하면 반환된 revision으로 이어서 작업합니다.', {
+    id: z.string().uuid(), expectedRevision: z.number().int().min(1), slot: z.string().regex(/^(finished|step:[0-9]{1,2})$/).default('finished'),
+    photo: z.object({download_url:z.string().url(),file_id:z.string().min(1),mime_type:z.string().optional(),file_name:z.string().optional()}),
+  }, false, args => attachPhoto({db,userId},args), {'openai/fileParams':['photo']});
+  tool('tavolo_commit_draft', '사용자가 저장을 요청한 요리 초안을 실제 기록으로 확정합니다. 사진과 내용을 먼저 확인하고 최신 revision을 보내세요. 날짜나 요리 이름이 불명확하면 먼저 질문합니다. 반복 호출은 같은 recordId를 반환하며 휴지통 기록을 되살리지 않습니다. uncertainties는 확인 필요 메모로 보존됩니다.', {
+    id:z.string().uuid(),expectedRevision:z.number().int().min(1),
+  }, false, async ({id,expectedRevision}) => {
+    const draft=checked(await db.from('mcp_record_drafts').select('payload,record_id').eq('id',id).single());
+    if (!draft.record_id) draftSchema.parse(draft.payload);
+    return {...checked(await db.rpc('mcp_draft_action',{action:'commit',target_id:id,expected_revision:expectedRevision})),appUrl:'https://tavolo-kr.vercel.app'};
+  });
   return server;
 }

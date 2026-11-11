@@ -10,7 +10,7 @@ The user confirmed the web ChatGPT custom MCP menu is available (2026-11-10).
 - Tools: `tavolo_connection_test`, `tavolo_photo_transfer_test`.
 - The endpoint has no database/storage client and cannot read or write the archive. Photo bytes are streamed only to calculate byte count and SHA-256, then discarded; no URL, photo content or arguments are logged by application code.
 - Photo fetches accept HTTPS OpenAI delivery domains only, forbid redirects and credentials, limit content to 10 MB and time out after 8 seconds. Delivery hosts outside the allowlist must be verified before adding them.
-- This does NOT establish Tavolo OAuth, persistent writes, or mobile support. TVL-54 stays open until actual ChatGPT calls and the authenticated flow are verified.
+- This does NOT establish Tavolo OAuth, persistent writes, or mobile support. TVL-54 connection/photo probe is complete; authenticated flow verification is tracked in TVL-55/56.
 
 ## Manual connection experiment
 
@@ -36,3 +36,11 @@ Use authorization-code OAuth with S256 PKCE. Identify the Tavolo account from a 
 - Tools: journal lookup, idempotent URL save, paginated link list and record-name search, private structured draft create/read/revision-guarded update. Drafts are private until committed, separate from dated cooking records.
 - Deployment prerequisite: apply mcp_record_drafts migration. OAuth setup: enable Supabase OAuth Server, set authorization path `/oauth/consent`, Site URL `https://tavolo-kr.vercel.app`, allow `https://tavolo-kr.vercel.app/oauth/consent**` Google return URL, enable dynamic client registration. Connect the real MCP endpoint with OAuth in ChatGPT.
 - OAuth server was observed disabled. Dashboard requires user sign-in in this workspace; actual OAuth and authenticated ChatGPT writes remain unverified until enabled and connected. Do not mark TVL-55 Done before that test.
+
+## TVL-56 photos and commit
+
+- `tavolo_attach_draft_photo` accepts a ChatGPT file object, validates JPEG/PNG/WebP signatures, limits downloads to 10 MB/8 seconds and forbids redirects/arbitrary hosts. Files are staged privately in meal-media under the author's draft ID; deterministic content+slot paths allow retries without overwrites.
+- Draft photos stay private until `tavolo_commit_draft` atomically creates the meal, dated record, ingredients, steps, tags and photo metadata. Repeated commit returns the same record ID; it never restores trash. Uncertainties become explicitly labelled notes.
+- The checked private transaction locks the author's draft, rejects stale revisions/foreign authors/missing uploads, and rolls back all relational writes on failure. Step order must be finalized before step photos are attached; post-commit edits use the existing app.
+- Interrupted uploads and replaced draft photos can leave private unused objects. There is no automatic permanent deletion. They cannot appear as broken records.
+- Production migration: commit_mcp_drafts_with_photos. Real authenticated ChatGPT upload/commit and two-account UI verification remain pending OAuth setup; tests are not a substitute for those checks.
