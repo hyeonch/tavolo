@@ -1,6 +1,6 @@
 :root {
-  color: #1e211f;
-  background: #fffaf0;
+  color: #181b22;
+  background: #ffffff;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
@@ -33,7 +33,7 @@ button {
   grid-template-columns: 260px minmax(0, 1fr);
   background:
     linear-gradient(90deg, #ffffff 0, #ffffff 260px, transparent 260px),
-    #fffaf0;
+    #ffffff;
 }
 
 .sidebar {
@@ -43,7 +43,7 @@ button {
   height: 100vh;
   flex-direction: column;
   gap: 32px;
-  border-right: 1px solid #e2ded3;
+  border-right: 1px solid #e3e6ed;
   padding: 28px 20px;
 }
 
@@ -59,7 +59,7 @@ button {
   height: 40px;
   place-items: center;
   border-radius: 8px;
-  background: #356859;
+  background: #2458d8;
   color: #ffffff;
   font-weight: 800;
 }
@@ -71,7 +71,7 @@ button {
 
 .brand span {
   margin-top: 2px;
-  color: #6a716c;
+  color: #687180;
   font-size: 13px;
 }
 
@@ -85,7 +85,7 @@ button {
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #4f5752;
+  color: #505967;
   font-weight: 700;
   text-align: left;
   padding: 0 12px;
@@ -93,21 +93,21 @@ button {
 
 .nav-list button:hover,
 .nav-list button[aria-current="page"] {
-  background: #eef3ef;
-  color: #1f4f42;
+  background: #edf2ff;
+  color: #1744b4;
 }
 
 .account-panel {
   display: grid;
   gap: 10px;
   margin-top: auto;
-  border-top: 1px solid #e2ded3;
+  border-top: 1px solid #e3e6ed;
   padding-top: 20px;
 }
 
 .account-copy,
 .account-message {
-  color: #6a716c;
+  color: #687180;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -126,18 +126,18 @@ button {
 .mobile-account-menu summary,
 .mobile-account-menu button {
   min-height: 38px;
-  border: 1px solid #cdd7cf;
+  border: 1px solid #d6dce6;
   border-radius: 7px;
   background: #ffffff;
-  color: #1f4f42;
+  color: #1744b4;
   font-size: 13px;
   font-weight: 800;
   padding: 0 10px;
 }
 
 .account-actions button:first-child {
-  background: #356859;
-  border-color: #356859;
+  background: #2458d8;
+  border-color: #2458d8;
   color: #ffffff;
 }
 
@@ -145,13 +145,13 @@ button {
   display: grid;
   gap: 8px;
   margin-top: auto;
-  border-top: 1px solid #e2ded3;
+  border-top: 1px solid #e3e6ed;
   padding-top: 20px;
 }
 
 .account-signed-in span {
   overflow: hidden;
-  color: #52645a;
+  color: #586477;
   font-size: 13px;
   font-weight: 800;
   text-overflow: ellipsis;
@@ -160,7 +160,7 @@ button {
 
 .account-loading {
   margin-top: auto;
-  color: #6a716c;
+  color: #687180;
   font-size: 13px;
 }
 
@@ -185,7 +185,7 @@ button {
 
 .eyebrow {
   margin: 0;
-  color: #356859;
+  color: #2458d8;
   font-size: 14px;
   font-weight: 800;
 }
@@ -208,7 +208,7 @@ h2 {
 
 .section-heading p:last-child {
   max-width: 660px;
-  color: #59605b;
+  color: #596274;
   font-size: 16px;
   line-height: 1.6;
 }
@@ -223,7 +223,7 @@ h2 {
 .summary-item {
   display: grid;
   gap: 6px;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 8px;
   background: #ffffff;
   padding: 18px;
@@ -231,7 +231,7 @@ h2 {
 
 .summary-item span,
 .panel-header span {
-  color: #6a716c;
+  color: #687180;
   font-size: 14px;
 }
 
@@ -244,7 +244,7 @@ h2 {
   min-height: 48px;
   border: 0;
   border-radius: 8px;
-  background: #356859;
+  background: #2458d8;
   color: #ffffff;
   font-weight: 800;
   padding: 0 18px;
@@ -253,10 +253,10 @@ h2 {
 .secondary-action {
   width: fit-content;
   min-height: 44px;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 8px;
   background: #ffffff;
-  color: #1f4f42;
+  color: #1744b4;
   font-weight: 800;
   padding: 0 16px;
 }
@@ -265,7 +265,7 @@ h2 {
   display: grid;
   max-width: 620px;
   gap: 16px;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 8px;
   background: #ffffff;
   padding: 20px;
@@ -283,7 +283,7 @@ h2 {
 .selected-date-panel {
   display: grid;
   gap: 18px;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 12px;
   background: #ffffff;
   padding: 22px;
@@ -304,17 +304,17 @@ h2 {
 
 .calendar-controls button {
   min-height: 36px;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 7px;
   background: #ffffff;
-  color: #1f4f42;
+  color: #1744b4;
   font-size: 13px;
   font-weight: 800;
   padding: 0 10px;
 }
 
 .calendar-controls button:hover {
-  background: #eef3ef;
+  background: #edf2ff;
 }
 
 .calendar-weekdays,
@@ -324,7 +324,7 @@ h2 {
 }
 
 .calendar-weekdays {
-  color: #6a716c;
+  color: #687180;
   font-size: 12px;
   font-weight: 800;
   text-align: center;
@@ -365,15 +365,15 @@ h2 {
 
 .calendar-day small {
   border-radius: 999px;
-  background: #eef3ef;
-  color: #1f4f42;
+  background: #edf2ff;
+  color: #1744b4;
   font-size: 11px;
   font-weight: 800;
   padding: 3px 6px;
 }
 
 .calendar-day.has-records > span {
-  color: #1f4f42;
+  color: #1744b4;
   font-weight: 900;
 }
 
@@ -383,13 +383,13 @@ h2 {
 }
 
 .calendar-day.is-selected {
-  background: #356859;
+  background: #2458d8;
   color: #ffffff;
 }
 
 .calendar-day.is-selected small {
   background: #ffffff;
-  color: #1f4f42;
+  color: #1744b4;
 }
 
 .calendar-day.is-selected > span {
@@ -431,8 +431,8 @@ h2 {
 }
 
 .meal-card:hover {
-  border-color: #d9ded8;
-  background: #fbfcfa;
+  border-color: #e3e6ed;
+  background: #fafbfe;
 }
 
 .meal-thumbnail {
@@ -471,7 +471,7 @@ h2 {
 }
 
 .meal-card-body span {
-  color: #6a716c;
+  color: #687180;
   font-size: 14px;
 }
 
@@ -481,16 +481,16 @@ h2 {
 
 .panel-state,
 .empty-state p {
-  color: #6a716c;
+  color: #687180;
   line-height: 1.6;
 }
 
 .empty-state {
   display: grid;
   gap: 6px;
-  border: 1px dashed #cdd7cf;
+  border: 1px dashed #d6dce6;
   border-radius: 8px;
-  background: #fbfcfa;
+  background: #fafbfe;
   padding: 18px;
 }
 
@@ -507,14 +507,14 @@ h2 {
 .detail-preview div {
   display: grid;
   gap: 6px;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 8px;
   background: #ffffff;
   padding: 16px;
 }
 
 .detail-preview span {
-  color: #6a716c;
+  color: #687180;
   font-size: 14px;
   font-weight: 700;
 }
@@ -553,7 +553,7 @@ h2 {
 }
 
 .detail-preview a {
-  color: #1f4f42;
+  color: #1744b4;
   font-weight: 800;
 }
 
@@ -565,8 +565,8 @@ h2 {
 
 .tag-list em {
   border-radius: 999px;
-  background: #eef3ef;
-  color: #1f4f42;
+  background: #edf2ff;
+  color: #1744b4;
   font-size: 13px;
   font-style: normal;
   font-weight: 800;
@@ -576,14 +576,14 @@ h2 {
 .detail-section {
   display: grid;
   gap: 12px;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 12px;
   background: #ffffff;
   padding: 20px;
 }
 
 .detail-section h2 {
-  color: #1f4f42;
+  color: #1744b4;
 }
 
 .detail-ingredient-group {
@@ -611,7 +611,7 @@ h2 {
 }
 
 .detail-ingredient-group li span:last-child {
-  color: #6a716c;
+  color: #687180;
   font-size: 14px;
 }
 
@@ -629,7 +629,7 @@ h2 {
 }
 
 .detail-steps strong {
-  color: #1f4f42;
+  color: #1744b4;
   font-size: 14px;
 }
 
@@ -659,10 +659,10 @@ h2 {
 .meal-form select,
 .meal-form textarea {
   min-height: 48px;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 8px;
   background: #ffffff;
-  color: #1e211f;
+  color: #181b22;
   padding: 12px 14px;
 }
 
@@ -687,7 +687,7 @@ h2 {
   width: min(100%, 700px);
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 12px;
   background: #ffffff;
   padding: 20px;
@@ -705,10 +705,10 @@ h2 {
 .recipe-scrap-form > label > input,
 .recipe-scrap-form > label > textarea {
   min-height: 48px;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 8px;
   background: #ffffff;
-  color: #1e211f;
+  color: #181b22;
   padding: 12px 14px;
 }
 
@@ -747,14 +747,14 @@ h2 {
 
 .scrap-list a {
   overflow: hidden;
-  color: #1f4f42;
+  color: #1744b4;
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .scrap-list p {
-  color: #59605b;
+  color: #596274;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -762,17 +762,17 @@ h2 {
 .scrap-list button {
   flex: none;
   min-height: 38px;
-  border: 1px solid #cdd7cf;
+  border: 1px solid #d6dce6;
   border-radius: 7px;
-  background: #fbfcfa;
-  color: #1f4f42;
+  background: #fafbfe;
+  color: #1744b4;
   font-size: 13px;
   font-weight: 800;
   padding: 0 10px;
 }
 
 .field-hint {
-  color: #6a716c;
+  color: #687180;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.5;
@@ -782,7 +782,7 @@ h2 {
   display: grid;
   gap: 16px;
   margin: 0;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 12px;
   background: #ffffff;
   padding: 20px;
@@ -790,13 +790,13 @@ h2 {
 
 .recipe-section legend {
   padding: 0 6px;
-  color: #1f4f42;
+  color: #1744b4;
   font-size: 18px;
   font-weight: 900;
 }
 
 .recipe-section > p {
-  color: #6a716c;
+  color: #687180;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -837,10 +837,10 @@ h2 {
 .step-delete-action {
   width: fit-content;
   min-height: 36px;
-  border: 1px solid #cdd7cf;
+  border: 1px solid #d6dce6;
   border-radius: 7px;
-  background: #fbfcfa;
-  color: #1f4f42;
+  background: #fafbfe;
+  color: #1744b4;
   font-size: 13px;
   font-weight: 800;
   padding: 0 10px;
@@ -884,7 +884,7 @@ h2 {
 }
 
 .ingredient-labels {
-  color: #6a716c;
+  color: #687180;
   font-size: 12px;
   font-weight: 800;
 }
@@ -935,7 +935,7 @@ h2 {
   display: grid;
   gap: 7px;
   overflow: hidden;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 9px;
   background: #fff;
   padding: 8px;
@@ -950,7 +950,7 @@ h2 {
 }
 
 .media-preview-label {
-  color: #52645a;
+  color: #586477;
   font-size: 11px;
   font-weight: 800;
 }
@@ -991,9 +991,9 @@ h2 {
   gap: 6px;
   margin: 0;
   padding: 8px;
-  border: 1px solid #a9c6b7;
+  border: 1px solid #afc1ee;
   border-radius: 9px;
-  background: #f5faf6;
+  background: #f5f7fc;
 }
 
 .existing-media-card .selected-photo-preview {
@@ -1017,7 +1017,7 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: #1f4f42;
+  color: #1744b4;
   font-size: 12px;
   font-weight: 800;
 }
@@ -1025,8 +1025,8 @@ h2 {
 .selected-photo-preview button {
   border: 0;
   border-radius: 5px;
-  background: #e4eee7;
-  color: #1f4f42;
+  background: #edf2ff;
+  color: #1744b4;
   font: inherit;
   padding: 4px 7px;
 }
@@ -1045,7 +1045,7 @@ h2 {
   .app-shell {
     display: block;
     padding-bottom: 78px;
-    background: #fffaf0;
+    background: #ffffff;
   }
 
   .sidebar {
@@ -1056,7 +1056,7 @@ h2 {
     bottom: 0;
     left: 0;
     height: auto;
-    border-top: 1px solid #e2ded3;
+    border-top: 1px solid #e3e6ed;
     border-right: 0;
     background: #ffffff;
     padding: 8px;
@@ -1067,7 +1067,7 @@ h2 {
   }
 
   .nav-list {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
   }
 
@@ -1089,7 +1089,7 @@ h2 {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 28px;
-    color: #59605b;
+    color: #596274;
   }
 
   .account-panel,
@@ -1122,7 +1122,7 @@ h2 {
     display: grid;
     min-width: 180px;
     gap: 8px;
-    border: 1px solid #d9ded8;
+    border: 1px solid #e3e6ed;
     border-radius: 10px;
     background: #ffffff;
     box-shadow: 0 12px 24px rgb(30 33 31 / 12%);
@@ -1131,7 +1131,7 @@ h2 {
 
   .mobile-account-menu > div span {
     overflow: hidden;
-    color: #52645a;
+    color: #586477;
     font-size: 12px;
     font-weight: 800;
     text-overflow: ellipsis;
@@ -1144,8 +1144,8 @@ h2 {
   }
 
   .mobile-account-menu button:first-child {
-    background: #356859;
-    border-color: #356859;
+    background: #2458d8;
+    border-color: #2458d8;
     color: #ffffff;
   }
 
@@ -1155,7 +1155,7 @@ h2 {
   }
 
   .mobile-topbar strong {
-    color: #1e211f;
+    color: #181b22;
   }
 
   h1 {
@@ -1275,13 +1275,13 @@ button {
   gap: 5px;
   border-radius: 999px;
   background: #f0f4ef;
-  color: #52645a;
+  color: #586477;
   font-size: 13px;
   padding: 8px 12px;
 }
 
 .home-stats strong {
-  color: #1f4f42;
+  color: #1744b4;
   font-size: 17px;
 }
 
@@ -1299,7 +1299,7 @@ button {
 }
 
 .calendar-day.is-selected {
-  box-shadow: inset 0 0 0 2px #1f4f42;
+  box-shadow: inset 0 0 0 2px #1744b4;
 }
 
 .detail-topline,
@@ -1336,7 +1336,7 @@ button {
 .back-link,
 .text-action {
   width: fit-content;
-  color: #1f4f42;
+  color: #1744b4;
   padding: 0;
 }
 
@@ -1387,7 +1387,7 @@ button {
   grid-template-columns: 76px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 12px;
   background: #fff;
   color: #303632;
@@ -1407,8 +1407,8 @@ button {
   place-items: center;
   overflow: hidden;
   border-radius: 8px;
-  background: #eef3ef;
-  color: #356859;
+  background: #edf2ff;
+  color: #2458d8;
   font-weight: 800;
 }
 
@@ -1432,7 +1432,7 @@ button {
 }
 
 .record-search-body span {
-  color: #6a716c;
+  color: #687180;
   font-size: 13px;
 }
 
@@ -1442,7 +1442,7 @@ button {
   grid-template-columns: 108px minmax(0, 1fr) minmax(120px, auto);
   align-items: center;
   gap: 14px;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 12px;
   background: #fff;
   color: #303632;
@@ -1456,13 +1456,13 @@ button {
 }
 
 .record-text-card span:last-child {
-  color: #6a716c;
+  color: #687180;
   font-size: 13px;
   text-align: right;
 }
 
 .record-date {
-  color: #356859 !important;
+  color: #2458d8 !important;
   font-size: 13px !important;
   font-weight: 800;
   text-align: left !important;
@@ -1473,7 +1473,7 @@ button {
   width: min(100%, 680px);
   align-items: center;
   gap: 10px;
-  border: 1px solid #cdd7cf;
+  border: 1px solid #d6dce6;
   border-radius: 12px;
   background: #fff;
   padding: 0 16px;
@@ -1481,7 +1481,7 @@ button {
 }
 
 .search-field span {
-  color: #356859;
+  color: #2458d8;
   font-size: 24px;
 }
 
@@ -1496,10 +1496,10 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 9px;
   background: #fff;
-  color: #356859;
+  color: #2458d8;
   padding: 0 12px;
 }
 
@@ -1519,23 +1519,23 @@ button {
 
 .tag-filter button {
   min-height: 34px;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 999px;
   background: #fff;
-  color: #52645a;
+  color: #586477;
   font-size: 13px;
   font-weight: 800;
   padding: 0 12px;
 }
 
 .tag-filter button.is-active {
-  border-color: #356859;
-  background: #356859;
+  border-color: #2458d8;
+  background: #2458d8;
   color: #fff;
 }
 
 .result-count {
-  color: #6a716c;
+  color: #687180;
   font-size: 14px;
   font-weight: 700;
 }
@@ -1551,7 +1551,7 @@ button {
   min-height: 150px;
   align-content: space-between;
   border-radius: 14px;
-  background: #356859;
+  background: #2458d8;
   color: #fff;
   padding: 20px;
 }
@@ -1588,7 +1588,7 @@ button {
   display: grid;
   width: min(100%, 700px);
   gap: 16px;
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 12px;
   background: #fff;
   padding: 20px;
@@ -1603,17 +1603,17 @@ button {
 
 .recap-section-tabs button {
   min-height: 38px;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 8px;
   background: #fff;
-  color: #52645a;
+  color: #586477;
   font-weight: 800;
   padding: 0 12px;
 }
 
 .recap-section-tabs button.is-active {
-  border-color: #356859;
-  background: #356859;
+  border-color: #2458d8;
+  background: #2458d8;
   color: #fff;
 }
 
@@ -1622,7 +1622,7 @@ button {
   width: fit-content;
   align-items: center;
   gap: 10px;
-  color: #52645a;
+  color: #586477;
   font-size: 14px;
   font-weight: 800;
 }
@@ -1647,7 +1647,7 @@ button {
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #52645a;
+  color: #586477;
   font-size: 12px;
   font-weight: 800;
   padding: 4px;
@@ -1667,7 +1667,7 @@ button {
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: #edf1eb;
+  background: #f0f3fa;
 }
 
 .month-bar-list b {
@@ -1675,7 +1675,7 @@ button {
   height: 100%;
   min-width: 2px;
   border-radius: inherit;
-  background: #356859;
+  background: #2458d8;
 }
 
 .recap-tag-list {
@@ -1689,15 +1689,15 @@ button {
 .active-search-filters span {
   border: 0;
   border-radius: 999px;
-  background: #edf3ef;
-  color: #1f4f42;
+  background: #edf2ff;
+  color: #1744b4;
   font-size: 13px;
   font-weight: 800;
   padding: 7px 10px;
 }
 
 .recap-tag-list button:hover {
-  background: #dceadf;
+  background: #e4ebfd;
 }
 
 .active-search-filters {
@@ -1710,10 +1710,10 @@ button {
 
 .active-search-filters button {
   min-height: 32px;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 999px;
   background: #fff;
-  color: #52645a;
+  color: #586477;
   font-size: 12px;
   font-weight: 800;
   padding: 0 10px;
@@ -1729,7 +1729,7 @@ button {
 
 .world-cup-panel {
   width: min(100%, 700px);
-  border: 1px solid #e2ded3;
+  border: 1px solid #e3e6ed;
   border-radius: 12px;
   background: #fff;
   padding: 20px;
@@ -1738,25 +1738,25 @@ button {
 .world-cup-start > p,
 .world-cup-match > p {
   margin: 0;
-  color: #6a716c;
+  color: #687180;
   line-height: 1.6;
 }
 
 .world-cup-winner {
   border-radius: 10px;
-  background: #f5f0e6;
+  background: #f0f3fa;
   padding: 16px;
 }
 
 .world-cup-winner span,
 .world-cup-match > span {
-  color: #52645a;
+  color: #586477;
   font-size: 13px;
   font-weight: 800;
 }
 
 .world-cup-winner strong {
-  color: #1f4f42;
+  color: #1744b4;
   font-size: 22px;
 }
 
@@ -1764,7 +1764,7 @@ button {
   width: fit-content;
   border: 0;
   background: transparent;
-  color: #1f4f42;
+  color: #1744b4;
   font-weight: 800;
   padding: 0;
 }
@@ -1780,10 +1780,10 @@ button {
   min-height: 260px;
   grid-template-rows: minmax(140px, 1fr) auto;
   align-content: stretch;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 12px;
-  background: #fbfcfa;
-  color: #1f2722;
+  background: #fafbfe;
+  color: #181b22;
   padding: 16px;
   text-align: left;
 }
@@ -1794,8 +1794,8 @@ button {
   place-items: center;
   overflow: hidden;
   border-radius: 8px;
-  background: #edf3ef;
-  color: #356859;
+  background: #edf2ff;
+  color: #2458d8;
   font-size: 42px;
   font-weight: 800;
 }
@@ -1813,8 +1813,8 @@ button {
 }
 
 .world-cup-choice-grid button:hover {
-  border-color: #356859;
-  background: #edf3ef;
+  border-color: #2458d8;
+  background: #edf2ff;
 }
 
 .world-cup-choice-grid strong {
@@ -1823,7 +1823,7 @@ button {
 
 .world-cup-choice-grid small,
 .world-cup-choice-grid em {
-  color: #52645a;
+  color: #586477;
   font-size: 12px;
   font-style: normal;
 }
@@ -1836,14 +1836,14 @@ button {
   place-items: center;
   overflow: hidden;
   border-radius: 9px;
-  background: #eef3ef;
-  color: #356859;
+  background: #edf2ff;
+  color: #2458d8;
   font-size: 24px;
 }
 
 .scrap-preview.has-image {
   position: relative;
-  background: #1f2722;
+  background: #181b22;
 }
 
 .scrap-preview img {
@@ -1866,7 +1866,7 @@ button {
 
 .scrap-preview:not(.has-image) small {
   align-self: end;
-  color: #52645a;
+  color: #586477;
   font-size: 10px;
   padding-bottom: 6px;
 }
@@ -1889,10 +1889,10 @@ button {
 .quiet-action,
 .small-action {
   min-height: 34px;
-  border: 1px solid #d9ded8;
+  border: 1px solid #e3e6ed;
   border-radius: 7px;
   background: #fff;
-  color: #52645a;
+  color: #586477;
   font-size: 12px;
   padding: 0 9px;
 }
@@ -2007,19 +2007,19 @@ button {
   }
 }
 
-/* Shared archive controls retain the current visual language until TVL-38. */
-.journal-panel { margin-bottom: 24px; padding: 16px; border: 1px solid #ddd8ce; border-radius: 16px; background: #fffdf8; }
+/* Shared archive settings */
+.journal-panel { margin-bottom: 24px; padding: 16px; border: 1px solid #e3e6ed; border-radius: 16px; background: #ffffff; }
 .journal-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.journal-panel p { font-size: 14px; line-height: 1.6; color: #625e56; }
+.journal-panel p { font-size: 14px; line-height: 1.6; color: #687180; }
 .journal-heading p { margin: 6px 0 0; }
-.journal-panel button { min-height: 44px; padding: 8px 12px; border: 1px solid #ccc4b6; border-radius: 10px; background: #fff; color: #343b2e; cursor: pointer; flex-shrink: 0; }
+.journal-panel button { min-height: 44px; padding: 8px 12px; border: 1px solid #e3e6ed; border-radius: 10px; background: #fff; color: #181b22; cursor: pointer; flex-shrink: 0; }
 .journal-panel button:disabled { opacity: .5; cursor: wait; }
 .journal-settings { display: grid; gap: 16px; padding-top: 16px; }
 .journal-settings form, .journal-settings label { display: grid; gap: 10px; }
-.journal-settings input, .journal-settings textarea { width: 100%; box-sizing: border-box; padding: 12px; min-height: 44px; border: 1px solid #ccc4b6; border-radius: 8px; font: inherit; }
-.journal-invite { padding: 12px; background: #f0f2e9; border-radius: 12px; overflow-wrap: anywhere; }
+.journal-settings input, .journal-settings textarea { width: 100%; box-sizing: border-box; padding: 12px; min-height: 44px; border: 1px solid #e3e6ed; border-radius: 8px; font: inherit; }
+.journal-invite { padding: 12px; background: #edf2ff; border-radius: 12px; overflow-wrap: anywhere; }
 .journal-trash { list-style: none; padding: 0; margin: 0; }
-.journal-trash li { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid #e5dfd4; }
+.journal-trash li { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid #e3e6ed; }
 .journal-trash li > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .journal-trash small { display: block; margin-top: 6px; }
 .journal-trash img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
@@ -2029,3 +2029,74 @@ button {
 .oauth-consent section { padding: 24px; margin: 24px 0; border: 1px solid #d9d3c8; border-radius: 20px; }
 .oauth-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .oauth-consent button { min-height: 44px; padding: 12px 20px; cursor: pointer; }
+
+/* TVL-38: approved clean cooking journal */
+:root { --accent: #2458d8; --ink: #181b22; --muted: #687180; --line: #e3e6ed; --surface: #f6f7fa; color: var(--ink); background: white; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif; }
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid #96b2ff; outline-offset: 3px; }
+input, textarea, select { font: inherit; font-size: 16px; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.app-shell { background: white; grid-template-columns: 224px minmax(0, 1fr); }
+.sidebar { padding: 36px 20px; gap: 40px; }
+.brand strong, .wordmark { color: var(--ink); font-size: 30px; letter-spacing: -1.4px; font-weight: 800; }
+.nav-list button { display: flex; align-items: center; gap: 14px; min-height: 50px; font-weight: 600; border-radius: 10px; }
+.content { width: min(100%, 1120px); padding: 48px 48px 120px; }
+.section-heading h1 { max-width: none; margin: 0; font-size: 32px; line-height: 1.3; letter-spacing: -1.2px; }
+.section-heading > .eyebrow { display: none; }
+.section-heading > p:not(.eyebrow) { color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 56ch; }
+.view { gap: 24px; }
+.search-field { display: flex; align-items: center; gap: 12px; padding: 0 16px; min-height: 52px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: var(--muted); }
+.search-field input { width: 100%; min-width: 0; min-height: 50px; border: 0; background: transparent; padding: 0; color: var(--ink); }
+.journal-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.journal-toolbar select { max-width: 65%; min-height: 44px; padding: 8px 28px 8px 0; border: 0; background: white; font-weight: 700; font-size: 20px; color: var(--ink); }
+.view-switch { display: flex; padding: 3px; background: var(--surface); border-radius: 10px; }
+.view-switch button { border: 0; min-height: 40px; padding: 0 12px; background: transparent; color: var(--muted); border-radius: 8px; }
+.view-switch button[aria-pressed="true"] { background: #e7eeff; color: #1744b4; font-weight: 700; }
+.tag-filter { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; padding-bottom: 4px; }
+.tag-filter button { min-height: 40px; padding: 8px 16px; border-radius: 24px; border: 1px solid var(--line); background: white; white-space: nowrap; color: var(--muted); }
+.tag-filter button.is-active { border-color: #e4ebfd; background: #e4ebfd; color: #1744b4; }
+.journal-day { border-top: 1px solid var(--line); padding-top: 24px; }
+.journal-day h2 { display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; font-size: 22px; letter-spacing: -.5px; }
+.journal-day h2 span { color: var(--muted); font-size: 15px; font-weight: 400; }
+.journal-day .record-search-list { padding: 0; margin: 0; list-style: none; }
+.journal-photos .record-search-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.journal-photos .record-search-card { display: flex; flex-direction: column; align-items: stretch; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; gap: 0; background: white; width: 100%; height: 100%; text-align: left; }
+.journal-photos .record-search-thumbnail { width: 100%; height: auto; aspect-ratio: 4/3; border-radius: 0; display: grid; place-items: center; background: #f0f3fa; color: #8e9ab0; font-size: 40px; }
+.journal-photos .record-search-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+.journal-photos .record-search-body { padding: 18px 18px 20px; gap: 8px; }
+.journal-photos .record-search-body strong { font-size: 20px; letter-spacing: -.6px; }
+.journal-photos .record-date { display: none; }
+.journal-list .record-search-card { grid-template-columns: 80px minmax(0,1fr); border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 14px 0; }
+.journal-list .record-search-thumbnail { width: 80px; height: 80px; border-radius: 10px; }
+.journal-list .record-date { display: none; }
+.record-search-body { min-width: 0; }
+.record-search-body strong { overflow-wrap: anywhere; }
+.record-fab { position: fixed; z-index: 9; right: 32px; bottom: 32px; border: 0; border-radius: 28px; padding: 16px 24px; background: var(--accent); color: white; box-shadow: 0 6px 18px #163e9a26; font-weight: 700; }
+.record-fab:hover { background: #1744b4; }
+.form-back { margin-top: 24px; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--muted); padding: 10px 18px; }
+.settings-view > .account-panel, .settings-view > .account-signed-in { display: grid; margin: 0; padding: 20px; border: 1px solid var(--line); border-radius: 12px; }
+.settings-view .journal-panel { margin: 0; background: white; border-color: var(--line); }
+.journal-heading { display: grid; gap: 24px; }
+.settings-destinations { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.settings-destinations button { min-height: 56px; background: white; border: 1px solid var(--line); color: var(--ink); text-align: left; padding: 16px; border-radius: 10px; }
+.settings-destinations button[aria-expanded="true"] { color: #1744b4; background: #edf2ff; border-color: #afc1ee; }
+.empty-state { background: var(--surface); border: 1px dashed #d6dce6; border-radius: 14px; padding: 36px 20px; }
+.empty-state p { color: var(--muted); line-height: 1.6; }
+.empty-state button { min-height: 44px; border: 1px solid var(--line); background: white; padding: 10px 16px; border-radius: 8px; }
+.detail-hero img { border-radius: 14px; }
+@media (max-width: 760px) {
+  .app-shell { display: block; padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .sidebar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); gap: 0; background: #fffffff5; backdrop-filter: blur(12px); }
+  .nav-list { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .nav-list button { display: flex; flex-direction: column; justify-content: center; gap: 5px; font-size: 11px; min-height: 50px; border-radius: 8px; }
+  .nav-list button[aria-current="page"] { background: transparent; color: var(--accent); }
+  .content { padding: 24px 20px 80px; }
+  .mobile-topbar { margin-bottom: 32px; }
+  .section-heading h1 { font-size: 30px; }
+  .journal-photos .record-search-list { grid-template-columns: minmax(0,1fr); }
+  .record-fab { right: 20px; bottom: calc(88px + env(safe-area-inset-bottom)); padding: 14px 20px; }
+  .journal-toolbar select { font-size: 18px; }
+  .journal-day { padding-top: 20px; }
+  .settings-destinations { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
