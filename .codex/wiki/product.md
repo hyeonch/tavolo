@@ -78,3 +78,10 @@ Confirmed sharing interview: include both accounts' existing records/photos/scra
 TVL-53 sharing UI: signed-in users open `공유 · 휴지통`, enter a display name and their partner's login email to create a code. The partner enters that code and explicitly agrees to share existing records. Both may recover records, links and removed photos; no automatic permanent deletion or leave-journal UI is included.
 
 2026-11-10 feedback: shared-journal settings and trash must become distinct destinations during TVL-38. Tracked in TVL-58; do not revise the current UI while implementing MCP.
+
+
+## Approved redesign (2026-11-12, TVL-38)
+- White background, charcoal Korean sans-serif type, restrained cobalt blue accent. Follow approved clean journal mockup; no decorative slogans (the user explicitly rejected “만들고, 먹고, 남기는 일상”).
+- Date-grouped newest-first records replace calendar-first home. Search, month and tag filters, photo/list toggle live on home. Four primary destinations: 기록 / 스크랩 / 결산 / 설정. 기록하기 is a separate primary action.
+- Shared journal and trash are separate settings destinations (TVL-58). Preserve existing permissions and invite/restore behavior. Two-account sharing verification remains deferred by the user.
+- Design reference reviewed: anthropics/skills frontend-design, prioritizing approved brief, intentional typography, functional copy, keyboard focus and mobile spacing.

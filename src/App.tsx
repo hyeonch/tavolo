@@ -41,7 +41,7 @@ import type {
 } from './types/meal';
 import { advanceWorldCup, createWorldCup, getWorldCupCandidates, getWorldCupSizes } from './worldCup';
 
-type RouteKey = 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail';
+type RouteKey = 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail' | 'settings';
 
 type Route = {
   key: RouteKey;
@@ -49,17 +49,22 @@ type Route = {
 };
 
 const routes: Route[] = [
-  { key: 'home', label: '홈' },
-  { key: 'recipes', label: '레시피' },
-  { key: 'add', label: '추가' },
-  { key: 'search', label: '검색' },
+  { key: 'home', label: '기록' },
+  { key: 'recipes', label: '스크랩' },
   { key: 'recap', label: '결산' },
+  { key: 'settings', label: '설정' },
 ];
 
-type HomeMealCard = {
-  record: MealRecord;
-  thumbnailUrl: string | null;
-};
+function NavIcon({ name }: { name: string }) {
+  const paths: Record<string, string> = {
+    home: 'M3 4h6a4 4 0 0 1 3 2 4 4 0 0 1 3-2h6v16h-6a4 4 0 0 0-3 2 4 4 0 0 0-3-2H3z M12 6v16',
+    recipes: 'M6 3h12v19l-6-4-6 4z',
+    recap: 'M5 21V12 M12 21V3 M19 21V8',
+    settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z',
+    search: 'M21 21l-6-6 M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14',
+  };
+  return <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name] ?? paths.home} /></svg>;
+}
 
 type SearchPreset = {
   key: string;
@@ -82,40 +87,6 @@ function toDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
     date.getDate()
   ).padStart(2, '0')}`;
-}
-
-function getMonthStart(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function moveMonth(month: Date, offset: number) {
-  return new Date(month.getFullYear(), month.getMonth() + offset, 1);
-}
-
-function getCalendarDays(month: Date) {
-  const firstWeekday = month.getDay();
-  const totalDays = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-  const totalCells = Math.ceil((firstWeekday + totalDays) / 7) * 7;
-
-  return Array.from({ length: totalCells }, (_, index) => {
-    const day = index - firstWeekday + 1;
-    return day > 0 && day <= totalDays ? day : null;
-  });
-}
-
-function formatMonthLabel(month: Date) {
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-  }).format(month);
-}
-
-function formatSelectedDateLabel(cookedAt: string) {
-  return new Intl.DateTimeFormat('ko-KR', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'short',
-  }).format(new Date(`${cookedAt}T00:00:00`));
 }
 
 function formatCookedAtLabel(cookedAt: string) {
@@ -237,231 +208,41 @@ function createRecipeStep(order: number): RecipeStepDraft {
   };
 }
 
-function MealCard({
-  mealCard,
-  onOpen,
-}: {
-  mealCard: HomeMealCard;
-  onOpen: (record: MealRecord) => void;
-}) {
-  const { record, thumbnailUrl } = mealCard;
-
-  return (
-    <li>
-      <button className="meal-card" type="button" onClick={() => onOpen(record)}>
-        <span className="meal-thumbnail" aria-hidden="true">
-          {thumbnailUrl ? <img alt="" src={thumbnailUrl} /> : record.meal?.name.slice(0, 1) ?? 'T'}
-        </span>
-        <span className="meal-card-body">
-          <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
-          <span>
-            {formatCookedAtLabel(record.cookedAt)} · {formatRating(record.rating)}{record.authorName ? ` · ${record.authorName}` : ''}
-          </span>
-          {record.memo ? <span className="meal-card-memo">{record.memo}</span> : null}
-        </span>
-      </button>
-    </li>
-  );
-}
-
-function HomeView({
-  onOpenRecord,
-}: {
-  onOpenRecord: (record: MealRecord) => void;
-}) {
-  const today = useMemo(() => new Date(), []);
-  const [month, setMonth] = useState(() => getMonthStart(today));
-  const [selectedDate, setSelectedDate] = useState(() => toDateKey(today));
+function HomeView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void }) {
   const [records, setRecords] = useState<MealRecord[]>([]);
-  const [selectedMeals, setSelectedMeals] = useState<HomeMealCard[]>([]);
-  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
-  const recordsByDate = useMemo(() => {
-    const groupedRecords = new Map<string, MealRecord[]>();
-
-    records.forEach((record) => {
-      const items = groupedRecords.get(record.cookedAt) ?? [];
-      items.push(record);
-      groupedRecords.set(record.cookedAt, items);
-    });
-
-    return groupedRecords;
-  }, [records]);
-  const calendarDays = useMemo(() => getCalendarDays(month), [month]);
-  const selectedRecords = useMemo(
-    () => recordsByDate.get(selectedDate) ?? emptyMealRecords,
-    [recordsByDate, selectedDate]
-  );
-
+  const [query, setQuery] = useState('');
+  const [month, setMonth] = useState('');
+  const [tag, setTag] = useState('');
+  const [layout, setLayout] = useState<'photos' | 'list'>('photos');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadHomeAsync() {
-      setLoadState('loading');
-
-      try {
-        const allRecords = await listMealRecordsAsync();
-
-        if (!isMounted) return;
-
-        setRecords(allRecords);
-        setLoadState('ready');
-      } catch (error) {
-        console.error(error);
-
-        if (isMounted) {
-          setLoadState('error');
-        }
-      }
-    }
-
-    void loadHomeAsync();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-    let objectUrls: string[] = [];
-
-    async function loadSelectedMealsAsync() {
-      try {
-        const mealCards = await Promise.all(
-          selectedRecords.map(async (record) => {
-            const representativeMediaId = record.finishedMediaId ?? record.mediaIds[0];
-            const media = representativeMediaId ? await getMediaByIdAsync(representativeMediaId) : null;
-            const thumbnailUrl = media ? createMediaObjectUrl(media) : null;
-
-            if (thumbnailUrl?.startsWith('blob:')) {
-              objectUrls.push(thumbnailUrl);
-            }
-
-            return { record, thumbnailUrl };
-          })
-        );
-
-        if (!isMounted) {
-          objectUrls.forEach((url) => revokeMediaObjectUrl(url));
-          return;
-        }
-
-        setSelectedMeals(mealCards);
-      } catch (error) {
-        console.error(error);
-
-        if (isMounted) {
-          setSelectedMeals([]);
-        }
-      }
-    }
-
-    void loadSelectedMealsAsync();
-
-    return () => {
-      isMounted = false;
-      objectUrls.forEach((url) => revokeMediaObjectUrl(url));
-    };
-  }, [selectedRecords]);
-
-  function handleMonthChange(offset: number) {
-    const nextMonth = moveMonth(month, offset);
-    setMonth(nextMonth);
-    setSelectedDate(toDateKey(nextMonth));
-  }
-
-  return (
-    <section className="view home-view">
-      <div className="section-heading">
-        <p className="eyebrow">나의 요리 달력</p>
-        <h1>언제, 무엇을 만들었는지 다시 꺼내보세요.</h1>
-        <p>날짜를 선택하면 그날 남긴 요리 기록을 볼 수 있습니다.</p>
-      </div>
-
-      <div className="calendar-layout">
-        <section className="calendar-panel" aria-label={`${formatMonthLabel(month)} 요리 달력`}>
-          <div className="calendar-header">
-            <div>
-              <span className="eyebrow">요리한 날</span>
-              <h2>{formatMonthLabel(month)}</h2>
-            </div>
-            <div className="calendar-controls">
-              <button type="button" aria-label="이전 달" onClick={() => handleMonthChange(-1)}>
-                이전
-              </button>
-              <button type="button" aria-label="다음 달" onClick={() => handleMonthChange(1)}>
-                다음
-              </button>
-            </div>
-          </div>
-          <div className="calendar-weekdays" aria-hidden="true">
-            {['일', '월', '화', '수', '목', '금', '토'].map((weekday) => (
-              <span key={weekday}>{weekday}</span>
-            ))}
-          </div>
-          <div className="calendar-grid">
-            {calendarDays.map((day, index) => {
-              if (!day) {
-                return <span aria-hidden="true" className="calendar-empty-day" key={`empty-${index}`} />;
-              }
-
-              const date = new Date(month.getFullYear(), month.getMonth(), day);
-              const dateKey = toDateKey(date);
-              const count = recordsByDate.get(dateKey)?.length ?? 0;
-              const isSelected = selectedDate === dateKey;
-              const isToday = toDateKey(today) === dateKey;
-
-              return (
-                <button
-                  aria-pressed={isSelected}
-                  className={`calendar-day${count > 0 ? ' has-records' : ''}${
-                    isSelected ? ' is-selected' : ''
-                  }${isToday ? ' is-today' : ''}`}
-                  key={dateKey}
-                  type="button"
-                  onClick={() => setSelectedDate(dateKey)}
-                >
-                  <span>{day}</span>
-                  {count > 0 ? <small>{count}개</small> : null}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="selected-date-panel" aria-live="polite">
-          <div className="panel-header">
-            <div>
-              <span className="eyebrow">선택한 날</span>
-              <h2>{formatSelectedDateLabel(selectedDate)}</h2>
-            </div>
-            <span>{selectedRecords.length}개 기록</span>
-          </div>
-          {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
-          {loadState === 'error' ? (
-            <p className="panel-state">저장된 기록을 불러오지 못했습니다.</p>
-          ) : null}
-          {loadState === 'ready' && selectedMeals.length === 0 ? (
-            <div className="empty-state">
-              <strong>이날은 남긴 요리 기록이 없습니다.</strong>
-              <p>새 기록은 하단의 추가 탭에서 남길 수 있습니다.</p>
-            </div>
-          ) : null}
-          {selectedMeals.length > 0 ? (
-            <ul className="meal-list">
-              {selectedMeals.map((mealCard) => (
-                <MealCard
-                  key={mealCard.record.id}
-                  mealCard={mealCard}
-                  onOpen={onOpenRecord}
-                />
-              ))}
-            </ul>
-          ) : null}
-        </section>
-      </div>
-    </section>
-  );
+    let active = true;
+    setStatus('loading');
+    listMealRecordsAsync().then(items => {
+      if (!active) return;
+      setRecords(items); setStatus('ready');
+    }).catch(() => { if (active) setStatus('error'); });
+    return () => { active = false; };
+  }, [retry]);
+  const months = [...new Set(records.map(r => r.cookedAt.slice(0, 7)))].sort().reverse();
+  const tags = [...new Set(records.flatMap(r => r.meal?.tags ?? []))].sort();
+  const normalized = query.trim().toLocaleLowerCase('ko-KR');
+  const filtered = records.filter(r => (!month || r.cookedAt.startsWith(month)) && (!tag || r.meal?.tags.includes(tag)) && (!normalized || [r.meal?.name, r.memo, r.meal?.memo, ...(r.meal?.tags ?? []), ...(r.ingredientGroups?.flatMap(g => g.items.flatMap(i => [i.name, i.note])) ?? [])].filter(Boolean).join(' ').toLocaleLowerCase('ko-KR').includes(normalized))).sort((a,b) => b.cookedAt.localeCompare(a.cookedAt));
+  const dates = [...new Set(filtered.map(r => r.cookedAt))];
+  return <section className="view journal-home">
+    <div className="section-heading"><h1>요리 기록</h1></div>
+    <label className="search-field"><NavIcon name="search" /><input aria-label="요리 기록 검색" type="search" placeholder="요리, 재료, 메모 검색" value={query} onChange={e => setQuery(e.target.value)} /></label>
+    <div className="journal-toolbar">
+      <select aria-label="기록 월" value={month} onChange={e => setMonth(e.target.value)}><option value="">전체 기록</option>{months.map(m => <option key={m} value={m}>{m.slice(0,4)}년 {Number(m.slice(5))}월</option>)}</select>
+      <div className="view-switch" aria-label="보기 방식"><button type="button" aria-pressed={layout === 'photos'} onClick={() => setLayout('photos')}>사진</button><button type="button" aria-pressed={layout === 'list'} onClick={() => setLayout('list')}>목록</button></div>
+    </div>
+    {tags.length > 0 && <div className="tag-filter"><button type="button" aria-pressed={!tag} className={!tag ? 'is-active' : ''} onClick={() => setTag('')}>전체</button>{tags.map(t => <button type="button" key={t} aria-pressed={tag === t} className={tag === t ? 'is-active' : ''} onClick={() => setTag(tag === t ? '' : t)}>{t}</button>)}</div>}
+    {status === 'loading' && <p role="status" className="panel-state">기록 불러오는 중…</p>}
+    {status === 'error' && <div role="alert" className="empty-state"><strong>기록을 불러오지 못했어요.</strong><button type="button" onClick={() => setRetry(v => v+1)}>다시 시도</button></div>}
+    {status === 'ready' && !filtered.length && <div className="empty-state"><strong>{records.length ? '조건에 맞는 기록이 없어요.' : '아직 요리 기록이 없어요.'}</strong><p>{records.length ? '검색어나 필터를 바꿔보세요.' : '기록하기를 눌러 첫 요리를 남겨보세요.'}</p>{records.length > 0 && <button type="button" onClick={() => { setQuery(''); setMonth(''); setTag(''); }}>필터 초기화</button>}</div>}
+    {status === 'ready' && dates.map(date => <section key={date} className={'journal-day journal-' + layout}><h2><time dateTime={date}>{date.replaceAll('-', '.')}</time><span>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', { weekday: 'long' })}</span></h2><ul className="record-search-list">{filtered.filter(r => r.cookedAt === date).map(record => <RecordSearchCard key={record.id} record={record} onOpen={onOpenRecord} />)}</ul></section>)}
+  </section>;
 }
 
 function DetailView({
@@ -1026,7 +807,7 @@ function AddView({
     <section className="view">
       <div className="section-heading">
         <p className="eyebrow">{isEditing ? '기록 수정' : '새 기록'}</p>
-        <h1>{isEditing ? '그날의 기록을 다듬어요.' : '오늘 만든 요리'}</h1>
+        <h1>{isEditing ? '기록 수정' : '기록하기'}</h1>
         <p>
           {recipeScrap
             ? `“${getRecipeScrapTitle(recipeScrap)}” 레시피를 바탕으로 기록합니다.`
@@ -1393,7 +1174,7 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
     <section className="view recipe-view">
       <div className="section-heading">
         <p className="eyebrow">레시피 스크랩</p>
-        <h1>나중에 만들 레시피를 모아두세요.</h1>
+        <h1>레시피 스크랩</h1>
         <p>링크를 저장해두고, 마음이 가는 날 바로 요리 기록을 시작할 수 있습니다.</p>
       </div>
       <form className="recipe-scrap-form" onSubmit={handleSubmit}>
@@ -1549,7 +1330,7 @@ function RecordSearchCard({ record, onOpen }: { record: MealRecord; onOpen: (rec
         </span>
         <span className="record-search-body">
           <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
-          <span>{record.meal?.tags.length ? record.meal.tags.map((tag) => `#${tag}`).join(' ') : '태그 없음'}</span>
+          <span>{record.meal?.tags.join(' · ')}</span>
         </span>
         <span className="record-date">{formatCookedAtLabel(record.cookedAt)}</span>
       </button>
@@ -1632,7 +1413,7 @@ function SearchView({
     <section className="view search-view">
       <div className="section-heading">
         <p className="eyebrow">검색</p>
-        <h1>쌓인 식탁을<br />한눈에 찾아보세요.</h1>
+        <h1>기록 검색</h1>
         <p>처음에는 최신 요리 기록을 모두 보여주고, 요리 이름·메모·태그·재료로 좁혀볼 수 있습니다.</p>
       </div>
       <label className="search-field">
@@ -1821,7 +1602,7 @@ function WorldCupView({ records, onOpenRecord }: { records: MealRecord[]; onOpen
 
   return (
     <section className="world-cup-panel">
-      <div className="panel-header"><div><p className="eyebrow">요리 월드컵</p><h2>오늘은 무엇이 제일 맛있었나?</h2></div></div>
+      <div className="panel-header"><div><p className="eyebrow">요리 월드컵</p><h2>요리 월드컵</h2></div></div>
       {isLoading ? <p className="panel-state">월드컵을 불러오는 중입니다.</p> : null}
       {errorMessage ? <div role="alert"><p>{errorMessage}</p><button type="button" disabled={isSaving || isLoading} onClick={() => setReloadVersion((version) => version + 1)}>다시 불러오기</button></div> : null}
       {isSaving ? <p role="status">선택을 저장하고 있어요.</p> : null}
@@ -1883,7 +1664,7 @@ function RecapView({
 
   return (
     <section className="view recap-view">
-      <div className="section-heading"><p className="eyebrow">결산</p><h1>{section === 'recap' ? <>쌓인 식탁을<br />한눈에 돌아봐요.</> : <>내 취향의 우승을<br />골라봐요.</>}</h1><p>{section === 'recap' ? '연도별 요리 기록을 바탕으로 계산합니다.' : '내가 남긴 요리 기록만 후보로 사용합니다.'}</p></div>
+      <div className="section-heading"><p className="eyebrow">결산</p><h1>{section === 'recap' ? <>요리 결산</> : <>요리 월드컵</>}</h1><p>{section === 'recap' ? '연도별 요리 기록을 바탕으로 계산합니다.' : '내가 남긴 요리 기록만 후보로 사용합니다.'}</p></div>
       <div className="recap-section-tabs" role="tablist" aria-label="결산 메뉴"><button className={section === 'recap' ? 'is-active' : ''} type="button" onClick={() => setSection('recap')}>연도 결산</button><button className={section === 'world-cup' ? 'is-active' : ''} type="button" onClick={() => setSection('world-cup')}>요리 월드컵</button></div>
       {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
       {loadState === 'error' ? <p className="panel-state">결산을 불러오지 못했습니다.</p> : null}
@@ -1932,13 +1713,6 @@ export function App() {
   const [editingRecord, setEditingRecord] = useState<MealRecord | null>(null);
   const [searchPreset, setSearchPreset] = useState<SearchPreset | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
-  const activeRouteLabel = useMemo(
-    () =>
-      activeRoute === 'detail'
-        ? '상세'
-        : routes.find((route) => route.key === activeRoute)?.label ?? '홈',
-    [activeRoute]
-  );
 
   useEffect(() => {
     setSelectedRecordId(null);
@@ -1955,32 +1729,26 @@ export function App() {
     <div className="app-shell">
       <aside className="sidebar" aria-label="주요 메뉴">
         <div className="brand">
-          <span className="brand-mark">T</span>
+          
           <div>
-            <strong>Tavolo</strong>
-            <span>개인 요리 아카이브</span>
+            <strong>tavolo</strong>
           </div>
         </div>
 
         <nav className="nav-list">
           {routes.map((route) => (
             <button
-              aria-current={activeRoute === route.key ? 'page' : undefined}
+              aria-current={(activeRoute === route.key || (route.key === 'home' && ['detail','search','add'].includes(activeRoute))) ? 'page' : undefined}
               key={route.key}
               type="button"
               onClick={() => {
                 setActiveRoute(route.key);
 
-                if (route.key !== 'add') {
-                  setSelectedRecipeScrap(null);
-                  setEditingRecord(null);
-                } else {
-                  setSelectedRecipeScrap(null);
-                  setEditingRecord(null);
-                }
+                setSelectedRecipeScrap(null);
+                setEditingRecord(null);
               }}
             >
-              {route.label}
+              <NavIcon name={route.key} /><span>{route.label}</span>
             </button>
           ))}
         </nav>
@@ -1990,11 +1758,11 @@ export function App() {
 
       <main className="content">
         <div className="mobile-topbar">
-          <strong>{activeRouteLabel}</strong>
+          <strong className="wordmark">tavolo</strong>
           <AccountControls auth={auth} compact message={authMessage} onSignIn={signIn} onSignOut={signOut} />
         </div>
 
-        {auth.status === 'signed-in' && <JournalPanel key={activeDataScope} defaultName={getUserLabel(auth.user)} onChanged={() => { setDataVersion(v => v + 1); setEditingRecord(null); setSelectedRecordId(null); setActiveRoute('home'); }} />}
+        {activeRoute === 'settings' && <section className="view settings-view"><div className="section-heading"><h1>설정</h1></div><AccountControls auth={auth} message={authMessage} onSignIn={signIn} onSignOut={signOut} />{auth.status === 'signed-in' && <JournalPanel key={activeDataScope} defaultName={getUserLabel(auth.user)} onChanged={() => { setDataVersion(v => v + 1); setEditingRecord(null); setSelectedRecordId(null); }} />}</section>}
 
         {activeRoute === 'home' && (
           <HomeView
@@ -2071,6 +1839,8 @@ export function App() {
             }}
           />
         )}
+        {activeRoute !== 'add' && activeRoute !== 'settings' && <button type="button" className="record-fab" onClick={() => { setEditingRecord(null); setSelectedRecipeScrap(null); setActiveRoute('add'); }}>＋ 기록하기</button>}
+        {activeRoute === 'add' && <button type="button" className="form-back" onClick={() => setActiveRoute(editingRecord ? 'detail' : 'home')}>취소하고 돌아가기</button>}
       </main>
     </div>
   );
