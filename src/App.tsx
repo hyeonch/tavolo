@@ -1175,7 +1175,7 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
       <div className="section-heading">
         <p className="eyebrow">레시피 스크랩</p>
         <h1>레시피 스크랩</h1>
-        <p>링크를 저장해두고, 마음이 가는 날 바로 요리 기록을 시작할 수 있습니다.</p>
+        <p>레시피 링크를 저장하고 요리 기록에 연결하세요.</p>
       </div>
       <form className="recipe-scrap-form" onSubmit={handleSubmit}>
         <label>
@@ -1232,7 +1232,7 @@ function RecipeView({ onStartRecord }: { onStartRecord: (recipeScrap: RecipeScra
         {loadState === 'ready' && recipeScraps.length === 0 ? (
           <div className="empty-state">
             <strong>아직 저장한 레시피가 없습니다.</strong>
-            <p>마음에 든 외부 레시피 링크를 먼저 모아보세요.</p>
+            <p>레시피 링크를 추가하세요.</p>
           </div>
         ) : null}
         {filteredRecipeScraps.length ? (
@@ -1673,8 +1673,8 @@ function RecapView({
         <>
           <label className="recap-year-select"><span>결산 연도</span><select value={summary.year} onChange={(event) => setSelectedYear(Number(event.target.value))}>{years.map((year) => <option key={year} value={year}>{year}년</option>)}</select></label>
           <div className="recap-grid"><section><span>남긴 요리</span><strong>{summary.totalCount}<small>개</small></strong></section><section><span>평균 만족도</span><strong>{summary.averageRating ?? '–'}<small>{summary.averageRating ? ' / 5' : ''}</small></strong></section><section><span>가장 많이 쓴 태그</span><strong className="tag-stat">{summary.favoriteTag ? `#${summary.favoriteTag}` : '–'}</strong></section></div>
-          <section className="recap-highlight recap-months"><div className="panel-header"><div><p className="eyebrow">월별 기록</p><h2>{summary.year}년의 식탁</h2></div></div><div className="month-bar-list">{summary.monthCounts.map((count, index) => <button disabled={!count} key={index} type="button" onClick={() => onOpenSearch({ year: summary.year, month: index + 1 })}><span>{index + 1}월</span><i><b style={{ width: `${(count / peakMonth) * 100}%` }} /></i><strong>{count}</strong></button>)}</div></section>
-          <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">자주 사용한 태그</p><h2>{summary.topTags.length ? '올해의 취향' : '태그를 남겨보세요'}</h2></div></div>{summary.topTags.length ? <p className="recap-tag-list">{summary.topTags.map((tag) => <button key={tag.name} type="button" onClick={() => onOpenSearch({ tag: tag.name })}>#{tag.name} <b>{tag.count}</b></button>)}</p> : null}</section>
+          <section className="recap-highlight recap-months"><div className="panel-header"><div><p className="eyebrow">월별 기록</p><h2>{summary.year}년 월별 기록</h2></div></div><div className="month-bar-list">{summary.monthCounts.map((count, index) => <button disabled={!count} key={index} type="button" onClick={() => onOpenSearch({ year: summary.year, month: index + 1 })}><span>{index + 1}월</span><i><b style={{ width: `${(count / peakMonth) * 100}%` }} /></i><strong>{count}</strong></button>)}</div></section>
+          <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">자주 사용한 태그</p><h2>{summary.topTags.length ? '자주 사용한 태그' : '태그를 남겨보세요'}</h2></div></div>{summary.topTags.length ? <p className="recap-tag-list">{summary.topTags.map((tag) => <button key={tag.name} type="button" onClick={() => onOpenSearch({ tag: tag.name })}>#{tag.name} <b>{tag.count}</b></button>)}</p> : null}</section>
           <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">가장 만족한 요리</p><h2>{summary.bestRecords.length ? `${summary.bestRecords[0].rating}점 기록` : '평점을 남겨보세요'}</h2></div></div>{summary.bestRecords.length ? <ul className="record-text-list">{summary.bestRecords.map((record) => <RecordTextCard key={record.id} record={record} onOpen={onOpenRecord} />)}</ul> : null}</section>
         </>
       ) : null}
@@ -1729,7 +1729,7 @@ export function App() {
     <div className="app-shell">
       <aside className="sidebar" aria-label="주요 메뉴">
         <div className="brand">
-          
+
           <div>
             <strong>tavolo</strong>
           </div>
