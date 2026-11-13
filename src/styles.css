@@ -2061,8 +2061,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .journal-day .record-search-list { padding: 0; margin: 0; list-style: none; }
 .journal-photos .record-search-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
 .journal-photos .record-search-card { display: flex; flex-direction: column; align-items: stretch; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; gap: 0; background: white; width: 100%; height: 100%; text-align: left; }
-.journal-photos .record-search-thumbnail { width: 100%; height: auto; aspect-ratio: 4/3; border-radius: 0; display: grid; place-items: center; background: #f0f3fa; color: #8e9ab0; font-size: 40px; }
-.journal-photos .record-search-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+/* Keep image intrinsic sizing out of the grid/flex layout (including mobile Safari). */
+.journal-photos .record-search-thumbnail { position: relative; flex: none; width: 100%; height: auto; aspect-ratio: 4/3; overflow: hidden; border-radius: 0; display: grid; place-items: center; background: #f0f3fa; color: #8e9ab0; font-size: 40px; }
+.journal-photos .record-search-thumbnail img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .journal-photos .record-search-body { padding: 18px 18px 20px; gap: 8px; }
 .journal-photos .record-search-body strong { font-size: 20px; letter-spacing: -.6px; }
 .journal-photos .record-date { display: none; }
