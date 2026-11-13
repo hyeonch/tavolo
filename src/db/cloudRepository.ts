@@ -242,7 +242,16 @@ export async function createMediaAsync(input: CreateMediaInput) {
     contentType: input.blob.type || 'image/jpeg',
     upsert: false,
   });
-  throwIfError(uploadError);
+  if (uploadError) {
+    // Retry after an upload succeeded but its metadata request failed. Never overwrite.
+    if (uploadError.statusCode !== '409' && uploadError.message !== 'The resource already exists') throw uploadError;
+    const { data: uploaded, error: downloadError } = await supabase.storage.from(mediaBucket).download(storagePath);
+    throwIfError(downloadError);
+    if (!uploaded) throw uploadError;
+    const [expected, actual] = await Promise.all([input.blob.arrayBuffer(), uploaded.arrayBuffer()]);
+    const left = new Uint8Array(expected), right = new Uint8Array(actual);
+    if (left.length !== right.length || left.some((byte, index) => byte !== right[index])) throw uploadError;
+  }
   const { error } = await supabase.from('media').insert({
     id: input.id,
     user_id: userId,

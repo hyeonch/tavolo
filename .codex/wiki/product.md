@@ -6,7 +6,7 @@ The product is now web-app-first. The earlier Expo/React Native work is prototyp
 
 When Tavolo is added to a device home screen, it should launch in standalone app mode rather than a browser tab. This does not imply offline support.
 
-Browser-history URL routing (refresh restoration and swipe-back navigation) is deferred outside the MVP scope.
+TVL-38 adds hash URL navigation for refresh/deep links and browser back; the original MVP deferral no longer applies.
 
 MVP focus:
 
@@ -85,3 +85,11 @@ TVL-53 sharing UI: signed-in users open `공유 · 휴지통`, enter a display n
 - Date-grouped newest-first records replace calendar-first home. Search, month and tag filters, photo/list toggle live on home. Four primary destinations: 기록 / 스크랩 / 결산 / 설정. 기록하기 is a separate primary action.
 - Shared journal and trash are separate settings destinations (TVL-58). Preserve existing permissions and invite/restore behavior. Two-account sharing verification remains deferred by the user.
 - Design reference reviewed: anthropics/skills frontend-design, prioritizing approved brief, intentional typography, functional copy, keyboard focus and mobile spacing.
+
+## UX corrections (2026-11-13, TVL-38)
+- Basic entry: name/date/finished photo/memo; optional rating/tags/link/ingredients/steps under disclosure. Existing recipe details open on edit. Repeat starts a new event with fresh date and no copied photos/rating/memo.
+- Account-scoped IndexedDB drafts retain selected files; temporary device storage is explicitly distinguished from final archive saves. Drafts are removed after successful save or explicit discard.
+- Stable record IDs and content-derived photo IDs preserve retry identity. Photo-only steps are valid.
+- Hash URLs support refresh/back for detail/edit/repeat/scrap entry. Account-scoped session state retains home/search filters and detail-return scroll.
+- Local records stay separate. Settings offers explicit selection and copying into the signed-in account, keeping originals and checkpointing completed imports. No automatic ownership inference.
+- Sharing and trash have separate content and loading/error/empty states. Cloud record deletion exposes undo; local deletion remains permanent with confirmation.

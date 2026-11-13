@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { readDraft, writeDraft, deleteDraft } from './drafts/store';
+import { mediaIdentity } from './drafts/media';
+import { stepsForSave } from './drafts/steps';
+import { LocalImportPanel } from './drafts/LocalImportPanel';
+import { restoreItem } from './journal/repository';
+import { readViewState, saveViewState } from './drafts/navigation';
 
 import { JournalPanel } from './journal/JournalPanel';
 import { getUserLabel } from './auth/useAuth';
@@ -16,6 +22,7 @@ import {
   deleteRecipeScrapAsync,
   createMediaObjectUrl,
   getMealRecordByIdAsync,
+  getMealByIdAsync,
   getMediaByIdAsync,
   getWorldCupStateAsync,
   listMealRecordsAsync,
@@ -208,12 +215,14 @@ function createRecipeStep(order: number): RecipeStepDraft {
   };
 }
 
-function HomeView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void }) {
+function HomeView({ onOpenRecord, scope }: { onOpenRecord: (record: MealRecord) => void; scope: string }) {
+  const stateKey = `tavolo-home:${scope}`;
+  const [initial] = useState(() => readViewState(stateKey, { query: "", month: "", tag: "", layout: "photos" as "photos" | "list", scroll: 0 }));
   const [records, setRecords] = useState<MealRecord[]>([]);
-  const [query, setQuery] = useState('');
-  const [month, setMonth] = useState('');
-  const [tag, setTag] = useState('');
-  const [layout, setLayout] = useState<'photos' | 'list'>('photos');
+  const [query, setQuery] = useState(initial.query);
+  const [month, setMonth] = useState(initial.month);
+  const [tag, setTag] = useState(initial.tag);
+  const [layout, setLayout] = useState<'photos' | 'list'>(initial.layout);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [retry, setRetry] = useState(0);
   useEffect(() => {
@@ -225,6 +234,16 @@ function HomeView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void
     }).catch(() => { if (active) setStatus('error'); });
     return () => { active = false; };
   }, [retry]);
+  useEffect(() => { saveViewState(stateKey, { query, month, tag, layout, scroll: initial.scroll }); }, [stateKey, query, month, tag, layout, initial.scroll]);
+  useEffect(() => {
+    if (status !== 'ready') return;
+    const frame = requestAnimationFrame(() => window.scrollTo(0, initial.scroll));
+    return () => cancelAnimationFrame(frame);
+  }, [status, initial.scroll]);
+  function openRecord(record: MealRecord) {
+    saveViewState(stateKey, { query, month, tag, layout, scroll: window.scrollY });
+    onOpenRecord(record);
+  }
   const months = [...new Set(records.map(r => r.cookedAt.slice(0, 7)))].sort().reverse();
   const tags = [...new Set(records.flatMap(r => r.meal?.tags ?? []))].sort();
   const normalized = query.trim().toLocaleLowerCase('ko-KR');
@@ -241,7 +260,7 @@ function HomeView({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void
     {status === 'loading' && <p role="status" className="panel-state">기록 불러오는 중…</p>}
     {status === 'error' && <div role="alert" className="empty-state"><strong>기록을 불러오지 못했어요.</strong><button type="button" onClick={() => setRetry(v => v+1)}>다시 시도</button></div>}
     {status === 'ready' && !filtered.length && <div className="empty-state"><strong>{records.length ? '조건에 맞는 기록이 없어요.' : '아직 요리 기록이 없어요.'}</strong><p>{records.length ? '검색어나 필터를 바꿔보세요.' : '기록하기를 눌러 첫 요리를 남겨보세요.'}</p>{records.length > 0 && <button type="button" onClick={() => { setQuery(''); setMonth(''); setTag(''); }}>필터 초기화</button>}</div>}
-    {status === 'ready' && dates.map(date => <section key={date} className={'journal-day journal-' + layout}><h2><time dateTime={date}>{date.replaceAll('-', '.')}</time><span>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', { weekday: 'long' })}</span></h2><ul className="record-search-list">{filtered.filter(r => r.cookedAt === date).map(record => <RecordSearchCard key={record.id} record={record} onOpen={onOpenRecord} />)}</ul></section>)}
+    {status === 'ready' && dates.map(date => <section key={date} className={'journal-day journal-' + layout}><h2><time dateTime={date}>{date.replaceAll('-', '.')}</time><span>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', { weekday: 'long' })}</span></h2><ul className="record-search-list">{filtered.filter(r => r.cookedAt === date).map(record => <RecordSearchCard key={record.id} record={record} onOpen={openRecord} />)}</ul></section>)}
   </section>;
 }
 
@@ -249,11 +268,13 @@ function DetailView({
   recordId,
   onBackClick,
   onEdit,
+  onRepeat,
   onDeleted,
 }: {
   recordId: string | null;
   onBackClick: () => void;
   onEdit: (record: MealRecord) => void;
+  onRepeat: (record: MealRecord) => void;
   onDeleted: () => void;
 }) {
   const [record, setRecord] = useState<MealRecord | null>(null);
@@ -261,6 +282,7 @@ function DetailView({
   const [stepPhotoUrls, setStepPhotoUrls] = useState<Record<string, string>>({});
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -356,6 +378,7 @@ function DetailView({
       onDeleted();
     } catch (error) {
       console.error(error);
+      setDeleteError('삭제하지 못했어요. 다시 시도해주세요.');
       setIsDeleting(false);
     }
   }
@@ -373,12 +396,14 @@ function DetailView({
           <button className="secondary-action" type="button" onClick={() => onEdit(record)}>
             수정하기
           </button>
+          <button className="secondary-action" type="button" onClick={() => onRepeat(record)}>다시 기록하기</button>
           <button className="danger-action" disabled={isDeleting} type="button" onClick={() => void handleDelete()}>
             {isDeleting ? '삭제 중' : '삭제'}
           </button>
         </div>
       ) : null}
 
+      {deleteError && <p role="alert">{deleteError}</p>}
       {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
       {loadState === 'not-found' ? <p className="panel-state">요청한 기록을 찾을 수 없습니다.</p> : null}
       {loadState === 'error' ? <p className="panel-state">기록을 불러오지 못했습니다.</p> : null}
@@ -466,44 +491,97 @@ function DetailView({
         </div>
       ) : null}
       <button className="secondary-action" type="button" onClick={onBackClick}>
-        홈으로 돌아가기
+        이전 화면으로 돌아가기
       </button>
     </section>
   );
 }
 
-function AddView({
+type RecordDraft = {
+  mealName: string; recipeUrl: string; cookedAt: string; rating: string; memo: string; tagsInput: string;
+  ingredientGroups: IngredientGroup[]; recipeSteps: RecipeStepDraft[]; finishedPhoto: File | null;
+  removedMediaIds: Set<string>; replacementFiles: Record<string, File>;
+  mealId: string; recordId: string;
+};
+type AddProps = { onSaved: (id: string) => void; recipeScrap: RecipeScrap | null; record: MealRecord | null; template?: MealRecord | null; draftKey: string };
+function AddView(props: AddProps) {
+  const [draft, setDraft] = useState<RecordDraft | null | undefined>(undefined);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setError(false);
+    readDraft<RecordDraft>(props.draftKey).then(value => { if (active) setDraft(value ?? null); }).catch(() => { if (active) setError(true); });
+    return () => { active = false; };
+  }, [props.draftKey, retry]);
+  if (error) return <section className="view"><p role="alert">임시 기록을 불러오지 못했어요. 기존 초안을 덮어쓰지 않았어요.</p><button onClick={() => setRetry(v => v + 1)}>다시 시도</button></section>;
+  if (draft === undefined) return <p role="status">임시 기록 확인 중…</p>;
+  return <><AddForm key={retry} {...props} draft={draft} /><button type="button" className="form-back" onClick={() => {
+    if (!window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) return;
+    if (!window.confirm('이 기기에 보관한 초안과 선택한 사진을 버릴까요? 저장된 기록은 삭제하지 않아요.')) return;
+    void deleteDraft(props.draftKey).then(() => { setDraft(undefined); setRetry(v => v + 1); }).catch(() => setError(true));
+  }}>초안 버리기</button></>;
+}
+
+function AddForm({
   onSaved,
+  draftKey,
+  draft,
+  template,
   recipeScrap,
   record,
-}: {
-  onSaved: (recordId: string) => void;
-  recipeScrap: RecipeScrap | null;
-  record: MealRecord | null;
-}) {
+}: AddProps & { draft: RecordDraft | null }) {
   const isEditing = Boolean(record);
-  const [mealName, setMealName] = useState(() => record?.meal?.name ?? recipeScrap?.title ?? '');
-  const [recipeUrl, setRecipeUrl] = useState(() => record?.meal?.recipeUrl ?? recipeScrap?.url ?? '');
-  const [cookedAt, setCookedAt] = useState(() => record?.cookedAt ?? new Date().toISOString().slice(0, 10));
-  const [rating, setRating] = useState(() => (record?.rating ? String(record.rating) : ''));
-  const [memo, setMemo] = useState(() => record?.memo ?? '');
-  const [tagsInput, setTagsInput] = useState(() => record?.meal?.tags.join(', ') ?? '');
-  const [ingredientGroups, setIngredientGroups] = useState<IngredientGroup[]>(() =>
-    record?.ingredientGroups?.length
-      ? record.ingredientGroups
+  const sourceRecipe = record ?? template;
+  const [mealName, setMealName] = useState(() => draft?.mealName ?? sourceRecipe?.meal?.name ?? recipeScrap?.title ?? '');
+  const [recipeUrl, setRecipeUrl] = useState(() => draft?.recipeUrl ?? sourceRecipe?.meal?.recipeUrl ?? recipeScrap?.url ?? '');
+  const [cookedAt, setCookedAt] = useState(() => draft?.cookedAt ?? record?.cookedAt ?? new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+  const [rating, setRating] = useState(() => draft?.rating ?? (record?.rating ? String(record.rating) : ''));
+  const [memo, setMemo] = useState(() => draft?.memo ?? record?.memo ?? '');
+  const [tagsInput, setTagsInput] = useState(() => draft?.tagsInput ?? sourceRecipe?.meal?.tags.join(', ') ?? '');
+  const [ingredientGroups, setIngredientGroups] = useState<IngredientGroup[]>(() => draft?.ingredientGroups ?? (
+    sourceRecipe?.ingredientGroups?.length
+      ? sourceRecipe.ingredientGroups
       : [createIngredientGroup('재료'), createIngredientGroup('양념')]
-  );
-  const [recipeSteps, setRecipeSteps] = useState<RecipeStepDraft[]>(() =>
-    record?.recipeSteps?.length
-      ? record.recipeSteps.map((step) => ({ ...step, photoFile: null }))
+  ));
+  const [recipeSteps, setRecipeSteps] = useState<RecipeStepDraft[]>(() => draft?.recipeSteps ?? (
+    sourceRecipe?.recipeSteps?.length
+      ? sourceRecipe.recipeSteps.map((step) => ({ ...step, mediaIds: template ? [] : step.mediaIds, photoFile: null }))
       : [createRecipeStep(1)]
-  );
-  const [finishedPhoto, setFinishedPhoto] = useState<File | null>(null);
+  ));
+  const [finishedPhoto, setFinishedPhoto] = useState<File | null>(draft?.finishedPhoto ?? null);
   const [existingMedia, setExistingMedia] = useState<Media[]>([]);
+  const [mediaReady, setMediaReady] = useState(!record);
+  const [mediaError, setMediaError] = useState(false);
+  const [mediaRetry, setMediaRetry] = useState(0);
   const [existingMediaUrls, setExistingMediaUrls] = useState<Record<string, string>>({});
-  const [removedMediaIds, setRemovedMediaIds] = useState<Set<string>>(() => new Set());
-  const [replacementFiles, setReplacementFiles] = useState<Record<string, File>>({});
+  const [removedMediaIds, setRemovedMediaIds] = useState<Set<string>>(() => draft?.removedMediaIds ?? new Set());
+  const [replacementFiles, setReplacementFiles] = useState<Record<string, File>>(draft?.replacementFiles ?? {});
   const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [ids] = useState(() => ({ mealId: draft?.mealId ?? record?.mealId ?? createLocalId('meal'), recordId: draft?.recordId ?? record?.id ?? createLocalId('meal-record') }));
+  const [draftStatus, setDraftStatus] = useState<'saving' | 'saved' | 'error'>('saving');
+  const [savePhase, setSavePhase] = useState('기록 저장 중…');
+  const submitting = useRef(false);
+  const completed = useRef(false);
+  const snapshot = useMemo(() => ({ mealName, recipeUrl, cookedAt, rating, memo, tagsInput, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ...ids }), [mealName, recipeUrl, cookedAt, rating, memo, tagsInput, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ids]);
+  useEffect(() => {
+    if (completed.current) return;
+    let active = true;
+    setDraftStatus('saving');
+    void writeDraft(draftKey, snapshot).then(() => { if (active) setDraftStatus('saved'); }).catch(() => { if (active) setDraftStatus('error'); });
+    return () => { active = false; };
+  }, [draftKey, snapshot]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => { if (draftStatus !== 'saved' || submitting.current) { event.preventDefault(); event.returnValue = ''; } };
+    const guard = (event: Event) => {
+      if (submitting.current) { event.preventDefault(); return; }
+      if (draftStatus === 'error' && !window.confirm('초안을 보관하지 못했어요. 그래도 이 화면을 나갈까요?')) event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    window.addEventListener('tavolo:navigate', guard);
+    return () => { window.removeEventListener('beforeunload', warn); window.removeEventListener('tavolo:navigate', guard); };
+  }, [draftStatus]);
+
 
   useEffect(() => {
     if (!record) return;
@@ -523,10 +601,13 @@ function AddView({
 
         if (!isMounted) return;
         setExistingMedia(media);
+        setMediaReady(true);
+        setMediaError(false);
         setExistingMediaUrls(
           Object.fromEntries(entries.filter((entry): entry is readonly [string, string] => Boolean(entry[1])))
         );
       } catch (error) {
+        if (isMounted) setMediaError(true);
         console.error(error);
       }
     }
@@ -536,7 +617,7 @@ function AddView({
       isMounted = false;
       objectUrls.forEach((url) => revokeMediaObjectUrl(url));
     };
-  }, [record]);
+  }, [record, mediaRetry]);
 
   const visibleExistingMedia = useMemo(
     () => existingMedia.filter((media) => !removedMediaIds.has(media.id)),
@@ -651,6 +732,15 @@ function AddView({
     setRecipeSteps((steps) => steps.filter((step) => step.id !== stepId));
   }
 
+  async function uploadPhoto(file: File, recipeStepId?: string) {
+    const id = await mediaIdentity(ids.recordId, recipeStepId, file);
+    const existing = await getMediaByIdAsync(id);
+    if (existing) return existing;
+    const media = await createMediaAsync({ id, mealRecordId: ids.recordId, type: 'photo', blob: file, recipeStepId });
+    if (!media) throw new Error('사진 저장 결과를 확인하지 못했어요.');
+    return media;
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -660,11 +750,15 @@ function AddView({
       return;
     }
 
+    if (submitting.current || !mediaReady) return;
+    submitting.current = true;
     setSubmitState('saving');
+    setSavePhase('기록 저장 중…');
 
     try {
-      const mealId = record?.mealId ?? createLocalId('meal');
-      const mealRecordId = record?.id ?? createLocalId('meal-record');
+      await writeDraft(draftKey, snapshot);
+      const mealId = ids.mealId;
+      const mealRecordId = ids.recordId;
       const trimmedMemo = memo.trim();
       const tagNames = [...new Set(tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean))];
       const savedIngredientGroups = ingredientGroups
@@ -680,16 +774,9 @@ function AddView({
             })),
         }))
         .filter((group) => group.items.length > 0);
-      const savedRecipeSteps = recipeSteps
-        .filter((step) => step.body.trim())
-        .map((step, index) => ({
-          id: step.id,
-          order: index + 1,
-          body: step.body.trim(),
-          mediaIds: step.mediaIds,
-        }));
+      const savedRecipeSteps = stepsForSave(recipeSteps, removedMediaIds);
 
-      if (isEditing) {
+      if (isEditing || await getMealByIdAsync(mealId)) {
         await updateMealAsync(mealId, {
           name: trimmedMealName,
           recipeUrl: recipeUrl.trim() || null,
@@ -704,7 +791,7 @@ function AddView({
         });
       }
       await setMealTagNamesAsync(mealId, tagNames);
-      if (isEditing) {
+      if (isEditing || await getMealRecordByIdAsync(mealRecordId)) {
         await updateMealRecordAsync(mealRecordId, {
           cookedAt,
           rating: rating ? Number(rating) : null,
@@ -729,16 +816,12 @@ function AddView({
         ? undefined
         : existingFinishedMedia?.id;
 
+      setSavePhase('사진 저장 중…');
       if (finishedPhoto) {
-        const media = await createMediaAsync({
-          id: createLocalId('media'),
-          mealRecordId,
-          type: 'photo',
-          blob: finishedPhoto,
-        });
+        const media = await uploadPhoto(finishedPhoto);
 
         if (media) {
-          if (existingFinishedMedia) mediaIdsToDelete.add(existingFinishedMedia.id);
+          if (existingFinishedMedia && existingFinishedMedia.id !== media.id) mediaIdsToDelete.add(existingFinishedMedia.id);
           finishedMediaId = media.id;
         }
       }
@@ -751,17 +834,11 @@ function AddView({
             return step;
           }
 
-          const media = await createMediaAsync({
-            id: createLocalId('media'),
-            mealRecordId,
-            type: 'photo',
-            blob: draft.photoFile,
-            recipeStepId: step.id,
-          });
+          const media = await uploadPhoto(draft.photoFile, step.id);
 
           return {
             ...step,
-            mediaIds: media ? [...step.mediaIds, media.id] : step.mediaIds,
+            mediaIds: [...new Set([...step.mediaIds, media.id])],
           };
         })
       );
@@ -771,16 +848,10 @@ function AddView({
         const recipeStepId = existing ? getRecipeStepIdForMedia(existing) : undefined;
         if (!existing || !recipeStepId || removedMediaIds.has(mediaId)) continue;
 
-        const replacement = await createMediaAsync({
-          id: createLocalId('media'),
-          mealRecordId,
-          type: 'photo',
-          blob: file,
-          recipeStepId,
-        });
+        const replacement = await uploadPhoto(file, recipeStepId);
         if (!replacement) continue;
 
-        mediaIdsToDelete.add(mediaId);
+        if (mediaId !== replacement.id) mediaIdsToDelete.add(mediaId);
         recipeStepsWithMedia = recipeStepsWithMedia.map((step) =>
           step.id === recipeStepId
             ? { ...step, mediaIds: step.mediaIds.map((id) => (id === mediaId ? replacement.id : id)) }
@@ -788,7 +859,8 @@ function AddView({
         );
       }
 
-      if (isEditing || finishedPhoto || mediaIdsToDelete.size || Object.keys(replacementFiles).length) {
+      setSavePhase('사진 연결 마무리 중…');
+      {
         await updateMealRecordAsync(mealRecordId, {
           recipeSteps: recipeStepsWithMedia,
           finishedMediaId: finishedMediaId ?? null,
@@ -796,11 +868,15 @@ function AddView({
       }
       await Promise.all([...mediaIdsToDelete].map((mediaId) => deleteMediaAsync(mediaId)));
 
+      completed.current = true;
+      await deleteDraft(draftKey);
+      submitting.current = false;
       onSaved(mealRecordId);
     } catch (error) {
       console.error(error);
+      completed.current = false;
       setSubmitState('error');
-    }
+    } finally { submitting.current = false; }
   }
 
   return (
@@ -815,7 +891,12 @@ function AddView({
         </p>
       </div>
 
-      <form className="meal-form" onSubmit={handleSubmit}>
+      <p className="storage-scope">{isCloudDataSource() ? '저장 위치: 로그인한 계정의 기록장 (공유 중이면 구성원도 볼 수 있어요)' : '저장 위치: 이 브라우저만 · 로그인한 계정과 별도로 보관돼요'}</p>
+      <p role="status">{draftStatus === 'saved' ? '이 기기에 임시 저장됨 · 아직 기록장에 저장하지 않았어요' : draftStatus === 'error' ? '임시 저장 실패 · 이 화면을 닫지 말고 기록을 저장해주세요' : '이 기기에 임시 저장 중…'}</p>
+      {mediaError && <p role="alert">기존 사진을 불러오지 못했어요. <button type="button" onClick={() => setMediaRetry(v => v + 1)}>다시 시도</button></p>}
+      {!mediaReady && !mediaError && <p role="status">기존 사진 확인 중…</p>}
+      <form className="meal-form" onSubmit={handleSubmit} onInvalidCapture={event => { const field = event.target as HTMLElement; const details = field.closest('details'); if (details) details.open = true; requestAnimationFrame(() => field.focus()); }}>
+        <fieldset className="form-fields" disabled={submitState === 'saving'}>
         <label>
           요리 이름
           <input
@@ -835,6 +916,65 @@ function AddView({
             onChange={(event) => setCookedAt(event.target.value)}
           />
         </label>
+        <label>
+          요리 완성사진
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(event) => setFinishedPhoto(event.target.files?.[0] ?? null)}
+          />
+          <span className="field-hint">완성사진은 1장만 등록하며, 홈과 목록의 대표 썸네일로 사용됩니다.</span>
+        </label>
+        {finishedPhoto && !existingFinishedMedia ? (
+          <SelectedPhotoPreview
+            alt="추가할 완성사진"
+            file={finishedPhoto}
+            label="추가할 완성사진"
+            onClear={() => setFinishedPhoto(null)}
+          />
+        ) : null}
+        {existingFinishedMedia ? (
+          <div className="existing-media-grid finished-media-grid" aria-label="기존 완성사진">
+            <div className="existing-media-card">
+              {finishedPhoto ? (
+                <SelectedPhotoPreview
+                  alt="교체할 완성사진"
+                  file={finishedPhoto}
+                  label="교체할 사진"
+                  onClear={() => setFinishedPhoto(null)}
+                />
+              ) : (
+                <>
+                  <span className="media-preview-label">현재 사진</span>
+                  {existingMediaUrls[existingFinishedMedia.id] ? <img alt="기존 완성사진" src={existingMediaUrls[existingFinishedMedia.id]} /> : null}
+                </>
+              )}
+              <div>
+                <label className="small-action file-action">
+                  변경
+                  <input
+                    accept="image/*"
+                    aria-label="기존 완성사진 변경"
+                    type="file"
+                    onChange={(event) => setFinishedPhoto(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <button aria-label="기존 완성사진 삭제" className="remove-media-action" type="button" onClick={() => markMediaForRemoval(existingFinishedMedia)}>×</button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        <label>
+          메모
+          <textarea
+            value={memo}
+            placeholder="다음엔 파를 더 넣기"
+            rows={4}
+            onChange={(event) => setMemo(event.target.value)}
+          />
+        </label>
+        <details className="recipe-disclosure" open={Boolean(sourceRecipe?.recipeSteps?.length || sourceRecipe?.ingredientGroups?.length || draft?.recipeSteps.some(step => step.body || step.photoFile || step.mediaIds.length))}>
+          <summary>만족도·태그·재료·조리 순서 추가 (선택)</summary>
         <label className="compact-field">
           만족도
           <select value={rating} onChange={(event) => setRating(event.target.value)}>
@@ -1017,69 +1157,14 @@ function AddView({
           </button>
         </fieldset>
 
-        <label>
-          요리 완성사진
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(event) => setFinishedPhoto(event.target.files?.[0] ?? null)}
-          />
-          <span className="field-hint">완성사진은 1장만 등록하며, 홈과 목록의 대표 썸네일로 사용됩니다.</span>
-        </label>
-        {finishedPhoto && !existingFinishedMedia ? (
-          <SelectedPhotoPreview
-            alt="추가할 완성사진"
-            file={finishedPhoto}
-            label="추가할 완성사진"
-            onClear={() => setFinishedPhoto(null)}
-          />
-        ) : null}
-        {existingFinishedMedia ? (
-          <div className="existing-media-grid finished-media-grid" aria-label="기존 완성사진">
-            <div className="existing-media-card">
-              {finishedPhoto ? (
-                <SelectedPhotoPreview
-                  alt="교체할 완성사진"
-                  file={finishedPhoto}
-                  label="교체할 사진"
-                  onClear={() => setFinishedPhoto(null)}
-                />
-              ) : (
-                <>
-                  <span className="media-preview-label">현재 사진</span>
-                  {existingMediaUrls[existingFinishedMedia.id] ? <img alt="기존 완성사진" src={existingMediaUrls[existingFinishedMedia.id]} /> : null}
-                </>
-              )}
-              <div>
-                <label className="small-action file-action">
-                  변경
-                  <input
-                    accept="image/*"
-                    aria-label="기존 완성사진 변경"
-                    type="file"
-                    onChange={(event) => setFinishedPhoto(event.target.files?.[0] ?? null)}
-                  />
-                </label>
-                <button aria-label="기존 완성사진 삭제" className="remove-media-action" type="button" onClick={() => markMediaForRemoval(existingFinishedMedia)}>×</button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-        <label>
-          메모
-          <textarea
-            value={memo}
-            placeholder="다음엔 파를 더 넣기"
-            rows={4}
-            onChange={(event) => setMemo(event.target.value)}
-          />
-        </label>
+        </details>
         {submitState === 'error' ? (
-          <p className="form-error">저장하지 못했습니다. 다시 시도해 주세요.</p>
+          <p className="form-error">저장을 완료하지 못했어요. 입력과 사진은 그대로 있어요. 다시 시도해주세요.</p>
         ) : null}
-        <button className="primary-action" type="submit" disabled={submitState === 'saving'}>
-          {submitState === 'saving' ? '저장 중' : isEditing ? '수정 저장하기' : '저장하기'}
-        </button>
+        </fieldset>
+        <div className="form-save-bar"><button className="primary-action" type="submit" disabled={submitState === 'saving' || !mediaReady}>
+          {submitState === 'saving' ? savePhase : isEditing ? '수정 저장하기' : '기록장에 저장'}
+        </button></div>
       </form>
     </section>
   );
@@ -1330,7 +1415,8 @@ function RecordSearchCard({ record, onOpen }: { record: MealRecord; onOpen: (rec
         </span>
         <span className="record-search-body">
           <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
-          <span>{record.meal?.tags.join(' · ')}</span>
+          <span>{[record.authorName, record.rating ? `${record.rating}점` : null, record.meal?.tags.join(' · ')].filter(Boolean).join(' · ')}</span>
+          {record.memo && <span className="record-memo">{record.memo}</span>}
         </span>
         <span className="record-date">{formatCookedAtLabel(record.cookedAt)}</span>
       </button>
@@ -1340,31 +1426,29 @@ function RecordSearchCard({ record, onOpen }: { record: MealRecord; onOpen: (rec
 
 function SearchView({
   onOpenRecord,
+  scope,
   preset,
 }: {
   onOpenRecord: (record: MealRecord) => void;
   preset: SearchPreset | null;
+  scope: string;
 }) {
   const [records, setRecords] = useState<MealRecord[]>([]);
-  const [query, setQuery] = useState('');
-  const [selectedTag, setSelectedTag] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(null);
+  const stateKey = `search:${scope}:${preset?.key ?? ''}`;
+  const [initial] = useState(() => readViewState(stateKey, { query: '', tag: preset?.tag ?? '', month: preset?.year && preset?.month ? { year: preset.year, month: preset.month } : null, scroll: 0 }));
+  const [query, setQuery] = useState(initial.query);
+  const [selectedTag, setSelectedTag] = useState(initial.tag);
+  const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(initial.month);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    void listMealRecordsAsync().then(setRecords).catch((error) => console.error(error));
-  }, []);
-
-  useEffect(() => {
-    if (!preset) return;
-
-    setQuery('');
-    setSelectedTag(preset.tag ?? '');
-    setSelectedMonth(
-      preset.year && preset.month
-        ? { year: preset.year, month: preset.month }
-        : null
-    );
-  }, [preset]);
+    let active = true; setStatus('loading');
+    void listMealRecordsAsync().then(items => { if (active) { setRecords(items); setStatus('ready'); requestAnimationFrame(() => { if (active) window.scrollTo(0, initial.scroll); }); } }).catch(() => { if (active) setStatus('error'); });
+    return () => { active = false; };
+  }, [retry, initial.scroll]);
+  useEffect(() => { saveViewState(stateKey, { query, tag: selectedTag, month: selectedMonth, scroll: initial.scroll }); }, [stateKey, query, selectedTag, selectedMonth, initial.scroll]);
+  function openRecord(record: MealRecord) { saveViewState(stateKey, { query, tag: selectedTag, month: selectedMonth, scroll: window.scrollY }); onOpenRecord(record); }
 
   const allTags = useMemo(
     () =>
@@ -1448,11 +1532,13 @@ function SearchView({
           ))}
         </div>
       ) : null}
-      <p className="result-count">{query.trim() || selectedTag || selectedMonth ? `${filteredRecords.length}개의 검색 결과` : `전체 ${filteredRecords.length}개의 기록`}</p>
-      {filteredRecords.length ? (
+      <p className="result-count" hidden={status !== 'ready'}>{query.trim() || selectedTag || selectedMonth ? `${filteredRecords.length}개의 검색 결과` : `전체 ${filteredRecords.length}개의 기록`}</p>
+      {status === 'loading' && <p role="status">기록 불러오는 중…</p>}
+      {status === 'error' && <p role="alert">기록을 불러오지 못했어요. <button onClick={() => setRetry(v => v + 1)}>다시 시도</button></p>}
+      {status === 'ready' && (filteredRecords.length ? (
         <ul className="record-search-list">
           {filteredRecords.map((record) => (
-            <RecordSearchCard key={record.id} record={record} onOpen={onOpenRecord} />
+            <RecordSearchCard key={record.id} record={record} onOpen={openRecord} />
           ))}
         </ul>
       ) : (
@@ -1460,7 +1546,7 @@ function SearchView({
           <strong>{records.length ? '조건에 맞는 기록이 없어요.' : '아직 검색할 기록이 없어요.'}</strong>
           <p>{records.length ? '다른 단어나 태그로 다시 찾아보세요.' : '첫 요리 기록을 남기면 여기서 바로 찾을 수 있어요.'}</p>
         </div>
-      )}
+      ))}
     </section>
   );
 }
@@ -1703,145 +1789,88 @@ function PlaceholderView({
   );
 }
 
-export function App() {
-  const { auth, message: authMessage, signIn, signOut } = useAuth();
-  const activeDataScope = auth.status === 'signed-in' ? auth.user.id : 'local';
-  setDataSource(auth.status === 'signed-in' ? 'cloud' : 'local');
-  const [activeRoute, setActiveRoute] = useState<RouteKey>('home');
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-  const [selectedRecipeScrap, setSelectedRecipeScrap] = useState<RecipeScrap | null>(null);
-  const [editingRecord, setEditingRecord] = useState<MealRecord | null>(null);
-  const [searchPreset, setSearchPreset] = useState<SearchPreset | null>(null);
-  const [dataVersion, setDataVersion] = useState(0);
 
+type Location = { view: RouteKey; record?: string; edit?: string; scrap?: string; repeat?: string; year?: string; month?: string; tag?: string };
+function readLocation(): Location {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const view = params.get('view') as RouteKey;
+  return { ...Object.fromEntries(params), view: ['home','recipes','add','search','recap','detail','settings'].includes(view) ? view : 'home' };
+}
+function AddRoute({ location, scope, onSaved }: { location: Location; scope: string; onSaved: (id: string) => void }) {
+  const [source, setSource] = useState<{ record: MealRecord | null; scrap: RecipeScrap | null } | null>(null);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
-    setSelectedRecordId(null);
-    setSelectedRecipeScrap(null);
-    setEditingRecord(null);
-    setDataVersion((version) => version + 1);
-  }, [activeDataScope]);
-
-  if (auth.status === 'loading') {
-    return <div className="app-shell"><main className="content"><span className="account-loading">계정 확인 중</span></main></div>;
+    let active = true;
+    setError('');
+    Promise.all([
+      location.edit || location.repeat ? getMealRecordByIdAsync((location.edit || location.repeat)!) : Promise.resolve(null),
+      location.scrap ? listRecipeScrapsAsync() : Promise.resolve([]),
+    ]).then(([record, scraps]) => {
+      if (!active) return;
+      const scrap = scraps.find(item => item.id === location.scrap) ?? null;
+      if (((location.edit || location.repeat) && !record) || (location.scrap && !scrap)) { setError('원본을 찾을 수 없어요. 삭제되었거나 접근할 수 없는 기록이에요.'); return; }
+      setSource({ record, scrap });
+    }).catch(() => { if (active) setError('기록을 불러오지 못했어요.'); });
+    return () => { active = false; };
+  }, [location.edit, location.repeat, location.scrap, retry]);
+  if (error) return <section className="view"><p role="alert">{error}</p><button onClick={() => setRetry(v => v + 1)}>다시 시도</button></section>;
+  if (!source) return <p role="status">기록 불러오는 중…</p>;
+  return <AddView draftKey={`${scope}:${location.edit ? 'edit:' + location.edit : location.repeat ? 'repeat:' + location.repeat : location.scrap ?? 'new'}`} record={location.repeat ? null : source.record} template={location.repeat ? source.record : null} recipeScrap={source.scrap} onSaved={onSaved} />;
+}
+export function App() {
+  const account = useAuth();
+  if (account.auth.status === 'loading') return <div className="app-shell"><main className="content"><span role="status">계정 확인 중…</span></main></div>;
+  const scope = account.auth.status === 'signed-in' ? account.auth.user.id : 'local';
+  setDataSource(account.auth.status === 'signed-in' ? 'cloud' : 'local');
+  return <AppContent key={scope} scope={scope} account={account} />;
+}
+function AppContent({ scope, account }: { scope: string; account: ReturnType<typeof useAuth> }) {
+  const { auth, message: authMessage, signIn, signOut } = account;
+  const [location, setLocation] = useState(readLocation);
+  const [version, setVersion] = useState(0);
+  const [deleted, setDeleted] = useState<string | null>(null);
+  const [undoError, setUndoError] = useState('');
+  const [undoBusy, setUndoBusy] = useState(false);
+  const activeRoute = location.view;
+  useEffect(() => {
+    const sync = () => setLocation(readLocation());
+    window.addEventListener('popstate', sync);
+    window.addEventListener('hashchange', sync);
+    window.history.replaceState({ ...window.history.state, tavoloScope: scope }, '', window.location.href);
+    return () => { window.removeEventListener('popstate', sync); window.removeEventListener('hashchange', sync); };
+  }, [scope]);
+  function navigate(next: Location, replace = false) {
+    if (!window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) return;
+    const hash = '#' + new URLSearchParams(Object.entries(next).filter((entry): entry is [string, string] => Boolean(entry[1]))).toString();
+    const state = { tavoloScope: scope, depth: replace ? window.history.state?.depth ?? 0 : (window.history.state?.depth ?? 0) + 1 };
+    if (replace) window.history.replaceState(state, '', hash);
+    else window.history.pushState(state, '', hash);
+    setLocation(next);
+    window.scrollTo(0, 0);
   }
-
-  return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="주요 메뉴">
-        <div className="brand">
-
-          <div>
-            <strong>tavolo</strong>
-          </div>
-        </div>
-
-        <nav className="nav-list">
-          {routes.map((route) => (
-            <button
-              aria-current={(activeRoute === route.key || (route.key === 'home' && ['detail','search','add'].includes(activeRoute))) ? 'page' : undefined}
-              key={route.key}
-              type="button"
-              onClick={() => {
-                setActiveRoute(route.key);
-
-                setSelectedRecipeScrap(null);
-                setEditingRecord(null);
-              }}
-            >
-              <NavIcon name={route.key} /><span>{route.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <AccountControls auth={auth} message={authMessage} onSignIn={signIn} onSignOut={signOut} />
-      </aside>
-
-      <main className="content">
-        <div className="mobile-topbar">
-          <strong className="wordmark">tavolo</strong>
-          <AccountControls auth={auth} compact message={authMessage} onSignIn={signIn} onSignOut={signOut} />
-        </div>
-
-        {activeRoute === 'settings' && <section className="view settings-view"><div className="section-heading"><h1>설정</h1></div><AccountControls auth={auth} message={authMessage} onSignIn={signIn} onSignOut={signOut} />{auth.status === 'signed-in' && <JournalPanel key={activeDataScope} defaultName={getUserLabel(auth.user)} onChanged={() => { setDataVersion(v => v + 1); setEditingRecord(null); setSelectedRecordId(null); }} />}</section>}
-
-        {activeRoute === 'home' && (
-          <HomeView
-            key={`home-${activeDataScope}-${dataVersion}`}
-            onOpenRecord={(record) => {
-              setSelectedRecordId(record.id);
-              setActiveRoute('detail');
-            }}
-          />
-        )}
-        {activeRoute === 'add' && (
-          <AddView
-            key={`${activeDataScope}-${editingRecord?.id ?? selectedRecipeScrap?.id ?? 'new-record'}`}
-            record={editingRecord}
-            recipeScrap={selectedRecipeScrap}
-            onSaved={(recordId) => {
-              setDataVersion((version) => version + 1);
-              setSelectedRecipeScrap(null);
-              setEditingRecord(null);
-              setSelectedRecordId(recordId);
-              setActiveRoute('detail');
-            }}
-          />
-        )}
-        {activeRoute === 'detail' && (
-          <DetailView
-            key={`${activeDataScope}-${selectedRecordId ?? 'none'}`}
-            recordId={selectedRecordId}
-            onEdit={(record) => {
-              setEditingRecord(record);
-              setSelectedRecipeScrap(null);
-              setActiveRoute('add');
-            }}
-            onDeleted={() => {
-              setDataVersion((version) => version + 1);
-              setSelectedRecordId(null);
-              setActiveRoute('home');
-            }}
-            onBackClick={() => {
-              setSelectedRecordId(null);
-              setActiveRoute('home');
-            }}
-          />
-        )}
-        {activeRoute === 'recipes' && (
-          <RecipeView
-            onStartRecord={(recipeScrap) => {
-              setSelectedRecipeScrap(recipeScrap);
-              setEditingRecord(null);
-              setActiveRoute('add');
-            }}
-          />
-        )}
-        {activeRoute === 'search' && (
-          <SearchView
-            key={`search-${dataVersion}`}
-            preset={searchPreset}
-            onOpenRecord={(record) => {
-              setSelectedRecordId(record.id);
-              setActiveRoute('detail');
-            }}
-          />
-        )}
-        {activeRoute === 'recap' && (
-          <RecapView
-            key={`recap-${dataVersion}`}
-            onOpenSearch={(filter) => {
-              setSearchPreset({ ...filter, key: createLocalId('search-filter') });
-              setActiveRoute('search');
-            }}
-            onOpenRecord={(record) => {
-              setSelectedRecordId(record.id);
-              setActiveRoute('detail');
-            }}
-          />
-        )}
-        {activeRoute !== 'add' && activeRoute !== 'settings' && <button type="button" className="record-fab" onClick={() => { setEditingRecord(null); setSelectedRecipeScrap(null); setActiveRoute('add'); }}>＋ 기록하기</button>}
-        {activeRoute === 'add' && <button type="button" className="form-back" onClick={() => setActiveRoute(editingRecord ? 'detail' : 'home')}>취소하고 돌아가기</button>}
-      </main>
-    </div>
-  );
+  function back() { if (!window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) return; if (window.history.state?.depth > 0) window.history.back(); else navigate({ view: 'home' }, true); }
+  const openRecord = (record: MealRecord) => navigate({ view: 'detail', record: record.id });
+  const controls = { auth, message: authMessage, onSignIn: (provider: Parameters<typeof signIn>[0]) => { if (window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) void signIn(provider); }, onSignOut: () => { if (window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) void signOut(); } };
+  const preset: SearchPreset = { key: JSON.stringify(location), year: location.year ? Number(location.year) : undefined, month: location.month ? Number(location.month) : undefined, tag: location.tag };
+  return <div className="app-shell">
+    <aside className="sidebar" aria-label="주요 메뉴">
+      <div className="brand"><strong>tavolo</strong></div>
+      <nav className="nav-list">{routes.map(route => <button key={route.key} type="button" aria-current={(activeRoute === route.key || (route.key === 'home' && ['detail','search','add'].includes(activeRoute))) ? 'page' : undefined} onClick={() => navigate({ view: route.key })}><NavIcon name={route.key} /><span>{route.label}</span></button>)}</nav>
+      <AccountControls {...controls} />
+    </aside>
+    <main className="content">
+      {deleted && <div className="undo-notice" role="status">휴지통으로 옮겼어요. <button disabled={undoBusy} onClick={() => { setUndoBusy(true); setUndoError(''); void restoreItem({ id: deleted, type: 'record', title: '', deletedAt: '' }).then(() => { setDeleted(null); setVersion(v => v + 1); }).catch(() => setUndoError('복구하지 못했어요. 다시 시도해주세요.')).finally(() => setUndoBusy(false)); }}>실행 취소</button><button disabled={undoBusy} onClick={() => setDeleted(null)}>닫기</button>{undoError && <p role="alert">{undoError}</p>}</div>}
+      <div className="mobile-topbar"><strong className="wordmark">tavolo</strong><AccountControls {...controls} compact /></div>
+      {activeRoute === 'settings' && <section className="view settings-view"><div className="section-heading"><h1>설정</h1></div><AccountControls {...controls} /><p className="storage-scope">{scope === 'local' ? '이 브라우저에 저장된 기록을 보고 있어요. 계정 기록과 별개이며, 다른 기기에는 나타나지 않아요.' : '로그인한 계정의 기록장을 보고 있어요. 로그인 전에 작성한 기록은 해당 브라우저에 그대로 남아 있어요.'}</p>{auth.status === 'signed-in' && <><JournalPanel defaultName={getUserLabel(auth.user)} onChanged={() => setVersion(v => v + 1)} /><LocalImportPanel scope={scope} accountName={getUserLabel(auth.user)} onChanged={() => setVersion(v => v + 1)} /></>}</section>}
+      {activeRoute === 'home' && <HomeView key={`home-${version}`} scope={scope} onOpenRecord={openRecord} />}
+      {activeRoute === 'add' && <AddRoute key={`${location.edit ?? location.repeat ?? location.scrap ?? 'new'}`} location={location} scope={scope} onSaved={id => { setVersion(v => v + 1); navigate({ view: 'detail', record: id }, true); }} />}
+      {activeRoute === 'detail' && <DetailView key={`${location.record}-${version}`} recordId={location.record ?? null} onBackClick={back} onEdit={record => navigate({ view: 'add', edit: record.id })} onRepeat={record => navigate({ view: 'add', repeat: record.id })} onDeleted={() => { if (scope !== 'local') setDeleted(location.record ?? null); setVersion(v => v + 1); navigate({ view: 'home' }, true); }} />}
+      {activeRoute === 'recipes' && <RecipeView onStartRecord={scrap => navigate({ view: 'add', scrap: scrap.id })} />}
+      {activeRoute === 'search' && <SearchView scope={scope} key={`search-${version}-${preset.key}`} preset={preset} onOpenRecord={openRecord} />}
+      {activeRoute === 'recap' && <RecapView key={`recap-${version}`} onOpenRecord={openRecord} onOpenSearch={filter => navigate({ view: 'search', year: filter.year?.toString(), month: filter.month?.toString(), tag: filter.tag })} />}
+      {activeRoute !== 'add' && activeRoute !== 'settings' && <button type="button" className="record-fab" onClick={() => navigate({ view: 'add' })}>＋ 기록하기</button>}
+      {activeRoute === 'add' && <button type="button" className="form-back" onClick={back}>초안 보관하고 돌아가기</button>}
+    </main>
+  </div>;
 }
