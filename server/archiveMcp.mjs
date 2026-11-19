@@ -69,6 +69,11 @@ export function createArchiveServer({ db, userId }) {
     if (query) request = request.ilike('meals.name', `%${query.replace(/[\\%_]/g,'\\$&')}%`);
     return { records: checked(await request) };
   });
+  tool('tavolo_repeat_cooking', '이전 기록과 같은 요리를 다시 만든 회차를 추가합니다. 원본의 재료와 조리순서를 이어받고 날짜와 이번 메모를 저장합니다. 먼저 기록 검색으로 sourceRecordId를 확인하세요.', {
+    sourceRecordId: z.string().uuid(), requestId: z.string().uuid(), cookedAt: draftSchema.shape.cookedAt, memo: text(10000).default(''),
+  }, false, async ({sourceRecordId,requestId,cookedAt,memo}) => ({
+    recordId: checked(await db.rpc('repeat_cooking', {source_record:sourceRecordId, new_record:stableId(userId,'repeat',requestId), cooking_date:cookedAt, cooking_note:memo})),
+  }));
   tool('tavolo_create_draft', '사진과 설명으로 정리한 구조화된 요리 초안을 저장합니다. 실제 요리 기록은 아직 생성하지 않습니다. 모르는 재료·분량·날짜를 확정하지 말고 사용자에게 묻고 uncertainties에 남깁니다. 같은 요청에는 같은 requestId를 사용하세요.', {
     requestId: z.string().uuid(), draft: fixedDraft,
   }, false, async ({requestId,draft}) => {

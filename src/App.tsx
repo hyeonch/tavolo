@@ -14,6 +14,7 @@ import { AccountControls } from './auth/AccountControls';
 import { useAuth } from './auth/useAuth';
 import {
   createMealAsync,
+  resolveRepeatMeal,
   createMealRecordAsync,
   createMediaAsync,
   createRecipeScrapAsync,
@@ -237,7 +238,9 @@ function Dashboard({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => voi
     const cookedLinks = new Set(records.map(r => r.meal?.recipeUrl));
     const dishes = new Map<string, MealRecord>();
     for (const record of records) {
-      if (!dishes.has(record.mealId) || dishes.get(record.mealId)!.cookedAt < record.cookedAt) dishes.set(record.mealId, record);
+      const key = record.meal?.recipeOrigin ?? record.mealId;
+      const previous = dishes.get(key);
+      if (!previous || previous.cookedAt < record.cookedAt) dishes.set(key, record);
     }
     const candidates = [
       ...Array.from(dishes.values(), record => ({record, scrap: null})),
@@ -328,15 +331,18 @@ function DetailView({
   onBackClick,
   onEdit,
   onRepeat,
+  onOpenRecord,
   onDeleted,
 }: {
   recordId: string | null;
   onBackClick: () => void;
   onEdit: (record: MealRecord) => void;
   onRepeat: (record: MealRecord) => void;
+  onOpenRecord: (record: MealRecord) => void;
   onDeleted: () => void;
 }) {
   const [record, setRecord] = useState<MealRecord | null>(null);
+  const [history, setHistory] = useState<MealRecord[]>([]);
   const [representativePhotoUrl, setRepresentativePhotoUrl] = useState<string | null>(null);
   const [stepPhotoUrls, setStepPhotoUrls] = useState<Record<string, string>>({});
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
@@ -358,7 +364,8 @@ function DetailView({
       setLoadState('loading');
 
       try {
-        const loadedRecord = await getMealRecordByIdAsync(recordId);
+        const all = await listMealRecordsAsync();
+        const loadedRecord = all.find(r => r.id === recordId);
 
         if (!loadedRecord) {
           if (isMounted) {
@@ -396,6 +403,8 @@ function DetailView({
           return;
         }
 
+        const origin = loadedRecord.meal?.recipeOrigin ?? loadedRecord.mealId;
+        setHistory(all.filter(r => r.id !== recordId && (r.meal?.recipeOrigin ?? r.mealId) === origin));
         setRecord(loadedRecord);
         setRepresentativePhotoUrl(photoUrl);
         setStepPhotoUrls(
@@ -462,6 +471,7 @@ function DetailView({
         </div>
       ) : null}
 
+      {history.length > 0 && <details><summary>다른 조리 기록 {history.length}개</summary><ul className="record-search-list">{history.map(r => <RecordSearchCard key={r.id} record={r} onOpen={onOpenRecord} />)}</ul></details>}
       {deleteError && <p role="alert">{deleteError}</p>}
       {loadState === 'loading' ? <p className="panel-state">기록을 불러오는 중입니다.</p> : null}
       {loadState === 'not-found' ? <p className="panel-state">요청한 기록을 찾을 수 없습니다.</p> : null}
@@ -820,7 +830,7 @@ function AddForm({
 
     try {
       await writeDraft(draftKey, snapshot);
-      const mealId = ids.mealId;
+      const mealId = template ? (isCloudDataSource() ? await resolveRepeatMeal(template.id) : template.mealId) : ids.mealId;
       const mealRecordId = ids.recordId;
       const trimmedMemo = memo.trim();
       const tagNames = [...new Set(tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean))];
@@ -839,21 +849,23 @@ function AddForm({
         .filter((group) => group.items.length > 0);
       const savedRecipeSteps = stepsForSave(recipeSteps, removedMediaIds);
 
-      if (isEditing || await getMealByIdAsync(mealId)) {
-        await updateMealAsync(mealId, {
-          name: trimmedMealName,
-          recipeUrl: recipeUrl.trim() || null,
-          memo: trimmedMemo || null,
-        });
-      } else {
-        await createMealAsync({
-          id: mealId,
-          name: trimmedMealName,
-          recipeUrl: recipeUrl.trim() || undefined,
-          memo: trimmedMemo || undefined,
-        });
+      if (!template) {
+        if (isEditing || await getMealByIdAsync(mealId)) {
+          await updateMealAsync(mealId, {
+            name: trimmedMealName,
+            recipeUrl: recipeUrl.trim() || null,
+            memo: trimmedMemo || null,
+          });
+        } else {
+          await createMealAsync({
+            id: mealId,
+            name: trimmedMealName,
+            recipeUrl: recipeUrl.trim() || undefined,
+            memo: trimmedMemo || undefined,
+          });
+        }
+        await setMealTagNamesAsync(mealId, tagNames);
       }
-      await setMealTagNamesAsync(mealId, tagNames);
       if (isEditing || await getMealRecordByIdAsync(mealRecordId)) {
         await updateMealRecordAsync(mealRecordId, {
           cookedAt,
@@ -969,6 +981,7 @@ function AddForm({
           <input
             required
             type="text"
+            readOnly={Boolean(template)}
             value={mealName}
             placeholder="김치볶음밥"
             onChange={(event) => setMealName(event.target.value)}
@@ -1055,7 +1068,7 @@ function AddForm({
             <option value="1">1점</option>
           </select>
         </label>
-        {Object.entries(mealTags).map(([group, options]) => <fieldset key={group}><legend>{group}</legend>
+        {Object.entries(mealTags).map(([group, options]) => <fieldset key={group} disabled={Boolean(template)}><legend>{group}</legend>
           <div className="tag-filter">{options.map(option => {
             const tags = tagsInput.split(',').map(value => value.trim()).filter(Boolean);
             const selected = tags.includes(option);
@@ -1066,7 +1079,7 @@ function AddForm({
           원본 레시피 링크
           <input
             type="url"
-            value={recipeUrl}
+            readOnly={Boolean(template)} value={recipeUrl}
             placeholder="https://..."
             onChange={(event) => setRecipeUrl(event.target.value)}
           />
@@ -1932,7 +1945,7 @@ function AppContent({ scope, account }: { scope: string; account: ReturnType<typ
       {activeRoute === 'home' && <Dashboard key={version} onOpenRecord={openRecord} />}
       {activeRoute === 'records' && <HomeView key={`home-${version}`} scope={scope} onOpenRecord={openRecord} />}
       {activeRoute === 'add' && <AddRoute key={`${location.edit ?? location.repeat ?? location.scrap ?? 'new'}`} location={location} scope={scope} onSaved={id => { setVersion(v => v + 1); navigate({ view: 'detail', record: id }, true); }} />}
-      {activeRoute === 'detail' && <DetailView key={`${location.record}-${version}`} recordId={location.record ?? null} onBackClick={back} onEdit={record => navigate({ view: 'add', edit: record.id })} onRepeat={record => navigate({ view: 'add', repeat: record.id })} onDeleted={() => { if (scope !== 'local') setDeleted(location.record ?? null); setVersion(v => v + 1); navigate({ view: 'records' }, true); }} />}
+      {activeRoute === 'detail' && <DetailView key={`${location.record}-${version}`} recordId={location.record ?? null} onBackClick={back} onOpenRecord={openRecord} onEdit={record => navigate({ view: 'add', edit: record.id })} onRepeat={record => navigate({ view: 'add', repeat: record.id })} onDeleted={() => { if (scope !== 'local') setDeleted(location.record ?? null); setVersion(v => v + 1); navigate({ view: 'records' }, true); }} />}
       {activeRoute === 'recipes' && <RecipeView onStartRecord={scrap => navigate({ view: 'add', scrap: scrap.id })} />}
       {activeRoute === 'search' && <SearchView scope={scope} key={`search-${version}-${preset.key}`} preset={preset} onOpenRecord={openRecord} />}
       {activeRoute === 'recap' && <RecapView key={`recap-${version}`} onOpenRecord={openRecord} onOpenSearch={filter => navigate({ view: 'search', year: filter.year?.toString(), month: filter.month?.toString(), tag: filter.tag })} />}

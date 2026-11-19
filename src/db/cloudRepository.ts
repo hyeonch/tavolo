@@ -74,6 +74,7 @@ async function loadMealsAndRecordsAsync() {
   (mealsResult.data ?? []).forEach((meal) => {
     mealsById.set(meal.id, {
       id: meal.id,
+      recipeOrigin: meal.recipe_origin ?? undefined,
       name: meal.name,
       recipeUrl: meal.recipe_url ?? undefined,
       memo: meal.memo ?? undefined,
@@ -382,4 +383,11 @@ export async function setMealTagNamesAsync(mealId: string, names: string[]) {
   const { supabase } = await getCloudContext();
   const { error } = await supabase.rpc('set_meal_tags', { target_id: mealId, names });
   throwIfError(error);
+}
+
+export async function resolveRepeatMeal(sourceId: string): Promise<string> {
+  const { supabase } = await getCloudContext();
+  const { data, error } = await supabase.rpc('repeat_meal_id', { source_record: sourceId });
+  throwIfError(error);
+  return data;
 }

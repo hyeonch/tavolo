@@ -95,3 +95,5 @@ TVL-53 sharing UI: signed-in users open `공유 · 휴지통`, enter a display n
 - Sharing and trash have separate content and loading/error/empty states. Cloud record deletion exposes undo; local deletion remains permanent with confirmation.
 
 TVL-60: Clients without ChatGPT file handles can prepare a private signed PUT for one draft photo. If a client cannot send original bytes, show the mobile upload page. After upload the authenticated client verifies and attaches the file, then commits the latest draft revision.
+
+The home tab recommends one locally selected dish or uncooked scrap and shows the shared monthly cooking calendar. The separate records tab retains date/search browsing. Recommendation state is not synchronized. New country, main ingredient and dish type tags use the shared fixed vocabulary. AI recommendation is a separate low-priority follow-up (TVL-69).

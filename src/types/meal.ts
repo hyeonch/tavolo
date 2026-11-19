@@ -1,4 +1,5 @@
 export type Meal = {
+  recipeOrigin?: string;
   id: string;
   name: string;
   recipeUrl?: string;

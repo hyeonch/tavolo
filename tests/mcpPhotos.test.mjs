@@ -27,7 +27,7 @@ test('private photo staging and atomic commit preserve ownership, retry safety a
     await db.exec(fs.readFileSync(new URL('../supabase/migrations/20260818072604_create_tavolo_schema.sql', import.meta.url), 'utf8'));
 
     for(const u of [a,b,outsider]) await db.query('insert into auth.users values($1,$2,now())',[u,u+'@example.com']);
-    for(const file of ['20261109074901_shared_journal_access.sql','20261109073739_account_world_cups.sql','20261109220910_journal_invites_and_restore.sql','20261110133652_mcp_record_drafts.sql','20261110134053_restrict_mcp_draft_grants.sql','20261110134513_commit_mcp_drafts_with_photos.sql','20261119040000_record_cooking_fields.sql','20261119041000_ingredient_search.sql']) await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+    for(const file of ['20261109074901_shared_journal_access.sql','20261109073739_account_world_cups.sql','20261109220910_journal_invites_and_restore.sql','20261110133652_mcp_record_drafts.sql','20261110134053_restrict_mcp_draft_grants.sql','20261110134513_commit_mcp_drafts_with_photos.sql','20261119040000_record_cooking_fields.sql','20261119041000_ingredient_search.sql','20261119050000_repeat_meals.sql']) await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
     await login(a);
     const payload={servings:2,totalMinutes:25,name:'버섯 리소토',cookedAt:'2026-11-10',memo:'첫 시도',tags:['이탈리안'],ingredientGroups:[{name:'재료',items:[{name:'쌀',quantity:'100',unit:'g'}]}],steps:['볶는다','졸인다'],uncertainties:['치즈 양 미확인']};
     await db.query('insert into mcp_record_drafts(id,user_id,payload) values($1,$2,$3)',[id,a,payload]);
@@ -71,6 +71,13 @@ test('private photo staging and atomic commit preserve ownership, retry safety a
     assert.equal((await db.query('select * from meal_records')).rows.length,1);
     assert.equal((await db.query('select * from storage.objects')).rows.length,2);
     assert.equal((await db.query('select * from mcp_record_drafts')).rows.length,0);
+    const repeatId=uuid(77);
+    for(let attempt=0;attempt<2;attempt++) await db.query('select repeat_cooking($1,$2,$3,$4)',[id,repeatId,'2026-11-19','후추 절반']);
+    const repeated=(await db.query('select r.*,m.recipe_origin from meal_records r join meals m on m.id=r.meal_id where r.id=$1',[repeatId])).rows[0];
+    assert.equal(repeated.user_id,b);assert.equal(repeated.recipe_origin,record.meal_id);
+    assert.equal(repeated.memo,'후추 절반');assert.deepEqual(repeated.recipe_steps[0].mediaIds,[]);
+    await login(outsider);await assert.rejects(db.query('select repeat_meal_id($1)',[id]));
+    await login(b);
     await assert.rejects(action('commit',bad,1));
     await db.query('update meal_records set deleted_at=now() where id=$1',[id]);
     await login(a);await action('commit',id,3);
