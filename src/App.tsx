@@ -1,3 +1,4 @@
+import mealTags from '../shared/mealTags.json';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { readDraft, writeDraft, deleteDraft } from './drafts/store';
@@ -1054,16 +1055,13 @@ function AddForm({
             <option value="1">1점</option>
           </select>
         </label>
-        <label>
-          태그
-          <input
-            type="text"
-            value={tagsInput}
-            placeholder="한식, 간단요리"
-            onChange={(event) => setTagsInput(event.target.value)}
-          />
-          <span className="field-hint">쉼표로 나누어 입력하세요. 요리 자체에 저장됩니다.</span>
-        </label>
+        {Object.entries(mealTags).map(([group, options]) => <fieldset key={group}><legend>{group}</legend>
+          <div className="tag-filter">{options.map(option => {
+            const tags = tagsInput.split(',').map(value => value.trim()).filter(Boolean);
+            const selected = tags.includes(option);
+            return <button type="button" key={option} aria-pressed={selected} className={selected ? 'is-active' : ''}
+              onClick={() => setTagsInput((selected ? tags.filter(value => value !== option) : [...tags, option]).join(', '))}>{option}</button>;
+          })}</div></fieldset>)}
         <label>
           원본 레시피 링크
           <input
