@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { prepareUpload, finishUpload, UploadError } from './photoUpload.mjs';
 import { attachPhoto } from './draftPhotos.mjs';
 
 const text = max => z.string().trim().max(max);
@@ -33,7 +34,7 @@ export function createArchiveServer({ db, userId }) {
       _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['email'] }], ...meta },
     }, async args => {
       try { return result(await fn(args)); }
-      catch { return { isError: true, content: [{ type: 'text', text: '요청을 완료하지 못했어요. 권한, 입력값 또는 초안 버전을 확인해주세요. 같은 요청 ID로 다시 시도하면 중복 저장되지 않아요.' }] }; }
+      catch (error) { return { isError: true, content: [{ type: 'text', text: error instanceof UploadError ? error.message : '요청을 완료하지 못했어요. 권한, 입력값 또는 초안 버전을 확인해주세요. 같은 요청 ID로 다시 시도하면 중복 저장되지 않아요.' }] }; }
     });
   }
   tool('tavolo_get_journal', '현재 로그인한 계정과 함께 접근할 수 있는 기록장을 확인합니다.', {}, true, async () => ({
@@ -79,6 +80,16 @@ export function createArchiveServer({ db, userId }) {
     id: z.string().uuid(), expectedRevision: z.number().int().min(1), slot: z.string().regex(/^(finished|step:[0-9]{1,2})$/).default('finished'),
     photo: z.object({download_url:z.string().url(),file_id:z.string().min(1),mime_type:z.string().optional(),file_name:z.string().optional()}),
   }, false, args => attachPhoto({db,userId},args), {'openai/fileParams':['photo']});
+  const uploadArgs = {
+    id: z.string().uuid(), expectedRevision: z.number().int().min(1), requestId: z.string().uuid(),
+    slot: z.string().regex(/^(finished|step:[0-9]{1,2})$/).default('finished'),
+    mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']).default('image/jpeg'),
+  };
+  tool('tavolo_prepare_photo_upload', 'Claude 등에서 사진 한 장을 보낼 링크를 준비합니다. 사진마다 새 requestId를 사용하세요. 원본 바이트와 네트워크에 접근 가능하면 원본 형식을 지정하고 uploadUrl에 해당 Content-Type으로 파일을 PUT하세요. 불가능하면 사용자에게 pageUrl을 클릭 가능한 링크로 보여주세요. 업로드 후 finishArgs로 tavolo_finish_photo_upload를 호출한 뒤 확정하세요.', uploadArgs,
+    false, args => prepareUpload({db,userId}, args));
+  tool('tavolo_finish_photo_upload', '업로드된 사진을 검증하고 초안에 연결합니다. 직접 전송 시 원본 SHA-256을 expectedSha256에 보내세요. 사진 칸과 최신 revision을 확인한 뒤 기록을 확정하세요.',
+    {...uploadArgs, expectedSha256: z.string().regex(/^[0-9a-f]{64}$/).optional()},
+    false, args => finishUpload({db,userId}, args));
   tool('tavolo_commit_draft', '사용자가 저장을 요청한 요리 초안을 실제 기록으로 확정합니다. 사진과 내용을 먼저 확인하고 최신 revision을 보내세요. 날짜나 요리 이름이 불명확하면 먼저 질문합니다. 반복 호출은 같은 recordId를 반환하며 휴지통 기록을 되살리지 않습니다. uncertainties는 확인 필요 메모로 보존됩니다.', {
     id:z.string().uuid(),expectedRevision:z.number().int().min(1),
   }, false, async ({id,expectedRevision}) => {
