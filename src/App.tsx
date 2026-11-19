@@ -48,7 +48,7 @@ import type {
 } from './types/meal';
 import { advanceWorldCup, createWorldCup, getWorldCupCandidates, getWorldCupSizes } from './worldCup';
 
-type RouteKey = 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail' | 'settings';
+type RouteKey = 'records' | 'home' | 'recipes' | 'add' | 'search' | 'recap' | 'detail' | 'settings';
 
 type Route = {
   key: RouteKey;
@@ -56,7 +56,8 @@ type Route = {
 };
 
 const routes: Route[] = [
-  { key: 'home', label: '기록' },
+  { key: 'home', label: '홈' },
+  { key: 'records', label: '기록' },
   { key: 'recipes', label: '스크랩' },
   { key: 'recap', label: '결산' },
   { key: 'settings', label: '설정' },
@@ -64,7 +65,8 @@ const routes: Route[] = [
 
 function NavIcon({ name }: { name: string }) {
   const paths: Record<string, string> = {
-    home: 'M3 4h6a4 4 0 0 1 3 2 4 4 0 0 1 3-2h6v16h-6a4 4 0 0 0-3 2 4 4 0 0 0-3-2H3z M12 6v16',
+    home: 'M3 11 12 3l9 8 M5 10v11h5v-7h4v7h5V10',
+    records: 'M3 4h6a4 4 0 0 1 3 2 4 4 0 0 1 3-2h6v16h-6a4 4 0 0 0-3 2 4 4 0 0 0-3-2H3z M12 6v16',
     recipes: 'M6 3h12v19l-6-4-6 4z',
     recap: 'M5 21V12 M12 21V3 M19 21V8',
     settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z',
@@ -213,6 +215,60 @@ function createRecipeStep(order: number): RecipeStepDraft {
     mediaIds: [],
     photoFile: null,
   };
+}
+
+function Dashboard({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => void }) {
+  const [selected, setSelected] = useState(() => toDateKey(new Date()));
+  const [records, setRecords] = useState<MealRecord[]>([]);
+  const [scraps, setScraps] = useState<RecipeScrap[]>([]);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [retry, setRetry] = useState(0);
+  const [seed] = useState(Math.random);
+  useEffect(() => {
+    let active = true;
+    setStatus('loading');
+    Promise.all([listMealRecordsAsync(), listRecipeScrapsAsync()]).then(([items, links]) => {
+      if (active) { setRecords(items); setScraps(links); setStatus('ready'); }
+    }).catch(() => { if (active) setStatus('error'); });
+    return () => { active = false; };
+  }, [retry]);
+  const recommendation = useMemo(() => {
+    const cookedLinks = new Set(records.map(r => r.meal?.recipeUrl));
+    const dishes = new Map<string, MealRecord>();
+    for (const record of records) {
+      if (!dishes.has(record.mealId) || dishes.get(record.mealId)!.cookedAt < record.cookedAt) dishes.set(record.mealId, record);
+    }
+    const candidates = [
+      ...Array.from(dishes.values(), record => ({record, scrap: null})),
+      ...scraps.filter(s => !cookedLinks.has(s.url) && /^https?:\/\//i.test(s.url)).map(scrap => ({record: null, scrap})),
+    ];
+    return candidates[Math.floor(seed * candidates.length)];
+  }, [records, scraps, seed]);
+  const dates = useMemo(() => new Set(records.map(r => r.cookedAt)), [records]);
+  const [year, month] = selected.split('-').map(Number);
+  const start = new Date(year, month - 1, 1).getDay();
+  const days = new Date(year, month, 0).getDate();
+  const todayRecords = records.filter(r => r.cookedAt === selected);
+  if (status === 'loading') return <p role="status">홈 불러오는 중…</p>;
+  if (status === 'error') return <p role="alert">홈을 불러오지 못했어요. <button onClick={() => setRetry(v => v + 1)}>다시 시도</button></p>;
+  return <section className="view dashboard"><h1>오늘 뭐 먹지?</h1>
+    <section className="menu-pick">{recommendation?.record ? <>
+      <small>다시 해 먹을 요리</small><button onClick={() => onOpenRecord(recommendation.record)}>{recommendation.record.meal?.name ?? '요리 기록'} →</button>
+    </> : recommendation?.scrap ? <>
+      <small>스크랩한 요리</small><a href={recommendation.scrap.url} target="_blank" rel="noreferrer">{recommendation.scrap.title || recommendation.scrap.url} ↗</a>
+    </> : <p>요리를 기록하거나 레시피를 스크랩하면 여기에 추천이 떠요.</p>}</section>
+    <section aria-label="조리 달력"><header><button aria-label="지난달" onClick={() => setSelected(toDateKey(new Date(year, month - 2, 1)))}>‹</button>
+      <h2>{year}년 {month}월</h2><button aria-label="다음 달" onClick={() => setSelected(toDateKey(new Date(year, month, 1)))}>›</button></header>
+      <div className="cooking-days">{Array.from('일월화수목금토', d => <small key={d}>{d}</small>)}
+        {Array.from({length:start}, (_,i) => <span key={'blank'+i} />)}
+        {Array.from({length:days}, (_,i) => {
+          const key = toDateKey(new Date(year, month - 1, i+1));
+          return <button key={key} aria-label={key + (dates.has(key) ? ' 조리 기록 있음' : '')} aria-pressed={selected === key} data-cooked={dates.has(key)} onClick={() => setSelected(key)}>{i+1}</button>;
+        })}
+      </div>
+      <h3>{formatCookedAtLabel(selected)}</h3>
+      {todayRecords.length ? <ul className="record-search-list">{todayRecords.map(record => <RecordSearchCard key={record.id} record={record} onOpen={onOpenRecord} />)}</ul> : <p>이날은 조리 기록이 없어요.</p>}
+    </section></section>;
 }
 
 function HomeView({ onOpenRecord, scope }: { onOpenRecord: (record: MealRecord) => void; scope: string }) {
@@ -1794,7 +1850,7 @@ type Location = { view: RouteKey; record?: string; edit?: string; scrap?: string
 function readLocation(): Location {
   const params = new URLSearchParams(window.location.hash.slice(1));
   const view = params.get('view') as RouteKey;
-  return { ...Object.fromEntries(params), view: ['home','recipes','add','search','recap','detail','settings'].includes(view) ? view : 'home' };
+  return { ...Object.fromEntries(params), view: ['home','records','recipes','add','search','recap','detail','settings'].includes(view) ? view : 'home' };
 }
 function AddRoute({ location, scope, onSaved }: { location: Location; scope: string; onSaved: (id: string) => void }) {
   const [source, setSource] = useState<{ record: MealRecord | null; scrap: RecipeScrap | null } | null>(null);
@@ -1849,23 +1905,24 @@ function AppContent({ scope, account }: { scope: string; account: ReturnType<typ
     setLocation(next);
     window.scrollTo(0, 0);
   }
-  function back() { if (!window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) return; if (window.history.state?.depth > 0) window.history.back(); else navigate({ view: 'home' }, true); }
+  function back() { if (!window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) return; if (window.history.state?.depth > 0) window.history.back(); else navigate({ view: 'records' }, true); }
   const openRecord = (record: MealRecord) => navigate({ view: 'detail', record: record.id });
   const controls = { auth, message: authMessage, onSignIn: (provider: Parameters<typeof signIn>[0]) => { if (window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) void signIn(provider); }, onSignOut: () => { if (window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) void signOut(); } };
   const preset: SearchPreset = { key: JSON.stringify(location), year: location.year ? Number(location.year) : undefined, month: location.month ? Number(location.month) : undefined, tag: location.tag };
   return <div className="app-shell">
     <aside className="sidebar" aria-label="주요 메뉴">
       <div className="brand"><strong>tavolo</strong></div>
-      <nav className="nav-list">{routes.map(route => <button key={route.key} type="button" aria-current={(activeRoute === route.key || (route.key === 'home' && ['detail','search','add'].includes(activeRoute))) ? 'page' : undefined} onClick={() => navigate({ view: route.key })}><NavIcon name={route.key} /><span>{route.label}</span></button>)}</nav>
+      <nav className="nav-list">{routes.map(route => <button key={route.key} type="button" aria-current={(activeRoute === route.key || (route.key === 'records' && ['detail','search','add'].includes(activeRoute))) ? 'page' : undefined} onClick={() => navigate({ view: route.key })}><NavIcon name={route.key} /><span>{route.label}</span></button>)}</nav>
       <AccountControls {...controls} />
     </aside>
     <main className="content">
       {deleted && <div className="undo-notice" role="status">휴지통으로 옮겼어요. <button disabled={undoBusy} onClick={() => { setUndoBusy(true); setUndoError(''); void restoreItem({ id: deleted, type: 'record', title: '', deletedAt: '' }).then(() => { setDeleted(null); setVersion(v => v + 1); }).catch(() => setUndoError('복구하지 못했어요. 다시 시도해주세요.')).finally(() => setUndoBusy(false)); }}>실행 취소</button><button disabled={undoBusy} onClick={() => setDeleted(null)}>닫기</button>{undoError && <p role="alert">{undoError}</p>}</div>}
       <div className="mobile-topbar"><strong className="wordmark">tavolo</strong><AccountControls {...controls} compact /></div>
       {activeRoute === 'settings' && <section className="view settings-view"><div className="section-heading"><h1>설정</h1></div><AccountControls {...controls} /><p className="storage-scope">{scope === 'local' ? '이 브라우저에 저장된 기록을 보고 있어요. 계정 기록과 별개이며, 다른 기기에는 나타나지 않아요.' : '로그인한 계정의 기록장을 보고 있어요. 로그인 전에 작성한 기록은 해당 브라우저에 그대로 남아 있어요.'}</p>{auth.status === 'signed-in' && <><JournalPanel defaultName={getUserLabel(auth.user)} onChanged={() => setVersion(v => v + 1)} /><LocalImportPanel scope={scope} accountName={getUserLabel(auth.user)} onChanged={() => setVersion(v => v + 1)} /></>}</section>}
-      {activeRoute === 'home' && <HomeView key={`home-${version}`} scope={scope} onOpenRecord={openRecord} />}
+      {activeRoute === 'home' && <Dashboard key={version} onOpenRecord={openRecord} />}
+      {activeRoute === 'records' && <HomeView key={`home-${version}`} scope={scope} onOpenRecord={openRecord} />}
       {activeRoute === 'add' && <AddRoute key={`${location.edit ?? location.repeat ?? location.scrap ?? 'new'}`} location={location} scope={scope} onSaved={id => { setVersion(v => v + 1); navigate({ view: 'detail', record: id }, true); }} />}
-      {activeRoute === 'detail' && <DetailView key={`${location.record}-${version}`} recordId={location.record ?? null} onBackClick={back} onEdit={record => navigate({ view: 'add', edit: record.id })} onRepeat={record => navigate({ view: 'add', repeat: record.id })} onDeleted={() => { if (scope !== 'local') setDeleted(location.record ?? null); setVersion(v => v + 1); navigate({ view: 'home' }, true); }} />}
+      {activeRoute === 'detail' && <DetailView key={`${location.record}-${version}`} recordId={location.record ?? null} onBackClick={back} onEdit={record => navigate({ view: 'add', edit: record.id })} onRepeat={record => navigate({ view: 'add', repeat: record.id })} onDeleted={() => { if (scope !== 'local') setDeleted(location.record ?? null); setVersion(v => v + 1); navigate({ view: 'records' }, true); }} />}
       {activeRoute === 'recipes' && <RecipeView onStartRecord={scrap => navigate({ view: 'add', scrap: scrap.id })} />}
       {activeRoute === 'search' && <SearchView scope={scope} key={`search-${version}-${preset.key}`} preset={preset} onOpenRecord={openRecord} />}
       {activeRoute === 'recap' && <RecapView key={`recap-${version}`} onOpenRecord={openRecord} onOpenSearch={filter => navigate({ view: 'search', year: filter.year?.toString(), month: filter.month?.toString(), tag: filter.tag })} />}
