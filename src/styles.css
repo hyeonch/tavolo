@@ -2088,7 +2088,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 @media (max-width: 760px) {
   .app-shell { display: block; padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
   .sidebar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); gap: 0; background: #fffffff5; backdrop-filter: blur(12px); }
-  .nav-list { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .nav-list { grid-template-columns: repeat(5,minmax(0,1fr)); }
   .nav-list button { display: flex; flex-direction: column; justify-content: center; gap: 5px; font-size: 11px; min-height: 50px; border-radius: 8px; }
   .nav-list button[aria-current="page"] { background: transparent; color: var(--accent); }
   .content { padding: 24px 20px 80px; }
@@ -2125,3 +2125,15 @@ input, textarea, select, button { scroll-margin-block: 100px; }
 .local-import label { display: flex; align-items: center; gap: 12px; min-height: 44px; }
 .local-import input[type="checkbox"] { width: 24px; height: 24px; flex: 0 0 24px; }
 .undo-notice { padding: 12px 16px; border: 1px solid #b5cafa; border-radius: 8px; background: #f2f6ff; margin-bottom: 16px; }
+
+.dashboard { max-width: 48rem; }
+.menu-pick { padding: 1.3rem; border: 1px solid #d6dfef; border-radius: 1rem; margin-bottom: 2rem; }
+.menu-pick small, .menu-pick a, .menu-pick button { display: block; }
+.menu-pick a, .menu-pick button { padding: .5rem 0; font: inherit; font-size: 1.25rem; font-weight: 700; color: #244fa9; overflow-wrap: anywhere; text-align: left; }
+.dashboard button { background: transparent; border: 0; cursor: pointer; }
+.dashboard header { display: flex; align-items: center; justify-content: space-between; }
+.dashboard header button { min-width: 44px; height: 44px; font-size: 1.7rem; }
+.cooking-days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 2px; }
+.cooking-days button { position: relative; min-height: 44px; border-radius: .65rem; color: inherit; }
+.cooking-days button[aria-pressed=true] { background: #e9efff; color: #1648b2; font-weight: 700; }
+.cooking-days button[data-cooked=true]::after { content: ''; position: absolute; bottom: 4px; left: calc(50% - 2px); width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
