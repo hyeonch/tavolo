@@ -106,3 +106,7 @@ Supabase persistence direction:
 - Cloud lists exclude trashed items. Restoring a record restores visibility of its attached photos; individually trashed photos remain in trash. Restoring a finished photo trashes its replacement; a removed step is recreated for a recovered step photo.
 - Apply shared_journal_access followed by journal_invites_and_restore with the compatible client. Existing tabs must refresh; old hard-delete calls are denied after migration.
 - Hosted MCP migration timestamps can differ from repository filenames: account_world_cups was registered as 20261109220307. Do not blindly run CLI db push against production without reconciling migration history.
+
+## Repeat cooking and record search
+
+Repeat cooking reuses the author's meal. A partner's first repeat creates a meal in the new author's namespace and retains the original dish ID in recipe_origin. Subsequent repeats reuse that meal. Visible history groups by recipe_origin or the meal ID under existing journal RLS. Prior photos, rating, cooking time and memo are not carried into a new event. Servings and total_minutes are optional per-record values. Ingredient and maximum-time searches filter individual cooking events.

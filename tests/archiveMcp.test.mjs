@@ -16,7 +16,7 @@ test('archive tools are discoverable with OAuth and invalid write input never re
   };
     await call('initialize',{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'test',version:'1'}});
     const list=(await call('tools/list')).result.tools;
-    assert.equal(list.length,11);
+    assert.equal(list.length,12);
     assert.ok(list.some(tool => tool.name === "tavolo_prepare_photo_upload"));
     assert.ok(list.some(tool => tool.name === "tavolo_finish_photo_upload"));
     assert.ok(list.every(t=>t._meta.securitySchemes[0].type==='oauth2'));

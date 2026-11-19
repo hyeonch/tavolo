@@ -69,3 +69,5 @@ export async function setMealTagNamesAsync(mealId: string, names: string[]) {
   }));
   await localTag.replaceMealTagsAsync(mealId, ids);
 }
+
+export { resolveRepeatMeal } from './cloudRepository';
