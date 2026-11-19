@@ -12,6 +12,8 @@ export const draftSchema = z.object({
   name: text(120).min(1), cookedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => {
     const d = new Date(v); return !Number.isNaN(d.valueOf()) && d.toISOString().slice(0, 10) === v;
   }),
+  totalMinutes: z.number().int().min(1).max(32767).optional(),
+  servings: z.number().int().min(1).max(32767).optional(),
   recipeUrl: link.optional(), memo: text(10000).default(''), rating: z.number().int().min(1).max(5).optional(),
   tags: z.array(text(40).min(1)).max(20).default([]),
   ingredientGroups: z.array(z.object({ name: text(80).min(1), items: z.array(z.object({

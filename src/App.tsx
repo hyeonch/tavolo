@@ -475,6 +475,8 @@ function DetailView({
           <div className="detail-preview">
             <div>
               <span>만족도</span>
+              {record.totalMinutes && <span>{record.totalMinutes}분</span>}
+              {record.servings && <span>{record.servings}인분</span>}
               <strong>{record.rating ? `${record.rating}/5` : '미입력'}</strong>
             </div>
             {record.meal?.tags.length ? (
@@ -554,7 +556,7 @@ function DetailView({
 }
 
 type RecordDraft = {
-  mealName: string; recipeUrl: string; cookedAt: string; rating: string; memo: string; tagsInput: string;
+  mealName: string; recipeUrl: string; cookedAt: string; servings?: string; totalMinutes?: string; rating: string; memo: string; tagsInput: string;
   ingredientGroups: IngredientGroup[]; recipeSteps: RecipeStepDraft[]; finishedPhoto: File | null;
   removedMediaIds: Set<string>; replacementFiles: Record<string, File>;
   mealId: string; recordId: string;
@@ -592,6 +594,8 @@ function AddForm({
   const [mealName, setMealName] = useState(() => draft?.mealName ?? sourceRecipe?.meal?.name ?? recipeScrap?.title ?? '');
   const [recipeUrl, setRecipeUrl] = useState(() => draft?.recipeUrl ?? sourceRecipe?.meal?.recipeUrl ?? recipeScrap?.url ?? '');
   const [cookedAt, setCookedAt] = useState(() => draft?.cookedAt ?? record?.cookedAt ?? new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+  const [servings, setServings] = useState(() => draft?.servings ?? String(record?.servings ?? ''));
+  const [totalMinutes, setTotalMinutes] = useState(() => draft?.totalMinutes ?? String(record?.totalMinutes ?? ''));
   const [rating, setRating] = useState(() => draft?.rating ?? (record?.rating ? String(record.rating) : ''));
   const [memo, setMemo] = useState(() => draft?.memo ?? record?.memo ?? '');
   const [tagsInput, setTagsInput] = useState(() => draft?.tagsInput ?? sourceRecipe?.meal?.tags.join(', ') ?? '');
@@ -619,7 +623,7 @@ function AddForm({
   const [savePhase, setSavePhase] = useState('기록 저장 중…');
   const submitting = useRef(false);
   const completed = useRef(false);
-  const snapshot = useMemo(() => ({ mealName, recipeUrl, cookedAt, rating, memo, tagsInput, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ...ids }), [mealName, recipeUrl, cookedAt, rating, memo, tagsInput, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ids]);
+  const snapshot = useMemo(() => ({ mealName, recipeUrl, cookedAt, servings, totalMinutes, rating, memo, tagsInput, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ...ids }), [mealName, recipeUrl, cookedAt, servings, totalMinutes, rating, memo, tagsInput, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ids]);
   useEffect(() => {
     if (completed.current) return;
     let active = true;
@@ -850,6 +854,8 @@ function AddForm({
       if (isEditing || await getMealRecordByIdAsync(mealRecordId)) {
         await updateMealRecordAsync(mealRecordId, {
           cookedAt,
+          totalMinutes: totalMinutes ? Number(totalMinutes) : null,
+          servings: servings ? Number(servings) : null,
           rating: rating ? Number(rating) : null,
           memo: trimmedMemo || null,
           ingredientGroups: savedIngredientGroups.length ? savedIngredientGroups : null,
@@ -860,6 +866,8 @@ function AddForm({
           id: mealRecordId,
           mealId,
           cookedAt,
+          totalMinutes: totalMinutes ? Number(totalMinutes) : undefined,
+          servings: servings ? Number(servings) : undefined,
           rating: rating ? Number(rating) : undefined,
           memo: trimmedMemo || undefined,
           ingredientGroups: savedIngredientGroups.length ? savedIngredientGroups : undefined,
@@ -963,6 +971,8 @@ function AddForm({
             onChange={(event) => setMealName(event.target.value)}
           />
         </label>
+        <label className="compact-field">총 소요시간(분)<input type="number" min="1" max="32767" step="1" value={totalMinutes} onChange={e => setTotalMinutes(e.target.value)} /></label>
+        <label className="compact-field">인분<input type="number" min="1" max="32767" step="1" value={servings} onChange={e => setServings(e.target.value)} /></label>
         <label className="compact-field">
           날짜
           <input
