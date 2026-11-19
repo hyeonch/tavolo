@@ -3,4 +3,5 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  build: { rollupOptions: { input: ['index.html', 'photo-upload.html'] } },
 });

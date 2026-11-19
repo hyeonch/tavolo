@@ -86,3 +86,31 @@ test('photo download checks actual format, host, byte cap and forbids redirects'
   await assert.rejects(downloadPhoto({...photo,download_url:'https://example.com/image'},async()=>new Response(png)));
   await assert.rejects(downloadPhoto(photo,async()=>new Response(png,{headers:{'content-length':String(10485761)}})));
 });
+
+test('signed upload binds the slot, checks original bytes and attaches only after verification', async () => {
+  const {prepareUpload, finishUpload} = await import('../server/photoUpload.mjs');
+  const png = fs.readFileSync(new URL('../assets/favicon.png', import.meta.url));
+  const args = {id: uuid(10), requestId: uuid(11), slot: 'step:0', expectedRevision: 1, mimeType: 'image/png'};
+  let stagedPath, attached;
+  const bucket = {
+    async createSignedUploadUrl(path, options) {
+      assert.equal(options.upsert, false);
+      stagedPath = path;
+      return {data: {signedUrl: 'https://storage.example/upload?token=example'}};
+    },
+    async download(path) { return {data: path === stagedPath ? new Blob([png]) : null}; },
+  };
+  const draft = {select() {return this;}, eq() {return this;}, single() {return {data: {revision: 1, payload: {steps: ['볶기']}}};}};
+  const auth = {userId: uuid(1), db: {from: () => draft, storage: {from: () => bucket},
+    rpc: async (_, call) => {attached = call; return {data: {revision: 2}};}}};
+  await assert.rejects(prepareUpload(auth, {...args, expectedRevision: 2}));
+  await assert.rejects(prepareUpload(auth, {...args, slot: 'step:1'}));
+  const issued = await prepareUpload(auth, args);
+  assert.equal(new URLSearchParams(new URL(issued.pageUrl).hash.slice(1)).get('url'), issued.uploadUrl);
+  await assert.rejects(finishUpload(auth, {...args, slot: 'finished'}));
+  await assert.rejects(finishUpload(auth, {...args, expectedSha256: '0'.repeat(64)}));
+  assert.equal(attached, undefined);
+  assert.equal((await finishUpload(auth, issued.finishArgs)).revision, 2);
+  assert.equal(attached.photo.path, stagedPath);
+  assert.equal(attached.photo.bytes, png.length);
+});
