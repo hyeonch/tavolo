@@ -27,7 +27,7 @@ test('private photo staging and atomic commit preserve ownership, retry safety a
     await db.exec(fs.readFileSync(new URL('../supabase/migrations/20260818072604_create_tavolo_schema.sql', import.meta.url), 'utf8'));
 
     for(const u of [a,b,outsider]) await db.query('insert into auth.users values($1,$2,now())',[u,u+'@example.com']);
-    for(const file of ['20261109074901_shared_journal_access.sql','20261109073739_account_world_cups.sql','20261109220910_journal_invites_and_restore.sql','20261110133652_mcp_record_drafts.sql','20261110134053_restrict_mcp_draft_grants.sql','20261110134513_commit_mcp_drafts_with_photos.sql','20261119040000_record_cooking_fields.sql']) await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+    for(const file of ['20261109074901_shared_journal_access.sql','20261109073739_account_world_cups.sql','20261109220910_journal_invites_and_restore.sql','20261110133652_mcp_record_drafts.sql','20261110134053_restrict_mcp_draft_grants.sql','20261110134513_commit_mcp_drafts_with_photos.sql','20261119040000_record_cooking_fields.sql','20261119041000_ingredient_search.sql']) await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
     await login(a);
     const payload={servings:2,totalMinutes:25,name:'버섯 리소토',cookedAt:'2026-11-10',memo:'첫 시도',tags:['이탈리안'],ingredientGroups:[{name:'재료',items:[{name:'쌀',quantity:'100',unit:'g'}]}],steps:['볶는다','졸인다'],uncertainties:['치즈 양 미확인']};
     await db.query('insert into mcp_record_drafts(id,user_id,payload) values($1,$2,$3)',[id,a,payload]);
@@ -57,6 +57,8 @@ test('private photo staging and atomic commit preserve ownership, retry safety a
     assert.equal((await action('commit',id,3)).created,false);
     assert.equal((await db.query('select * from meal_records')).rows.length,1);
     const record=(await db.query('select * from meal_records')).rows[0];
+    assert.equal((await db.query("select id from records_using_ingredient('쌀') where total_minutes <= 25")).rows.length,1);
+    assert.equal((await db.query("select id from records_using_ingredient('쌀') where total_minutes <= 24")).rows.length,0);
     assert.equal(record.servings,2);assert.equal(record.total_minutes,25);assert.match(record.memo,/치즈 양 미확인/);assert.equal(record.recipe_steps[0].order,1);assert.equal(record.recipe_steps[0].mediaIds.length,1);
     assert.equal((await db.query('select * from media')).rows[0].storage_path,path);
     // A bad draft rolls the entire meal+record transaction back.

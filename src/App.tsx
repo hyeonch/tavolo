@@ -273,9 +273,10 @@ function Dashboard({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => voi
 
 function HomeView({ onOpenRecord, scope }: { onOpenRecord: (record: MealRecord) => void; scope: string }) {
   const stateKey = `tavolo-home:${scope}`;
-  const [initial] = useState(() => readViewState(stateKey, { query: "", month: "", tag: "", layout: "photos" as "photos" | "list", scroll: 0 }));
+  const [initial] = useState(() => readViewState(stateKey, { query: "", month: "", tag: "", maxMinutes: "", layout: "photos" as "photos" | "list", scroll: 0 }));
   const [records, setRecords] = useState<MealRecord[]>([]);
   const [query, setQuery] = useState(initial.query);
+  const [maxMinutes, setMaxMinutes] = useState(initial.maxMinutes ?? "");
   const [month, setMonth] = useState(initial.month);
   const [tag, setTag] = useState(initial.tag);
   const [layout, setLayout] = useState<'photos' | 'list'>(initial.layout);
@@ -290,32 +291,33 @@ function HomeView({ onOpenRecord, scope }: { onOpenRecord: (record: MealRecord) 
     }).catch(() => { if (active) setStatus('error'); });
     return () => { active = false; };
   }, [retry]);
-  useEffect(() => { saveViewState(stateKey, { query, month, tag, layout, scroll: initial.scroll }); }, [stateKey, query, month, tag, layout, initial.scroll]);
+  useEffect(() => { saveViewState(stateKey, { query, month, tag, maxMinutes, layout, scroll: initial.scroll }); }, [stateKey, query, month, tag, maxMinutes, layout, initial.scroll]);
   useEffect(() => {
     if (status !== 'ready') return;
     const frame = requestAnimationFrame(() => window.scrollTo(0, initial.scroll));
     return () => cancelAnimationFrame(frame);
   }, [status, initial.scroll]);
   function openRecord(record: MealRecord) {
-    saveViewState(stateKey, { query, month, tag, layout, scroll: window.scrollY });
+    saveViewState(stateKey, { query, month, tag, maxMinutes, layout, scroll: window.scrollY });
     onOpenRecord(record);
   }
   const months = [...new Set(records.map(r => r.cookedAt.slice(0, 7)))].sort().reverse();
   const tags = [...new Set(records.flatMap(r => r.meal?.tags ?? []))].sort();
   const normalized = query.trim().toLocaleLowerCase('ko-KR');
-  const filtered = records.filter(r => (!month || r.cookedAt.startsWith(month)) && (!tag || r.meal?.tags.includes(tag)) && (!normalized || [r.meal?.name, r.memo, r.meal?.memo, ...(r.meal?.tags ?? []), ...(r.ingredientGroups?.flatMap(g => g.items.flatMap(i => [i.name, i.note])) ?? [])].filter(Boolean).join(' ').toLocaleLowerCase('ko-KR').includes(normalized))).sort((a,b) => b.cookedAt.localeCompare(a.cookedAt));
+  const filtered = records.filter(r => (!maxMinutes || (r.totalMinutes !== undefined && r.totalMinutes <= Number(maxMinutes))) && (!month || r.cookedAt.startsWith(month)) && (!tag || r.meal?.tags.includes(tag)) && (!normalized || [r.meal?.name, r.memo, r.meal?.memo, ...(r.meal?.tags ?? []), ...(r.ingredientGroups?.flatMap(g => g.items.flatMap(i => [i.name, i.note])) ?? [])].filter(Boolean).join(' ').toLocaleLowerCase('ko-KR').includes(normalized))).sort((a,b) => b.cookedAt.localeCompare(a.cookedAt));
   const dates = [...new Set(filtered.map(r => r.cookedAt))];
   return <section className="view journal-home">
     <div className="section-heading"><h1>요리 기록</h1></div>
     <label className="search-field"><NavIcon name="search" /><input aria-label="요리 기록 검색" type="search" placeholder="요리, 재료, 메모 검색" value={query} onChange={e => setQuery(e.target.value)} /></label>
     <div className="journal-toolbar">
+      <label>최대 시간(분) <input type="number" min="1" max="32767" value={maxMinutes} onChange={e => setMaxMinutes(e.target.value)} /></label>
       <select aria-label="기록 월" value={month} onChange={e => setMonth(e.target.value)}><option value="">전체 기록</option>{months.map(m => <option key={m} value={m}>{m.slice(0,4)}년 {Number(m.slice(5))}월</option>)}</select>
       <div className="view-switch" aria-label="보기 방식"><button type="button" aria-pressed={layout === 'photos'} onClick={() => setLayout('photos')}>사진</button><button type="button" aria-pressed={layout === 'list'} onClick={() => setLayout('list')}>목록</button></div>
     </div>
     {tags.length > 0 && <div className="tag-filter"><button type="button" aria-pressed={!tag} className={!tag ? 'is-active' : ''} onClick={() => setTag('')}>전체</button>{tags.map(t => <button type="button" key={t} aria-pressed={tag === t} className={tag === t ? 'is-active' : ''} onClick={() => setTag(tag === t ? '' : t)}>{t}</button>)}</div>}
     {status === 'loading' && <p role="status" className="panel-state">기록 불러오는 중…</p>}
     {status === 'error' && <div role="alert" className="empty-state"><strong>기록을 불러오지 못했어요.</strong><button type="button" onClick={() => setRetry(v => v+1)}>다시 시도</button></div>}
-    {status === 'ready' && !filtered.length && <div className="empty-state"><strong>{records.length ? '조건에 맞는 기록이 없어요.' : '아직 요리 기록이 없어요.'}</strong><p>{records.length ? '검색어나 필터를 바꿔보세요.' : '기록하기를 눌러 첫 요리를 남겨보세요.'}</p>{records.length > 0 && <button type="button" onClick={() => { setQuery(''); setMonth(''); setTag(''); }}>필터 초기화</button>}</div>}
+    {status === 'ready' && !filtered.length && <div className="empty-state"><strong>{records.length ? '조건에 맞는 기록이 없어요.' : '아직 요리 기록이 없어요.'}</strong><p>{records.length ? '검색어나 필터를 바꿔보세요.' : '기록하기를 눌러 첫 요리를 남겨보세요.'}</p>{records.length > 0 && <button type="button" onClick={() => { setQuery(''); setMonth(''); setTag(''); setMaxMinutes(''); }}>필터 초기화</button>}</div>}
     {status === 'ready' && dates.map(date => <section key={date} className={'journal-day journal-' + layout}><h2><time dateTime={date}>{date.replaceAll('-', '.')}</time><span>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', { weekday: 'long' })}</span></h2><ul className="record-search-list">{filtered.filter(r => r.cookedAt === date).map(record => <RecordSearchCard key={record.id} record={record} onOpen={openRecord} />)}</ul></section>)}
   </section>;
 }
