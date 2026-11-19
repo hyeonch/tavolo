@@ -143,6 +143,8 @@ export async function createMealRecordAsync(input: CreateMealRecordInput) {
     id: input.id,
     mealId: input.mealId,
     cookedAt: input.cookedAt,
+    servings: input.servings,
+    totalMinutes: input.totalMinutes,
     rating: input.rating,
     memo: input.memo,
     ingredientGroups: input.ingredientGroups,
@@ -214,6 +216,8 @@ export async function updateMealRecordAsync(id: string, input: UpdateMealRecordI
     ...existingRecord,
     mealId: input.mealId ?? existingRecord.mealId,
     cookedAt: input.cookedAt ?? existingRecord.cookedAt,
+    servings: 'servings' in input ? input.servings ?? undefined : existingRecord.servings,
+    totalMinutes: 'totalMinutes' in input ? input.totalMinutes ?? undefined : existingRecord.totalMinutes,
     rating: 'rating' in input ? input.rating ?? undefined : existingRecord.rating,
     memo: 'memo' in input ? input.memo?.trim() || undefined : existingRecord.memo,
     ingredientGroups:

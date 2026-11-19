@@ -35,6 +35,8 @@ export type MealRecord = {
   mealId: string;
   meal?: Meal;
   cookedAt: string;
+  servings?: number;
+  totalMinutes?: number;
   rating?: number;
   memo?: string;
   ingredientGroups?: IngredientGroup[];
@@ -119,6 +121,8 @@ export type CreateMealRecordInput = {
   id: string;
   mealId: string;
   cookedAt: string;
+  servings?: number;
+  totalMinutes?: number;
   rating?: number;
   memo?: string;
   ingredientGroups?: IngredientGroup[];
@@ -129,6 +133,8 @@ export type CreateMealRecordInput = {
 };
 
 export type UpdateMealRecordInput = Partial<Pick<MealRecord, 'mealId' | 'cookedAt'>> & {
+  servings?: number | null;
+  totalMinutes?: number | null;
   rating?: number | null;
   memo?: string | null;
   ingredientGroups?: IngredientGroup[] | null;

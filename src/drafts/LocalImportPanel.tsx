@@ -41,7 +41,7 @@ export function LocalImportPanel({ scope, accountName, onChanged }: { scope: str
         // Existing imported records are not overwritten on repeated imports.
         const checkpoint = `import:${scope}:${record.id}`;
         if (existing && await readDraft<boolean>(checkpoint)) continue;
-        if (!existing) await cloud.createMealRecordAsync({ id, mealId, cookedAt: record.cookedAt, rating: record.rating, memo: record.memo, ingredientGroups: record.ingredientGroups, recipeSteps: (record.recipeSteps ?? []).map(step => ({ ...step, mediaIds: [] })) });
+        if (!existing) await cloud.createMealRecordAsync({ id, mealId, cookedAt: record.cookedAt, totalMinutes: record.totalMinutes, servings: record.servings, rating: record.rating, memo: record.memo, ingredientGroups: record.ingredientGroups, recipeSteps: (record.recipeSteps ?? []).map(step => ({ ...step, mediaIds: [] })) });
         const media = await localMedia.listMediaByMealRecordIdAsync(record.id);
         const ids = new Map<string, string>();
         for (const photo of media) {
