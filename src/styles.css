@@ -1542,7 +1542,7 @@ button {
 
 .recap-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1557,10 +1557,6 @@ button {
 }
 
 .recap-grid section:nth-child(2) {
-  background: #e07a5f;
-}
-
-.recap-grid section:nth-child(3) {
   background: #293f35;
 }
 

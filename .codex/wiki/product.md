@@ -97,3 +97,5 @@ TVL-53 sharing UI: signed-in users open `공유 · 휴지통`, enter a display n
 TVL-60: Clients without ChatGPT file handles can prepare a private signed PUT for one draft photo. If a client cannot send original bytes, show the mobile upload page. After upload the authenticated client verifies and attaches the file, then commits the latest draft revision.
 
 The home tab recommends one locally selected dish or uncooked scrap and shows the shared monthly cooking calendar. The separate records tab retains date/search browsing. Recommendation state is not synchronized. New country, main ingredient and dish type tags use the shared fixed vocabulary. AI recommendation is a separate low-priority follow-up (TVL-69).
+
+TVL-74 (2026-11-21): 만족도(rating)는 거의 쓰지 않아 제거한다. 입력 폼·상세·목록·검색·월드컵·결산과 MCP 입력에서 뺀다. DB `rating` 컬럼과 기존 값은 남겨 두며, 기록을 수정해도 기존 값은 바뀌지 않는다.
