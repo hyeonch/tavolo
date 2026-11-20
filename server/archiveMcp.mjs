@@ -1,5 +1,6 @@
 import mealTags from '../shared/mealTags.json' with {type:'json'};
-import { createHash } from 'node:crypto';
+import { recordPhoto } from './recordPhotos.mjs';
+import { createHash, randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prepareUpload, finishUpload, UploadError } from './photoUpload.mjs';
@@ -33,19 +34,21 @@ function result(data) { return { content: [{ type: 'text', text: JSON.stringify(
 function checked(response) { if (response.error) throw response.error; return response.data; }
 export function createArchiveServer({ db, userId }) {
   const server = new McpServer({ name: 'tavolo', version: '1.0.0' });
-  function tool(name, description, inputSchema, readOnly, fn, meta = {}) {
+  function tool(name, description, inputSchema, readOnly, fn, meta = {}, destructive = false) {
     server.registerTool(name, { description, inputSchema,
-      annotations: { readOnlyHint: readOnly, destructiveHint: false, idempotentHint: true, openWorldHint: Boolean(meta['openai/fileParams']) },
+      annotations: { readOnlyHint: readOnly, destructiveHint: destructive, idempotentHint: true, openWorldHint: Boolean(meta['openai/fileParams']) },
       _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['email'] }], ...meta },
     }, async args => {
       try { return result(await fn(args)); }
       catch (error) { return { isError: true, content: [{ type: 'text', text: error instanceof UploadError ? error.message : '요청을 완료하지 못했어요. 권한, 입력값 또는 초안 버전을 확인해주세요. 같은 요청 ID로 다시 시도하면 중복 저장되지 않아요.' }] }; }
     });
   }
-  tool('tavolo_get_journal', '현재 로그인한 계정과 함께 접근할 수 있는 기록장을 확인합니다.', {}, true, async () => ({
-    userId, journals: checked(await db.from('journals').select('id,name')),
-    members: checked(await db.from('journal_members').select('user_id,display_name')),
-  }));
+  async function journalContext() {
+    const journals = checked(await db.from('journals').select('id,name'));
+    const members = checked(await db.from('journal_members').select('user_id,display_name'));
+    return {userId, accountName:members.find(member => member.user_id === userId)?.display_name ?? null,journals,members};
+  }
+  tool('tavolo_get_journal', '저장 전에 현재 로그인한 계정 이름과 기록장을 확인합니다.', {}, true, journalContext);
   tool('tavolo_save_link', '사용자가 요청한 레시피 링크를 저장합니다. 동일 URL 재호출은 기존 스크랩을 반환합니다. 링크 내용은 자동 수집하지 않습니다.', {
     url: link, title: text(200).optional(), memo: text(10000).optional(),
   }, false, async ({url, title, memo}) => {
@@ -67,8 +70,54 @@ export function createArchiveServer({ db, userId }) {
     let request = source.select('*,meals!inner(name,recipe_url,memo)').is('deleted_at',null).order('cooked_at',{ascending:false}).range(offset,offset+limit-1);
     if (maxMinutes) request = request.lte('total_minutes', maxMinutes);
     if (query) request = request.ilike('meals.name', `%${query.replace(/[\\%_]/g,'\\$&')}%`);
-    return { records: checked(await request) };
+    const records = checked(await request);
+    const members = checked(await db.from('journal_members').select('user_id,display_name'));
+    const names = new Map(members.map(member => [member.user_id,member.display_name]));
+    return {records:records.map(record => ({...record,authorName:names.get(record.user_id) ?? null}))};
   });
+  const recordArgs = {id: z.string().uuid(), expectedUpdatedAt: z.string().datetime({offset:true})};
+  const patchSchema = z.object({
+    name: draftSchema.shape.name.optional(), cookedAt: draftSchema.shape.cookedAt.optional(),
+    memo: text(10000).optional(), rating: z.number().int().min(1).max(5).nullable().optional(),
+    tags: z.array(text(40).min(1)).max(20).optional(),
+    ingredientGroups: draftSchema.shape.ingredientGroups.removeDefault().optional(),
+    steps: z.array(z.object({id:text(120).min(1),body:text(2000).min(1)})).max(50).optional(),
+  }).strict().refine(patch => Object.keys(patch).length > 0);
+  tool('tavolo_update_record', '확정 기록에서 지정한 필드만 수정합니다. 검색 결과의 updated_at을 보내세요. 조리 단계의 기존 id를 유지하고 새 단계에는 새 id를 지정하세요.', {
+    ...recordArgs, patch: patchSchema,
+  }, false, async ({id,expectedUpdatedAt,patch}) => {
+    if (patch.ingredientGroups) patch.ingredientGroups = patch.ingredientGroups.map(group => ({
+      ...group,id:randomUUID(),items:group.items.map(item => ({...item,id:randomUUID()})),
+    }));
+    return checked(await db.rpc('edit_archive_record',{target_id:id,expected_update:expectedUpdatedAt,patch}));
+  });
+  const recordPhotoArgs = {...recordArgs, requestId:z.string().uuid(), stepId:text(120).min(1).optional()};
+  const linkedPhotoArgs = {...recordPhotoArgs, mimeType:z.enum(['image/jpeg','image/png','image/webp'])};
+  tool('tavolo_attach_record_photo','확정 기록에 첨부한 원본 사진을 추가합니다. 단계 사진은 stepId를 지정하세요.',{
+    ...recordPhotoArgs,photo:z.object({download_url:z.string().url(),file_id:z.string().min(1)}),
+  },false,args => recordPhoto({db,userId},args,'attach'),{'openai/fileParams':['photo']});
+  tool('tavolo_prepare_record_photo_upload','확정 기록에 사진을 추가할 업로드 링크를 발급합니다. pageUrl을 열거나 uploadUrl에 원본을 PUT한 뒤 finishArgs로 완료하세요.',
+    linkedPhotoArgs,false,args => recordPhoto({db,userId},args,'prepare'));
+  tool('tavolo_finish_record_photo_upload','업로드한 사진을 검증하고 확정 기록에 추가합니다.',{
+    ...linkedPhotoArgs,expectedSha256:z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  },false,args => recordPhoto({db,userId},args,'finish'));
+  tool('tavolo_trash_record', '요리 기록을 앱 휴지통으로 이동합니다. 앱에서 복구할 수 있습니다.', {
+    id: z.string().uuid(),
+  }, false, async ({id}) => {
+    const moved = checked(await db.from('meal_records').update({deleted_at: new Date().toISOString()})
+      .eq('id', id).is('deleted_at', null).select('id').maybeSingle());
+    if (!moved) checked(await db.from('meal_records').select('id').eq('id', id).not('deleted_at','is',null).single());
+    return {recordId: id, trashed: true};
+  }, {}, true);
+  tool('tavolo_discard_draft', '본인의 미확정 초안을 삭제합니다. 최신 revision을 보내세요.', {
+    id: z.string().uuid(), expectedRevision: z.number().int().positive(),
+  }, false, async ({id, expectedRevision}) => {
+    const removed = checked(await db.from('mcp_record_drafts').delete().eq('id', id).eq('user_id', userId)
+      .is('record_id', null).eq('revision', expectedRevision).select('id').maybeSingle());
+    if (!removed && checked(await db.from('mcp_record_drafts').select('id').eq('id', id).maybeSingle()))
+      throw new UploadError('초안이 변경되었거나 이미 확정됐어요.');
+    return {draftId: id, discarded: true};
+  }, {}, true);
   tool('tavolo_repeat_cooking', '이전 기록과 같은 요리를 다시 만든 회차를 추가합니다. 원본의 재료와 조리순서를 이어받고 날짜와 이번 메모를 저장합니다. 먼저 기록 검색으로 sourceRecordId를 확인하세요.', {
     sourceRecordId: z.string().uuid(), requestId: z.string().uuid(), cookedAt: draftSchema.shape.cookedAt, memo: text(10000).default(''),
   }, false, async ({sourceRecordId,requestId,cookedAt,memo}) => ({
@@ -84,7 +133,7 @@ export function createArchiveServer({ db, userId }) {
   tool('tavolo_get_draft', '내가 만든 요리 초안과 현재 버전을 조회합니다.', { id: z.string().uuid() }, true,
     async ({id}) => ({ draft: checked(await db.from('mcp_record_drafts').select('*').eq('id',id).single()),
       photos: checked(await db.from('mcp_draft_photos').select('id,slot,mime_type,byte_size').eq('draft_id',id)) }));
-  tool('tavolo_update_draft', '초안을 전체 교체합니다. 먼저 조회한 revision을 expectedRevision으로 보내세요. 조리순서 사진은 순서 편집을 마친 뒤 첨부하세요. 순서 사진 첨부 후에는 순서를 변경할 수 없고, 확정된 초안도 수정하지 않습니다. 확정 후 편집은 앱에서 합니다.', {
+  tool('tavolo_update_draft', '초안을 전체 교체합니다. 먼저 조회한 revision을 expectedRevision으로 보내세요. 조리순서 사진은 순서 편집을 마친 뒤 첨부하세요. 순서 사진 첨부 후에는 순서를 변경할 수 없고, 확정된 초안도 수정하지 않습니다. 확정 후에는 tavolo_update_record를 사용하세요.', {
     id: z.string().uuid(), expectedRevision: z.number().int().min(1), draft: fixedDraft,
   }, false, async ({id,expectedRevision,draft}) => {
     const current = checked(await db.from('mcp_record_drafts').select('payload').eq('id',id).single());
@@ -112,7 +161,8 @@ export function createArchiveServer({ db, userId }) {
   }, false, async ({id,expectedRevision}) => {
     const draft=checked(await db.from('mcp_record_drafts').select('payload,record_id').eq('id',id).single());
     if (!draft.record_id) draftSchema.parse({...draft.payload, tags: (draft.payload.tags ?? []).filter(tag => fixedTags.includes(tag))});
-    return {...checked(await db.rpc('mcp_draft_action',{action:'commit',target_id:id,expected_revision:expectedRevision})),appUrl:'https://tavolo-kr.vercel.app'};
+    const destination = await journalContext();
+    return {accountName:destination.accountName,userId,journals:destination.journals,...checked(await db.rpc('mcp_draft_action',{action:'commit',target_id:id,expected_revision:expectedRevision})),appUrl:'https://tavolo-kr.vercel.app'};
   });
   return server;
 }
