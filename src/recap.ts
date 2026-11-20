@@ -1,3 +1,4 @@
+import { fields, metadataOf } from './components/RecipeFilters';
 import type { MealRecord } from './types/meal';
 
 export type RecapSummary = {
@@ -5,8 +6,9 @@ export type RecapSummary = {
   totalCount: number;
   monthCounts: number[];
   averageRating: string | null;
-  favoriteTag: string | null;
-  topTags: { name: string; count: number }[];
+  averageMinutes: number | null;
+  timedCount: number;
+  rankings: { field: typeof fields[number]; values: { name: string; count: number }[] }[];
   bestRecords: MealRecord[];
 };
 
@@ -23,13 +25,18 @@ export function buildRecapSummary(records: MealRecord[], year: number): RecapSum
   const averageRating = ratedRecords.length
     ? (ratedRecords.reduce((sum, record) => sum + (record.rating ?? 0), 0) / ratedRecords.length).toFixed(1)
     : null;
-  const tagCounts = new Map<string, number>();
-  yearlyRecords.flatMap((record) => record.meal?.tags ?? []).forEach((tag) => {
-    tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  const minutes = yearlyRecords.flatMap(record => record.totalMinutes ? [record.totalMinutes] : []);
+  const rankings = fields.map(field => {
+    const counts = new Map<string, number>();
+    for (const record of yearlyRecords) {
+      for (const name of new Set(metadataOf(record)[field] ?? [])) {
+        counts.set(name, (counts.get(name) ?? 0) + 1);
+      }
+    }
+    const values = [...counts].map(([name,count]) => ({name,count}))
+      .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name,'ko')).slice(0,5);
+    return { field, values };
   });
-  const topTags = [...tagCounts.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name, 'ko-KR'));
   const bestRating = Math.max(0, ...yearlyRecords.map((record) => record.rating ?? 0));
 
   return {
@@ -37,8 +44,9 @@ export function buildRecapSummary(records: MealRecord[], year: number): RecapSum
     totalCount: yearlyRecords.length,
     monthCounts,
     averageRating,
-    favoriteTag: topTags[0]?.name ?? null,
-    topTags: topTags.slice(0, 5),
+    averageMinutes: minutes.length ? Math.round(minutes.reduce((sum,n) => sum+n,0) / minutes.length) : null,
+    timedCount: minutes.length,
+    rankings,
     bestRecords: bestRating ? yearlyRecords.filter((record) => record.rating === bestRating).slice(0, 3) : [],
   };
 }

@@ -83,6 +83,8 @@ type SearchPreset = {
   year?: number;
   month?: number;
   tag?: string;
+  field?: typeof fields[number];
+  value?: string;
 };
 
 const emptyMealRecords: MealRecord[] = [];
@@ -1452,7 +1454,7 @@ function RecordTextCard({
       <button className="record-text-card" type="button" onClick={() => onOpen(record)}>
         <span className="record-date">{formatCookedAtLabel(record.cookedAt)}</span>
         <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
-        <span>{record.meal?.tags.length ? record.meal.tags.map((tag) => `#${tag}`).join(' ') : formatRating(record.rating)}</span>
+        <span>{Object.values(metadataOf(record)).flat().join(' · ') || formatRating(record.rating)}</span>
       </button>
     </li>
   );
@@ -1519,10 +1521,10 @@ function SearchView({
 }) {
   const [records, setRecords] = useState<MealRecord[]>([]);
   const stateKey = `search:${scope}:${preset?.key ?? ''}`;
-  const [initial] = useState(() => readViewState(stateKey, { query: preset?.tag ?? '', filters: emptyFilters, month: preset?.year && preset?.month ? { year: preset.year, month: preset.month } : null, scroll: 0 }));
+  const [initial] = useState(() => readViewState(stateKey, { query: preset?.tag ?? '', filters: preset?.field && preset.value ? {...emptyFilters,[preset.field]:preset.value} : emptyFilters, month: preset?.year ? { year: preset.year, month: preset.month } : null, scroll: 0 }));
   const [query, setQuery] = useState(initial.query);
   const [filters,setFilters] = useState(initial.filters ?? emptyFilters);
-  const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(initial.month);
+  const [selectedMonth, setSelectedMonth] = useState<{ year: number; month?: number } | null>(initial.month);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [retry, setRetry] = useState(0);
 
@@ -1554,13 +1556,13 @@ function SearchView({
       return (
         (!normalizedQuery || searchText.includes(normalizedQuery)) &&
         matchesMetadata(record,filters) &&
-        (!selectedMonth || record.cookedAt.startsWith(`${selectedMonth.year}-${String(selectedMonth.month).padStart(2, '0')}`))
+        (!selectedMonth || record.cookedAt.startsWith(selectedMonth.month ? `${selectedMonth.year}-${String(selectedMonth.month).padStart(2,'0')}` : `${selectedMonth.year}-`))
       );
     });
   }, [query, records, selectedMonth, filters]);
 
   const activeFilters = [
-    selectedMonth ? `${selectedMonth.year}년 ${selectedMonth.month}월` : null,
+    selectedMonth ? [`${selectedMonth.year}년`, selectedMonth.month ? `${selectedMonth.month}월` : null].filter(Boolean).join(' ') : null,
     ...Object.values(filters).filter(Boolean),
   ].filter(Boolean);
 
@@ -1575,14 +1577,13 @@ function SearchView({
       <div className="section-heading">
         <p className="eyebrow">검색</p>
         <h1>기록 검색</h1>
-        <p>처음에는 최신 요리 기록을 모두 보여주고, 요리 이름·메모·태그·재료로 좁혀볼 수 있습니다.</p>
       </div>
       <label className="search-field">
         <span aria-hidden="true">⌕</span>
         <input
           type="search"
           value={query}
-          placeholder="요리, 태그, 메모, 재료 검색"
+          placeholder="요리, 재료, 메모 검색"
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
@@ -1605,7 +1606,7 @@ function SearchView({
       ) : (
         <div className="empty-state">
           <strong>{records.length ? '조건에 맞는 기록이 없어요.' : '아직 검색할 기록이 없어요.'}</strong>
-          <p>{records.length ? '다른 단어나 태그로 다시 찾아보세요.' : '첫 요리 기록을 남기면 여기서 바로 찾을 수 있어요.'}</p>
+          <p>{records.length ? '검색어나 분류 필터를 바꿔보세요.' : '첫 요리 기록을 남기면 여기서 바로 찾을 수 있어요.'}</p>
         </div>
       ))}
     </section>
@@ -1819,9 +1820,18 @@ function RecapView({
       {loadState === 'ready' && section === 'recap' && summary && summary.totalCount ? (
         <>
           <label className="recap-year-select"><span>결산 연도</span><select value={summary.year} onChange={(event) => setSelectedYear(Number(event.target.value))}>{years.map((year) => <option key={year} value={year}>{year}년</option>)}</select></label>
-          <div className="recap-grid"><section><span>남긴 요리</span><strong>{summary.totalCount}<small>개</small></strong></section><section><span>평균 만족도</span><strong>{summary.averageRating ?? '–'}<small>{summary.averageRating ? ' / 5' : ''}</small></strong></section><section><span>가장 많이 쓴 태그</span><strong className="tag-stat">{summary.favoriteTag ? `#${summary.favoriteTag}` : '–'}</strong></section></div>
+          <div className="recap-grid"><section><span>남긴 요리</span><strong>{summary.totalCount}<small>개</small></strong></section><section><span>평균 만족도</span><strong>{summary.averageRating ?? '–'}<small>{summary.averageRating ? ' / 5' : ''}</small></strong></section><section><span>평균 조리시간</span><strong>{summary.averageMinutes ?? '–'}{summary.timedCount > 0 && <small>분</small>}</strong>{summary.timedCount > 0 && <small>시간을 입력한 {summary.timedCount}건 기준</small>}</section></div>
           <section className="recap-highlight recap-months"><div className="panel-header"><div><p className="eyebrow">월별 기록</p><h2>{summary.year}년 월별 기록</h2></div></div><div className="month-bar-list">{summary.monthCounts.map((count, index) => <button disabled={!count} key={index} type="button" onClick={() => onOpenSearch({ year: summary.year, month: index + 1 })}><span>{index + 1}월</span><i><b style={{ width: `${(count / peakMonth) * 100}%` }} /></i><strong>{count}</strong></button>)}</div></section>
-          <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">자주 사용한 태그</p><h2>{summary.topTags.length ? '자주 사용한 태그' : '태그를 남겨보세요'}</h2></div></div>{summary.topTags.length ? <p className="recap-tag-list">{summary.topTags.map((tag) => <button key={tag.name} type="button" onClick={() => onOpenSearch({ tag: tag.name })}>#{tag.name} <b>{tag.count}</b></button>)}</p> : null}</section>
+          {summary.rankings.filter(group => group.values.length > 0).map(({field,values}) => (
+            <section className="recap-highlight" key={field}>
+              <h2>{labels[field]}별 조리 횟수</h2>
+              <div className="recap-tag-list">{values.map(({name,count}) => (
+                <button key={name} type="button" onClick={() => onOpenSearch({year:summary.year,field,value:name})}>
+                  {name} <b>{count}회</b>
+                </button>
+              ))}</div>
+            </section>
+          ))}
           <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">가장 만족한 요리</p><h2>{summary.bestRecords.length ? `${summary.bestRecords[0].rating}점 기록` : '평점을 남겨보세요'}</h2></div></div>{summary.bestRecords.length ? <ul className="record-text-list">{summary.bestRecords.map((record) => <RecordTextCard key={record.id} record={record} onOpen={onOpenRecord} />)}</ul> : null}</section>
         </>
       ) : null}
@@ -1851,7 +1861,7 @@ function PlaceholderView({
 }
 
 
-type Location = { view: RouteKey; record?: string; edit?: string; scrap?: string; repeat?: string; year?: string; month?: string; tag?: string };
+type Location = { view: RouteKey; record?: string; edit?: string; scrap?: string; repeat?: string; year?: string; month?: string; tag?: string; field?: string; value?: string };
 function readLocation(): Location {
   const params = new URLSearchParams(window.location.hash.slice(1));
   const view = params.get('view') as RouteKey;
@@ -1913,7 +1923,7 @@ function AppContent({ scope, account }: { scope: string; account: ReturnType<typ
   function back() { if (!window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) return; if (window.history.state?.depth > 0) window.history.back(); else navigate({ view: 'records' }, true); }
   const openRecord = (record: MealRecord) => navigate({ view: 'detail', record: record.id });
   const controls = { auth, message: authMessage, onSignIn: (provider: Parameters<typeof signIn>[0]) => { if (window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) void signIn(provider); }, onSignOut: () => { if (window.dispatchEvent(new Event('tavolo:navigate', { cancelable: true }))) void signOut(); } };
-  const preset: SearchPreset = { key: JSON.stringify(location), year: location.year ? Number(location.year) : undefined, month: location.month ? Number(location.month) : undefined, tag: location.tag };
+  const preset: SearchPreset = { key: JSON.stringify(location), year: location.year ? Number(location.year) : undefined, month: location.month ? Number(location.month) : undefined, tag: location.tag, field: fields.find(field => field === location.field), value:location.value };
   return <div className="app-shell">
     <aside className="sidebar" aria-label="주요 메뉴">
       <div className="brand"><strong>tavolo</strong></div>
@@ -1930,7 +1940,7 @@ function AppContent({ scope, account }: { scope: string; account: ReturnType<typ
       {activeRoute === 'detail' && <DetailView key={`${location.record}-${version}`} recordId={location.record ?? null} onBackClick={back} onOpenRecord={openRecord} onEdit={record => navigate({ view: 'add', edit: record.id })} onRepeat={record => navigate({ view: 'add', repeat: record.id })} onDeleted={() => { if (scope !== 'local') setDeleted(location.record ?? null); setVersion(v => v + 1); navigate({ view: 'records' }, true); }} />}
       {activeRoute === 'recipes' && <RecipeView onStartRecord={scrap => navigate({ view: 'add', scrap: scrap.id })} />}
       {activeRoute === 'search' && <SearchView scope={scope} key={`search-${version}-${preset.key}`} preset={preset} onOpenRecord={openRecord} />}
-      {activeRoute === 'recap' && <RecapView key={`recap-${version}`} onOpenRecord={openRecord} onOpenSearch={filter => navigate({ view: 'search', year: filter.year?.toString(), month: filter.month?.toString(), tag: filter.tag })} />}
+      {activeRoute === 'recap' && <RecapView key={`recap-${version}`} onOpenRecord={openRecord} onOpenSearch={filter => navigate({ view: 'search', year: filter.year?.toString(), month: filter.month?.toString(), field:filter.field, value:filter.value })} />}
       {activeRoute !== 'add' && activeRoute !== 'settings' && <button type="button" className="record-fab" onClick={() => navigate({ view: 'add' })}>＋ 기록하기</button>}
       {activeRoute === 'add' && <button type="button" className="form-back" onClick={back}>초안 보관하고 돌아가기</button>}
     </main>
