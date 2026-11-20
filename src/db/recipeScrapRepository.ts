@@ -38,3 +38,11 @@ export async function deleteRecipeScrapAsync(id: string) {
     return true;
   });
 }
+
+export async function updateRecipeScrapAsync(id:string, patch:Pick<RecipeScrap,'title'|'coverImage'>) {
+  await withStoreAsync(stores.recipeScraps,'readwrite',async store=>{
+    const current = await requestToPromise<RecipeScrap | undefined>(store.get(id));
+    if (!current) throw new Error('스크랩을 찾지 못했어요.');
+    await requestToPromise(store.put({...current,...patch,updatedAt:new Date().toISOString()}));
+  });
+}
