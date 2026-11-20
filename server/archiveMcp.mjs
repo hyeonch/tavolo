@@ -33,9 +33,9 @@ function result(data) { return { content: [{ type: 'text', text: JSON.stringify(
 function checked(response) { if (response.error) throw response.error; return response.data; }
 export function createArchiveServer({ db, userId }) {
   const server = new McpServer({ name: 'tavolo', version: '1.0.0' });
-  function tool(name, description, inputSchema, readOnly, fn, meta = {}) {
+  function tool(name, description, inputSchema, readOnly, fn, meta = {}, destructive = false) {
     server.registerTool(name, { description, inputSchema,
-      annotations: { readOnlyHint: readOnly, destructiveHint: false, idempotentHint: true, openWorldHint: Boolean(meta['openai/fileParams']) },
+      annotations: { readOnlyHint: readOnly, destructiveHint: destructive, idempotentHint: true, openWorldHint: Boolean(meta['openai/fileParams']) },
       _meta: { securitySchemes: [{ type: 'oauth2', scopes: ['email'] }], ...meta },
     }, async args => {
       try { return result(await fn(args)); }
@@ -69,6 +69,23 @@ export function createArchiveServer({ db, userId }) {
     if (query) request = request.ilike('meals.name', `%${query.replace(/[\\%_]/g,'\\$&')}%`);
     return { records: checked(await request) };
   });
+  tool('tavolo_trash_record', '요리 기록을 앱 휴지통으로 이동합니다. 앱에서 복구할 수 있습니다.', {
+    id: z.string().uuid(),
+  }, false, async ({id}) => {
+    const moved = checked(await db.from('meal_records').update({deleted_at: new Date().toISOString()})
+      .eq('id', id).is('deleted_at', null).select('id').maybeSingle());
+    if (!moved) checked(await db.from('meal_records').select('id').eq('id', id).not('deleted_at','is',null).single());
+    return {recordId: id, trashed: true};
+  }, {}, true);
+  tool('tavolo_discard_draft', '본인의 미확정 초안을 삭제합니다. 최신 revision을 보내세요.', {
+    id: z.string().uuid(), expectedRevision: z.number().int().positive(),
+  }, false, async ({id, expectedRevision}) => {
+    const removed = checked(await db.from('mcp_record_drafts').delete().eq('id', id).eq('user_id', userId)
+      .is('record_id', null).eq('revision', expectedRevision).select('id').maybeSingle());
+    if (!removed && checked(await db.from('mcp_record_drafts').select('id').eq('id', id).maybeSingle()))
+      throw new UploadError('초안이 변경되었거나 이미 확정됐어요.');
+    return {draftId: id, discarded: true};
+  }, {}, true);
   tool('tavolo_repeat_cooking', '이전 기록과 같은 요리를 다시 만든 회차를 추가합니다. 원본의 재료와 조리순서를 이어받고 날짜와 이번 메모를 저장합니다. 먼저 기록 검색으로 sourceRecordId를 확인하세요.', {
     sourceRecordId: z.string().uuid(), requestId: z.string().uuid(), cookedAt: draftSchema.shape.cookedAt, memo: text(10000).default(''),
   }, false, async ({sourceRecordId,requestId,cookedAt,memo}) => ({
