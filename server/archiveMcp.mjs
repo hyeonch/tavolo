@@ -43,10 +43,12 @@ export function createArchiveServer({ db, userId }) {
       catch (error) { return { isError: true, content: [{ type: 'text', text: error instanceof UploadError ? error.message : '요청을 완료하지 못했어요. 권한, 입력값 또는 초안 버전을 확인해주세요. 같은 요청 ID로 다시 시도하면 중복 저장되지 않아요.' }] }; }
     });
   }
-  tool('tavolo_get_journal', '현재 로그인한 계정과 함께 접근할 수 있는 기록장을 확인합니다.', {}, true, async () => ({
-    userId, journals: checked(await db.from('journals').select('id,name')),
-    members: checked(await db.from('journal_members').select('user_id,display_name')),
-  }));
+  async function journalContext() {
+    const journals = checked(await db.from('journals').select('id,name'));
+    const members = checked(await db.from('journal_members').select('user_id,display_name'));
+    return {userId, accountName:members.find(member => member.user_id === userId)?.display_name ?? null,journals,members};
+  }
+  tool('tavolo_get_journal', '저장 전에 현재 로그인한 계정 이름과 기록장을 확인합니다.', {}, true, journalContext);
   tool('tavolo_save_link', '사용자가 요청한 레시피 링크를 저장합니다. 동일 URL 재호출은 기존 스크랩을 반환합니다. 링크 내용은 자동 수집하지 않습니다.', {
     url: link, title: text(200).optional(), memo: text(10000).optional(),
   }, false, async ({url, title, memo}) => {
@@ -68,7 +70,10 @@ export function createArchiveServer({ db, userId }) {
     let request = source.select('*,meals!inner(name,recipe_url,memo)').is('deleted_at',null).order('cooked_at',{ascending:false}).range(offset,offset+limit-1);
     if (maxMinutes) request = request.lte('total_minutes', maxMinutes);
     if (query) request = request.ilike('meals.name', `%${query.replace(/[\\%_]/g,'\\$&')}%`);
-    return { records: checked(await request) };
+    const records = checked(await request);
+    const members = checked(await db.from('journal_members').select('user_id,display_name'));
+    const names = new Map(members.map(member => [member.user_id,member.display_name]));
+    return {records:records.map(record => ({...record,authorName:names.get(record.user_id) ?? null}))};
   });
   const recordArgs = {id: z.string().uuid(), expectedUpdatedAt: z.string().datetime({offset:true})};
   const patchSchema = z.object({
@@ -156,7 +161,8 @@ export function createArchiveServer({ db, userId }) {
   }, false, async ({id,expectedRevision}) => {
     const draft=checked(await db.from('mcp_record_drafts').select('payload,record_id').eq('id',id).single());
     if (!draft.record_id) draftSchema.parse({...draft.payload, tags: (draft.payload.tags ?? []).filter(tag => fixedTags.includes(tag))});
-    return {...checked(await db.rpc('mcp_draft_action',{action:'commit',target_id:id,expected_revision:expectedRevision})),appUrl:'https://tavolo-kr.vercel.app'};
+    const destination = await journalContext();
+    return {accountName:destination.accountName,userId,journals:destination.journals,...checked(await db.rpc('mcp_draft_action',{action:'commit',target_id:id,expected_revision:expectedRevision})),appUrl:'https://tavolo-kr.vercel.app'};
   });
   return server;
 }
