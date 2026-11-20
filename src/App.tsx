@@ -111,10 +111,6 @@ function formatCookedAtLabel(cookedAt: string) {
   }).format(new Date(`${cookedAt}T00:00:00`));
 }
 
-function formatRating(rating?: number) {
-  return rating ? `만족도 ${rating}/5` : '만족도 미입력';
-}
-
 function getRecipeScrapTitle(recipeScrap: RecipeScrap) {
   if (recipeScrap.title) return recipeScrap.title;
 
@@ -490,10 +486,8 @@ function DetailView({
           </div>
           <div className="detail-preview">
             <div>
-              <span>만족도</span>
               {record.totalMinutes && <span>{record.totalMinutes}분</span>}
               {record.servings && <span>{record.servings}인분</span>}
-              <strong>{record.rating ? `${record.rating}/5` : '미입력'}</strong>
             </div>
             {fields.map(key => metadataOf(record)[key]?.length ? <p key={key}><strong>{labels[key]}</strong> · {metadataOf(record)[key]?.join(', ')}</p> : null)}
             {record.meal?.tags.length ? (
@@ -573,7 +567,7 @@ function DetailView({
 }
 
 type RecordDraft = {
-  mealName: string; recipeUrl: string; cookedAt: string; servings?: string; totalMinutes?: string; rating: string; memo: string; tagsInput: string; metadataText?: Record<typeof fields[number],string>;
+  mealName: string; recipeUrl: string; cookedAt: string; servings?: string; totalMinutes?: string; memo: string; tagsInput: string; metadataText?: Record<typeof fields[number],string>;
   ingredientGroups: IngredientGroup[]; recipeSteps: RecipeStepDraft[]; finishedPhoto: File | null;
   removedMediaIds: Set<string>; replacementFiles: Record<string, File>;
   mealId: string; recordId: string;
@@ -613,7 +607,6 @@ function AddForm({
   const [cookedAt, setCookedAt] = useState(() => draft?.cookedAt ?? record?.cookedAt ?? new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
   const [servings, setServings] = useState(() => draft?.servings ?? String(record?.servings ?? ''));
   const [totalMinutes, setTotalMinutes] = useState(() => draft?.totalMinutes ?? String(record?.totalMinutes ?? ''));
-  const [rating, setRating] = useState(() => draft?.rating ?? (record?.rating ? String(record.rating) : ''));
   const [memo, setMemo] = useState(() => draft?.memo ?? record?.memo ?? '');
   const [tagsInput] = useState(() => draft?.tagsInput ?? sourceRecipe?.meal?.tags.join(', ') ?? '');
   const [metadataText,setMetadataText] = useState(() => draft?.metadataText ?? Object.fromEntries(fields.map(key => [key,(metadataOf(sourceRecipe)[key] ?? []).join(', ')])) as Record<typeof fields[number],string>);
@@ -641,7 +634,7 @@ function AddForm({
   const [savePhase, setSavePhase] = useState('기록 저장 중…');
   const submitting = useRef(false);
   const completed = useRef(false);
-  const snapshot = useMemo(() => ({ mealName, recipeUrl, cookedAt, servings, totalMinutes, rating, memo, tagsInput, metadataText, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ...ids }), [mealName, recipeUrl, cookedAt, servings, totalMinutes, rating, memo, tagsInput, metadataText, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ids]);
+  const snapshot = useMemo(() => ({ mealName, recipeUrl, cookedAt, servings, totalMinutes, memo, tagsInput, metadataText, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ...ids }), [mealName, recipeUrl, cookedAt, servings, totalMinutes, memo, tagsInput, metadataText, ingredientGroups, recipeSteps, finishedPhoto, removedMediaIds, replacementFiles, ids]);
   useEffect(() => {
     if (completed.current) return;
     let active = true;
@@ -877,7 +870,6 @@ function AddForm({
           cookedAt,
           totalMinutes: totalMinutes ? Number(totalMinutes) : null,
           servings: servings ? Number(servings) : null,
-          rating: rating ? Number(rating) : null,
           memo: trimmedMemo || null,
           metadata,
           ingredientGroups: savedIngredientGroups.length ? savedIngredientGroups : null,
@@ -890,7 +882,6 @@ function AddForm({
           cookedAt,
           totalMinutes: totalMinutes ? Number(totalMinutes) : undefined,
           servings: servings ? Number(servings) : undefined,
-          rating: rating ? Number(rating) : undefined,
           memo: trimmedMemo || undefined,
           metadata,
           ingredientGroups: savedIngredientGroups.length ? savedIngredientGroups : undefined,
@@ -1064,18 +1055,7 @@ function AddForm({
           />
         </label>
         <details className="recipe-disclosure" open={Boolean(sourceRecipe?.recipeSteps?.length || sourceRecipe?.ingredientGroups?.length || draft?.recipeSteps.some(step => step.body || step.photoFile || step.mediaIds.length))}>
-          <summary>만족도·태그·재료·조리 순서 추가 (선택)</summary>
-        <label className="compact-field">
-          만족도
-          <select value={rating} onChange={(event) => setRating(event.target.value)}>
-            <option value="">선택 안 함</option>
-            <option value="5">5점</option>
-            <option value="4">4점</option>
-            <option value="3">3점</option>
-            <option value="2">2점</option>
-            <option value="1">1점</option>
-          </select>
-        </label>
+          <summary>태그·재료·조리 순서 추가 (선택)</summary>
         {fields.map(key => <label key={key}>{labels[key]}
           <input value={metadataText[key]} readOnly={Boolean(template)} onChange={event=>setMetadataText({...metadataText,[key]:event.target.value})} />
         </label>)}
@@ -1454,7 +1434,7 @@ function RecordTextCard({
       <button className="record-text-card" type="button" onClick={() => onOpen(record)}>
         <span className="record-date">{formatCookedAtLabel(record.cookedAt)}</span>
         <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
-        <span>{Object.values(metadataOf(record)).flat().join(' · ') || formatRating(record.rating)}</span>
+        <span>{Object.values(metadataOf(record)).flat().join(' · ') || ''}</span>
       </button>
     </li>
   );
@@ -1501,7 +1481,7 @@ function RecordSearchCard({ record, onOpen }: { record: MealRecord; onOpen: (rec
         </span>
         <span className="record-search-body">
           <strong>{record.meal?.name ?? '이름 없는 요리'}</strong>
-          <span>{[record.authorName, record.rating ? `${record.rating}점` : null, Object.values(metadataOf(record)).flat().join(' · ')].filter(Boolean).join(' · ')}</span>
+          <span>{[record.authorName, Object.values(metadataOf(record)).flat().join(' · ')].filter(Boolean).join(' · ')}</span>
           {record.memo && <span className="record-memo">{record.memo}</span>}
         </span>
         <span className="record-date">{formatCookedAtLabel(record.cookedAt)}</span>
@@ -1664,7 +1644,6 @@ function WorldCupChoice({
       <span className="world-cup-choice-copy">
         <strong>{mealName}</strong>
         <small>{record ? formatCookedAtLabel(record.cookedAt) : '기록을 찾을 수 없어요'}</small>
-        {record?.rating ? <em>만족도 {record.rating}/5</em> : null}
       </span>
     </button>
   );
@@ -1820,7 +1799,7 @@ function RecapView({
       {loadState === 'ready' && section === 'recap' && summary && summary.totalCount ? (
         <>
           <label className="recap-year-select"><span>결산 연도</span><select value={summary.year} onChange={(event) => setSelectedYear(Number(event.target.value))}>{years.map((year) => <option key={year} value={year}>{year}년</option>)}</select></label>
-          <div className="recap-grid"><section><span>남긴 요리</span><strong>{summary.totalCount}<small>개</small></strong></section><section><span>평균 만족도</span><strong>{summary.averageRating ?? '–'}<small>{summary.averageRating ? ' / 5' : ''}</small></strong></section><section><span>평균 조리시간</span><strong>{summary.averageMinutes ?? '–'}{summary.timedCount > 0 && <small>분</small>}</strong>{summary.timedCount > 0 && <small>시간을 입력한 {summary.timedCount}건 기준</small>}</section></div>
+          <div className="recap-grid"><section><span>남긴 요리</span><strong>{summary.totalCount}<small>개</small></strong></section><section><span>평균 조리시간</span><strong>{summary.averageMinutes ?? '–'}{summary.timedCount > 0 && <small>분</small>}</strong>{summary.timedCount > 0 && <small>시간을 입력한 {summary.timedCount}건 기준</small>}</section></div>
           <section className="recap-highlight recap-months"><div className="panel-header"><div><p className="eyebrow">월별 기록</p><h2>{summary.year}년 월별 기록</h2></div></div><div className="month-bar-list">{summary.monthCounts.map((count, index) => <button disabled={!count} key={index} type="button" onClick={() => onOpenSearch({ year: summary.year, month: index + 1 })}><span>{index + 1}월</span><i><b style={{ width: `${(count / peakMonth) * 100}%` }} /></i><strong>{count}</strong></button>)}</div></section>
           {summary.rankings.filter(group => group.values.length > 0).map(({field,values}) => (
             <section className="recap-highlight" key={field}>
@@ -1832,7 +1811,6 @@ function RecapView({
               ))}</div>
             </section>
           ))}
-          <section className="recap-highlight"><div className="panel-header"><div><p className="eyebrow">가장 만족한 요리</p><h2>{summary.bestRecords.length ? `${summary.bestRecords[0].rating}점 기록` : '평점을 남겨보세요'}</h2></div></div>{summary.bestRecords.length ? <ul className="record-text-list">{summary.bestRecords.map((record) => <RecordTextCard key={record.id} record={record} onOpen={onOpenRecord} />)}</ul> : null}</section>
         </>
       ) : null}
       {loadState === 'ready' && section === 'recap' && summary && !summary.totalCount ? <div className="empty-state"><strong>아직 결산할 기록이 없어요.</strong><p>첫 요리 기록을 남기면 연도 결산이 시작됩니다.</p></div> : null}

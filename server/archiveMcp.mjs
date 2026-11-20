@@ -18,7 +18,7 @@ export const draftSchema = z.object({
   metadata: metadataSchema.optional(),
   totalMinutes: z.number().int().min(1).max(32767).optional(),
   servings: z.number().int().min(1).max(32767).optional(),
-  recipeUrl: link.optional(), memo: text(10000).default(''), rating: z.number().int().min(1).max(5).optional(),
+  recipeUrl: link.optional(), memo: text(10000).default(''),
   tags: z.array(text(40).min(1)).max(20).default([]),
   ingredientGroups: z.array(z.object({ name: text(80).min(1), items: z.array(z.object({
     name: text(120).min(1), quantity: text(80).optional(), unit: text(40).optional(), note: text(500).optional(),
@@ -85,7 +85,7 @@ export function createArchiveServer({ db, userId }) {
   const patchSchema = z.object({
     metadata: metadataSchema.optional(),
     name: draftSchema.shape.name.optional(), cookedAt: draftSchema.shape.cookedAt.optional(),
-    memo: text(10000).optional(), rating: z.number().int().min(1).max(5).nullable().optional(),
+    memo: text(10000).optional(),
     tags: z.array(text(40).min(1)).max(20).optional(),
     ingredientGroups: draftSchema.shape.ingredientGroups.removeDefault().optional(),
     steps: z.array(z.object({id:text(120).min(1),body:text(2000).min(1)})).max(50).optional(),

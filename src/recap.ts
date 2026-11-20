@@ -5,11 +5,9 @@ export type RecapSummary = {
   year: number;
   totalCount: number;
   monthCounts: number[];
-  averageRating: string | null;
   averageMinutes: number | null;
   timedCount: number;
   rankings: { field: typeof fields[number]; values: { name: string; count: number }[] }[];
-  bestRecords: MealRecord[];
 };
 
 export function getRecordYears(records: MealRecord[]) {
@@ -21,10 +19,6 @@ export function buildRecapSummary(records: MealRecord[], year: number): RecapSum
   const monthCounts = Array.from({ length: 12 }, (_, month) =>
     yearlyRecords.filter((record) => Number(record.cookedAt.slice(5, 7)) === month + 1).length
   );
-  const ratedRecords = yearlyRecords.filter((record) => record.rating);
-  const averageRating = ratedRecords.length
-    ? (ratedRecords.reduce((sum, record) => sum + (record.rating ?? 0), 0) / ratedRecords.length).toFixed(1)
-    : null;
   const minutes = yearlyRecords.flatMap(record => record.totalMinutes ? [record.totalMinutes] : []);
   const rankings = fields.map(field => {
     const counts = new Map<string, number>();
@@ -37,16 +31,13 @@ export function buildRecapSummary(records: MealRecord[], year: number): RecapSum
       .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name,'ko')).slice(0,5);
     return { field, values };
   });
-  const bestRating = Math.max(0, ...yearlyRecords.map((record) => record.rating ?? 0));
 
   return {
     year,
     totalCount: yearlyRecords.length,
     monthCounts,
-    averageRating,
     averageMinutes: minutes.length ? Math.round(minutes.reduce((sum,n) => sum+n,0) / minutes.length) : null,
     timedCount: minutes.length,
     rankings,
-    bestRecords: bestRating ? yearlyRecords.filter((record) => record.rating === bestRating).slice(0, 3) : [],
   };
 }
