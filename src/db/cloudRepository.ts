@@ -111,6 +111,7 @@ async function loadMealsAndRecordsAsync() {
       mealId: record.meal_id,
       meal: mealsById.get(record.meal_id),
       cookedAt: record.cooked_at,
+      metadata: record.metadata ?? undefined,
       servings: record.servings ?? undefined,
       totalMinutes: record.total_minutes ?? undefined,
       rating: record.rating ?? undefined,
@@ -179,6 +180,7 @@ export async function createMealRecordAsync(input: CreateMealRecordInput) {
     user_id: userId,
     meal_id: input.mealId,
     cooked_at: input.cookedAt,
+    metadata: input.metadata,
     servings: input.servings ?? null,
     total_minutes: input.totalMinutes ?? null,
     rating: input.rating ?? null,
@@ -221,6 +223,7 @@ export async function updateMealRecordAsync(id: string, input: UpdateMealRecordI
     ...(input.cookedAt !== undefined ? { cooked_at: input.cookedAt } : {}),
     ...('rating' in input ? { rating: input.rating ?? null } : {}),
     ...('memo' in input ? { memo: input.memo?.trim() || null } : {}),
+    ...(input.metadata ? {metadata:input.metadata} : {}),
     ...('servings' in input ? { servings: input.servings ?? null } : {}),
     ...('totalMinutes' in input ? { total_minutes: input.totalMinutes ?? null } : {}),
     ...('ingredientGroups' in input ? { ingredient_groups: input.ingredientGroups ?? [] } : {}),
@@ -362,7 +365,7 @@ export async function listRecipeScrapsAsync() {
   ]);
   throwIfError(scraps.error); throwIfError(members.error);
   return (scraps.data ?? []).map(item => ({
-    id: item.id, url: item.url, title: item.title ?? undefined, memo: item.memo ?? undefined,
+    id: item.id, coverImage:item.cover_image ?? undefined, url: item.url, title: item.title ?? undefined, memo: item.memo ?? undefined,
     authorName: members.data?.find(m => m.user_id === item.user_id)?.display_name ?? (item.user_id === userId ? '나' : '함께한 사람'),
     createdAt: item.created_at, updatedAt: item.updated_at,
   } satisfies RecipeScrap));
@@ -390,4 +393,12 @@ export async function resolveRepeatMeal(sourceId: string): Promise<string> {
   const { data, error } = await supabase.rpc('repeat_meal_id', { source_record: sourceId });
   throwIfError(error);
   return data;
+}
+
+export async function updateRecipeScrapAsync(id:string, patch:Pick<RecipeScrap,'title'|'coverImage'>) {
+  const {supabase} = await getCloudContext();
+  const {error} = await supabase.from('recipe_scraps').update({
+    title:patch.title,cover_image:patch.coverImage,updated_at:new Date().toISOString()
+  }).eq('id',id).is('deleted_at',null).select('id').single();
+  throwIfError(error);
 }

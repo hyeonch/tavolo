@@ -2137,3 +2137,22 @@ input, textarea, select, button { scroll-margin-block: 100px; }
 .cooking-days button { position: relative; min-height: 44px; border-radius: .65rem; color: inherit; }
 .cooking-days button[aria-pressed=true] { background: #e9efff; color: #1648b2; font-weight: 700; }
 .cooking-days button[data-cooked=true]::after { content: ''; position: absolute; bottom: 4px; left: calc(50% - 2px); width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+
+.metadata-filters { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.metadata-filters label, .time-filter { font-family: inherit; font-size: 14px; font-weight: 600; color: var(--muted); }
+.metadata-filters select, .time-filter input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; padding: 6px 8px; }
+.metadata-filters select { display:block; margin-top:4px; }
+.time-filter { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.time-filter input { width: 6em; text-align: center; }
+.view-switch { flex: none; white-space: nowrap; }
+.scrap-preview { position: relative; }
+.scrap-preview:not(.has-image) small { background: #edf2ff; color: #435574; }
+.compact-search-field input { appearance: none; -webkit-appearance: none; background: transparent; min-width: 0; }
+@media (max-width: 640px) {
+  .journal-toolbar { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 12px; }
+  .time-filter { grid-column: 1 / -1; }
+  .journal-toolbar select { max-width: 100%; justify-self: start; }
+}
+.metadata-filters { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.journal-photos .no-photo .record-search-thumbnail { display: none; }
+@media (max-width: 640px) { .metadata-filters { grid-template-columns: repeat(2,minmax(0,1fr)); } }

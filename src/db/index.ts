@@ -71,3 +71,5 @@ export async function setMealTagNamesAsync(mealId: string, names: string[]) {
 }
 
 export { resolveRepeatMeal } from './cloudRepository';
+
+export const updateRecipeScrapAsync = (...args: Parameters<typeof localRecipeScrap.updateRecipeScrapAsync>) => scraps().updateRecipeScrapAsync(...args);

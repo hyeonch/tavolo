@@ -1,3 +1,4 @@
+export type RecipeMetadata = Partial<Record<'country' | 'mainIngredient' | 'dishType', string[]>>;
 export type Meal = {
   recipeOrigin?: string;
   id: string;
@@ -36,6 +37,7 @@ export type MealRecord = {
   mealId: string;
   meal?: Meal;
   cookedAt: string;
+  metadata?: RecipeMetadata;
   servings?: number;
   totalMinutes?: number;
   rating?: number;
@@ -68,6 +70,7 @@ export type Tag = {
 };
 
 export type RecipeScrap = {
+  coverImage?: string;
   authorName?: string;
   id: string;
   url: string;
@@ -122,6 +125,7 @@ export type CreateMealRecordInput = {
   id: string;
   mealId: string;
   cookedAt: string;
+  metadata?: RecipeMetadata;
   servings?: number;
   totalMinutes?: number;
   rating?: number;
@@ -134,6 +138,7 @@ export type CreateMealRecordInput = {
 };
 
 export type UpdateMealRecordInput = Partial<Pick<MealRecord, 'mealId' | 'cookedAt'>> & {
+  metadata?: RecipeMetadata;
   servings?: number | null;
   totalMinutes?: number | null;
   rating?: number | null;
