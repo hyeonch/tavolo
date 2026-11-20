@@ -1,5 +1,6 @@
 import mealTags from '../shared/mealTags.json' with {type:'json'};
-import { createHash } from 'node:crypto';
+import { recordPhoto } from './recordPhotos.mjs';
+import { createHash, randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { prepareUpload, finishUpload, UploadError } from './photoUpload.mjs';
@@ -69,6 +70,32 @@ export function createArchiveServer({ db, userId }) {
     if (query) request = request.ilike('meals.name', `%${query.replace(/[\\%_]/g,'\\$&')}%`);
     return { records: checked(await request) };
   });
+  const recordArgs = {id: z.string().uuid(), expectedUpdatedAt: z.string().datetime({offset:true})};
+  const patchSchema = z.object({
+    name: draftSchema.shape.name.optional(), cookedAt: draftSchema.shape.cookedAt.optional(),
+    memo: text(10000).optional(), rating: z.number().int().min(1).max(5).nullable().optional(),
+    tags: z.array(text(40).min(1)).max(20).optional(),
+    ingredientGroups: draftSchema.shape.ingredientGroups.removeDefault().optional(),
+    steps: z.array(z.object({id:text(120).min(1),body:text(2000).min(1)})).max(50).optional(),
+  }).strict().refine(patch => Object.keys(patch).length > 0);
+  tool('tavolo_update_record', '확정 기록에서 지정한 필드만 수정합니다. 검색 결과의 updated_at을 보내세요. 조리 단계의 기존 id를 유지하고 새 단계에는 새 id를 지정하세요.', {
+    ...recordArgs, patch: patchSchema,
+  }, false, async ({id,expectedUpdatedAt,patch}) => {
+    if (patch.ingredientGroups) patch.ingredientGroups = patch.ingredientGroups.map(group => ({
+      ...group,id:randomUUID(),items:group.items.map(item => ({...item,id:randomUUID()})),
+    }));
+    return checked(await db.rpc('edit_archive_record',{target_id:id,expected_update:expectedUpdatedAt,patch}));
+  });
+  const recordPhotoArgs = {...recordArgs, requestId:z.string().uuid(), stepId:text(120).min(1).optional()};
+  const linkedPhotoArgs = {...recordPhotoArgs, mimeType:z.enum(['image/jpeg','image/png','image/webp'])};
+  tool('tavolo_attach_record_photo','확정 기록에 첨부한 원본 사진을 추가합니다. 단계 사진은 stepId를 지정하세요.',{
+    ...recordPhotoArgs,photo:z.object({download_url:z.string().url(),file_id:z.string().min(1)}),
+  },false,args => recordPhoto({db,userId},args,'attach'),{'openai/fileParams':['photo']});
+  tool('tavolo_prepare_record_photo_upload','확정 기록에 사진을 추가할 업로드 링크를 발급합니다. pageUrl을 열거나 uploadUrl에 원본을 PUT한 뒤 finishArgs로 완료하세요.',
+    linkedPhotoArgs,false,args => recordPhoto({db,userId},args,'prepare'));
+  tool('tavolo_finish_record_photo_upload','업로드한 사진을 검증하고 확정 기록에 추가합니다.',{
+    ...linkedPhotoArgs,expectedSha256:z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  },false,args => recordPhoto({db,userId},args,'finish'));
   tool('tavolo_trash_record', '요리 기록을 앱 휴지통으로 이동합니다. 앱에서 복구할 수 있습니다.', {
     id: z.string().uuid(),
   }, false, async ({id}) => {
@@ -101,7 +128,7 @@ export function createArchiveServer({ db, userId }) {
   tool('tavolo_get_draft', '내가 만든 요리 초안과 현재 버전을 조회합니다.', { id: z.string().uuid() }, true,
     async ({id}) => ({ draft: checked(await db.from('mcp_record_drafts').select('*').eq('id',id).single()),
       photos: checked(await db.from('mcp_draft_photos').select('id,slot,mime_type,byte_size').eq('draft_id',id)) }));
-  tool('tavolo_update_draft', '초안을 전체 교체합니다. 먼저 조회한 revision을 expectedRevision으로 보내세요. 조리순서 사진은 순서 편집을 마친 뒤 첨부하세요. 순서 사진 첨부 후에는 순서를 변경할 수 없고, 확정된 초안도 수정하지 않습니다. 확정 후 편집은 앱에서 합니다.', {
+  tool('tavolo_update_draft', '초안을 전체 교체합니다. 먼저 조회한 revision을 expectedRevision으로 보내세요. 조리순서 사진은 순서 편집을 마친 뒤 첨부하세요. 순서 사진 첨부 후에는 순서를 변경할 수 없고, 확정된 초안도 수정하지 않습니다. 확정 후에는 tavolo_update_record를 사용하세요.', {
     id: z.string().uuid(), expectedRevision: z.number().int().min(1), draft: fixedDraft,
   }, false, async ({id,expectedRevision,draft}) => {
     const current = checked(await db.from('mcp_record_drafts').select('payload').eq('id',id).single());
