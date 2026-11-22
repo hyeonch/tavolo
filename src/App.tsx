@@ -1,3 +1,4 @@
+import { pickMenuOnDevice } from './menuPick';
 import {ScrapEditor} from './components/ScrapEditor';
 import {fields, labels, emptyFilters, RecipeFilters, metadataOf, matchesMetadata} from './components/RecipeFilters';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -224,7 +225,8 @@ function Dashboard({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => voi
   const [scraps, setScraps] = useState<RecipeScrap[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [retry, setRetry] = useState(0);
-  const [seed] = useState(Math.random);
+  const [round, setRound] = useState(0);
+  const [modelPick, setModelPick] = useState<number | null>(null);
   useEffect(() => {
     let active = true;
     setStatus('loading');
@@ -233,7 +235,7 @@ function Dashboard({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => voi
     }).catch(() => { if (active) setStatus('error'); });
     return () => { active = false; };
   }, [retry]);
-  const recommendation = useMemo(() => {
+  const menu = useMemo(() => {
     const cookedLinks = new Set(records.map(r => r.meal?.recipeUrl));
     const dishes = new Map<string, MealRecord>();
     for (const record of records) {
@@ -245,8 +247,27 @@ function Dashboard({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => voi
       ...Array.from(dishes.values(), record => ({record, scrap: null})),
       ...scraps.filter(s => !cookedLinks.has(s.url) && /^https?:\/\//i.test(s.url)).map(scrap => ({record: null, scrap})),
     ];
-    return candidates[Math.floor(seed * candidates.length)];
-  }, [records, scraps, seed]);
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+    return candidates;
+  }, [records, scraps]);
+  useEffect(() => {
+    if (round || menu.length < 2) return;
+    const controller = new AbortController();
+    async function pick() {
+      const candidates = menu.slice(0, 12).map(({ record, scrap }) => ({
+        title: (record?.meal?.name ?? scrap?.title ?? '').slice(0, 64),
+        lastCooked: record?.cookedAt.slice(0, 10) ?? null,
+      }));
+      const index = await pickMenuOnDevice(candidates, controller.signal);
+      if (!controller.signal.aborted && index !== null) setModelPick(index);
+    }
+    void pick().catch(() => { /* The local recommendation is already visible. */ });
+    return () => controller.abort();
+  }, [menu, round]);
+  const recommendation = menu[(round + (modelPick ?? 0)) % menu.length];
   const dates = useMemo(() => new Set(records.map(r => r.cookedAt)), [records]);
   const [year, month] = selected.split('-').map(Number);
   const start = new Date(year, month - 1, 1).getDay();
@@ -259,7 +280,9 @@ function Dashboard({ onOpenRecord }: { onOpenRecord: (record: MealRecord) => voi
       <small>다시 해 먹을 요리</small><button onClick={() => onOpenRecord(recommendation.record)}>{recommendation.record.meal?.name ?? '요리 기록'} →</button>
     </> : recommendation?.scrap ? <>
       <small>스크랩한 요리</small><a href={recommendation.scrap.url} target="_blank" rel="noreferrer">{recommendation.scrap.title || recommendation.scrap.url} ↗</a>
-    </> : <p>요리를 기록하거나 레시피를 스크랩하면 여기에 추천이 떠요.</p>}</section>
+    </> : <p>요리를 기록하거나 레시피를 스크랩하면 여기에 추천이 떠요.</p>}
+      {menu.length > 1 && <button className="menu-skip" onClick={() => setRound(value => value + 1)}>안 땡겨요</button>}
+    </section>
     <section aria-label="조리 달력"><header><button aria-label="지난달" onClick={() => setSelected(toDateKey(new Date(year, month - 2, 1)))}>‹</button>
       <h2>{year}년 {month}월</h2><button aria-label="다음 달" onClick={() => setSelected(toDateKey(new Date(year, month, 1)))}>›</button></header>
       <div className="cooking-days">{Array.from('일월화수목금토', d => <small key={d}>{d}</small>)}
