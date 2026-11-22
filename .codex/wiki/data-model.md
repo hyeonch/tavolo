@@ -110,3 +110,12 @@ Supabase persistence direction:
 ## Repeat cooking and record search
 
 Repeat cooking reuses the author's meal. A partner's first repeat creates a meal in the new author's namespace and retains the original dish ID in recipe_origin. Subsequent repeats reuse that meal. Visible history groups by recipe_origin or the meal ID under existing journal RLS. Prior photos, rating, cooking time and memo are not carried into a new event. Servings and total_minutes are optional per-record values. Ingredient and maximum-time searches filter individual cooking events.
+
+## TVL-75 post-commit edits
+
+- `meal_records.uncertainties` (JSON string array) stores 확인 필요 notes separately from `memo`. Commit no longer leaves them merged into the memo; older merged memos were split by the migration.
+- `edit_archive_record` patch accepts `servings`, `totalMinutes`, `recipeUrl`, `uncertainties`; null clears them. `recipeUrl` stays on `meals`, so every record of that dish shows the change.
+- Adding a finished photo moves the previous finished photo to trash, keeping one representative photo per record.
+- `edit_record_photo` trashes a photo or moves it between the finished slot and a recipe step. Promoting to finished trashes the current finished photo. Files are never deleted; trash/restore uses the existing `deleted_at` flow.
+- MCP tools: `tavolo_trash_record_photo`, `tavolo_move_record_photo`; `tavolo_search_records` returns each record's active `photos` (id, kind, stepId).
+- Deploy: apply `record_edit_fields_and_photos` migration before the MCP/server change.

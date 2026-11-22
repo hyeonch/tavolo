@@ -502,6 +502,12 @@ function DetailView({
                 <p>{record.memo}</p>
               </div>
             ) : null}
+            {record.uncertainties?.length ? (
+              <div>
+                <span>확인 필요</span>
+                <ul>{record.uncertainties.map((note, index) => <li key={index}>{note}</li>)}</ul>
+              </div>
+            ) : null}
             {record.meal?.recipeUrl ? (
               <div>
                 <span>원본 레시피</span>

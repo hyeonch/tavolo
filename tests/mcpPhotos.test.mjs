@@ -27,7 +27,7 @@ test('private photo staging and atomic commit preserve ownership, retry safety a
     await db.exec(fs.readFileSync(new URL('../supabase/migrations/20260818072604_create_tavolo_schema.sql', import.meta.url), 'utf8'));
 
     for(const u of [a,b,outsider]) await db.query('insert into auth.users values($1,$2,now())',[u,u+'@example.com']);
-    for(const file of ['20261109074901_shared_journal_access.sql','20261109073739_account_world_cups.sql','20261109220910_journal_invites_and_restore.sql','20261110133652_mcp_record_drafts.sql','20261110134053_restrict_mcp_draft_grants.sql','20261110134513_commit_mcp_drafts_with_photos.sql','20261119040000_record_cooking_fields.sql','20261119041000_ingredient_search.sql','20261119050000_repeat_meals.sql','20261120010000_discard_draft.sql','20261120011000_edit_record.sql','20261120100000_free_recipe_metadata.sql','20261120100100_scrap_cover.sql']) await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+    for(const file of ['20261109074901_shared_journal_access.sql','20261109073739_account_world_cups.sql','20261109220910_journal_invites_and_restore.sql','20261110133652_mcp_record_drafts.sql','20261110134053_restrict_mcp_draft_grants.sql','20261110134513_commit_mcp_drafts_with_photos.sql','20261119040000_record_cooking_fields.sql','20261119041000_ingredient_search.sql','20261119050000_repeat_meals.sql','20261120010000_discard_draft.sql','20261120011000_edit_record.sql','20261120100000_free_recipe_metadata.sql','20261120100100_scrap_cover.sql','20261122120000_record_edit_fields_and_photos.sql']) await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
     await login(a);
     const payload={metadata:{country:['포르투갈'],mainIngredient:['문어']},servings:2,totalMinutes:25,name:'버섯 리소토',cookedAt:'2026-11-10',memo:'첫 시도',tags:['이탈리안'],ingredientGroups:[{name:'재료',items:[{name:'쌀',quantity:'100',unit:'g'}]}],steps:['볶는다','졸인다'],uncertainties:['치즈 양 미확인']};
     await db.query('insert into mcp_record_drafts(id,user_id,payload) values($1,$2,$3)',[id,a,payload]);
@@ -59,7 +59,7 @@ test('private photo staging and atomic commit preserve ownership, retry safety a
     const record=(await db.query('select * from meal_records')).rows[0];
     assert.equal((await db.query("select id from records_using_ingredient('쌀') where total_minutes <= 25")).rows.length,1);
     assert.equal((await db.query("select id from records_using_ingredient('쌀') where total_minutes <= 24")).rows.length,0);
-    assert.deepEqual(record.metadata,payload.metadata);assert.equal(record.servings,2);assert.equal(record.total_minutes,25);assert.match(record.memo,/치즈 양 미확인/);assert.equal(record.recipe_steps[0].order,1);assert.equal(record.recipe_steps[0].mediaIds.length,1);
+    assert.deepEqual(record.metadata,payload.metadata);assert.equal(record.servings,2);assert.equal(record.total_minutes,25);assert.equal(record.memo,'첫 시도');assert.deepEqual(record.uncertainties,['치즈 양 미확인']);assert.equal(record.recipe_steps[0].order,1);assert.equal(record.recipe_steps[0].mediaIds.length,1);
     assert.equal((await db.query('select * from media')).rows[0].storage_path,path);
     // A bad draft rolls the entire meal+record transaction back.
     await db.query('insert into mcp_record_drafts(id,user_id,payload) values($1,$2,$3)',[bad,a,{...payload,rating:99}]);
@@ -92,6 +92,46 @@ test('private photo staging and atomic commit preserve ownership, retry safety a
     const added = {path:uploadPath,mimeType:'image/png',bytes:123,stepId:record.recipe_steps[0].id};
     const saved = await edit(edited.updatedAt,{},added);
     assert.deepEqual(await edit(edited.updatedAt,{},added),saved);
+    // Cooking fields, recipe link and uncertainties can be set and cleared after commit.
+    const fields = await edit(saved.updatedAt,{servings:null,totalMinutes:40,recipeUrl:'https://example.com/risotto',uncertainties:['불 세기']});
+    let row = (await db.query('select r.servings,r.total_minutes,r.uncertainties,r.memo,m.recipe_url from meal_records r join meals m on m.id=r.meal_id where r.id=$1',[id])).rows[0];
+    assert.equal(row.servings,null);assert.equal(row.total_minutes,40);assert.deepEqual(row.uncertainties,['불 세기']);
+    assert.equal(row.recipe_url,'https://example.com/risotto');assert.equal(row.memo,'두 번째');
+    const cleared = await edit(fields.updatedAt,{recipeUrl:null,uncertainties:null});
+    row = (await db.query('select r.uncertainties,m.recipe_url from meal_records r join meals m on m.id=r.meal_id where r.id=$1',[id])).rows[0];
+    assert.deepEqual(row.uncertainties,[]);assert.equal(row.recipe_url,null);
+    // A new finished photo replaces the old one; the old one is recoverable from trash.
+    const oldFinished = (await db.query("select id from media where meal_record_id=$1 and kind='finished' and deleted_at is null",[id])).rows[0].id;
+    const newPath = [a,id,'mcp-'+b,'new-finished.png'].join('/');
+    await db.query("insert into storage.objects(bucket_id,name) values('meal-media',$1)",[newPath]);
+    const replaced = await edit(cleared.updatedAt,{},{path:newPath,mimeType:'image/png',bytes:50});
+    const active = async () => (await db.query("select id,kind,recipe_step_id from media where meal_record_id=$1 and deleted_at is null order by created_at",[id])).rows;
+    assert.deepEqual((await active()).filter(p => p.kind==='finished').map(p => p.id),[replaced.photoId]);
+    // Move the old finished photo back into a recipe step, then trash a step photo.
+    const editPhoto = async (version,photoId,act,stepId=null) => (await db.query(
+      'select edit_record_photo($1,$2,$3,$4,$5) as result',[id,version,photoId,act,stepId])).rows[0].result;
+    const version2 = (await db.query('select updated_at::text as v from meal_records where id=$1',[id])).rows[0].v;
+    await assert.rejects(editPhoto(version2,oldFinished,'move',record.recipe_steps[1].id));
+    await db.query('select restore_archive_item($1,$2)',['media',oldFinished]);
+    // Restoring a finished photo swaps it back without changing the record version.
+    const version3 = (await db.query('select updated_at::text as v from meal_records where id=$1',[id])).rows[0].v;
+    assert.deepEqual((await active()).filter(p => p.kind==='finished').map(p => p.id),[oldFinished]);
+    const moved = await editPhoto(version3,oldFinished,'move',record.recipe_steps[1].id);
+    assert.deepEqual(await editPhoto(version3,oldFinished,'move',record.recipe_steps[1].id),moved);
+    let steps = (await db.query('select recipe_steps from meal_records where id=$1',[id])).rows[0].recipe_steps;
+    assert.ok(steps[1].mediaIds.includes(oldFinished));
+    assert.equal((await active()).find(p => p.id===oldFinished).kind,'step');
+    await assert.rejects(editPhoto(moved.updatedAt,oldFinished,'move','missing-step'));
+    await login(outsider); await assert.rejects(editPhoto(moved.updatedAt,oldFinished,'trash')); await login(b);
+    const trashed = await editPhoto(moved.updatedAt,oldFinished,'trash');
+    assert.deepEqual(await editPhoto(moved.updatedAt,oldFinished,'trash'),{...trashed,updatedAt:trashed.updatedAt});
+    steps = (await db.query('select recipe_steps from meal_records where id=$1',[id])).rows[0].recipe_steps;
+    assert.ok(!steps[1].mediaIds.includes(oldFinished));
+    assert.equal((await db.query('select count(*)::int n from storage.objects where name=$1',[path])).rows[0].n,1);
+    // Promoting a step photo to finished moves the current finished photo to trash.
+    const stepPhoto = (await active()).find(p => p.kind==='step').id;
+    await editPhoto(trashed.updatedAt,stepPhoto,'move');
+    assert.deepEqual((await active()).filter(p => p.kind==='finished').map(p => p.id),[stepPhoto]);
     assert.equal((await db.query('delete from mcp_record_drafts where id=$1 returning id',[bad])).rows.length,0);
     await login(a);
     assert.equal((await db.query('delete from mcp_record_drafts where id=$1 returning id',[id])).rows.length,0);
