@@ -9,16 +9,32 @@ export function metadataOf(record?: MealRecord | null): RecipeMetadata {
   const tags = record?.meal?.tags ?? [];
   return {country:tags.filter(t => legacyTags.나라.includes(t)), mainIngredient:tags.filter(t => legacyTags.주재료.includes(t)), dishType:tags.filter(t => legacyTags['요리 종류'].includes(t))};
 }
-export function matchesMetadata(record: MealRecord, filters: typeof emptyFilters) {
+type FilterField = typeof fields[number];
+
+export function matchesMetadata(record: MealRecord, filters: typeof emptyFilters, exactField?: FilterField) {
+  if (filters.servings && record.servings !== Number(filters.servings)) return false;
   const metadata = metadataOf(record);
-  return (!filters.servings || record.servings === Number(filters.servings)) && fields.every(key => !filters[key] || metadata[key]?.includes(filters[key]));
+  return fields.every(key => {
+    const query = filters[key]?.trim().toLowerCase();
+    if (!query) return true;
+    return metadata[key]?.some(value => key === exactField
+      ? value === filters[key]
+      : value.toLowerCase().includes(query));
+  });
 }
-export function RecipeFilters({records, filters, onChange}: {records:MealRecord[],filters:typeof emptyFilters,onChange:(value:typeof emptyFilters)=>void}) {
-  return <div className="metadata-filters">{fields.map(key => <label key={key}>{labels[key]}
-    <select value={filters[key]} onChange={event => onChange({...filters,[key]:event.target.value})}>
-      <option value="">전체</option>
-      {[...new Set(records.flatMap(record => metadataOf(record)[key] ?? []))].sort((a,b)=>a.localeCompare(b,'ko')).map(value=><option key={value}>{value}</option>)}
-    </select></label>)}<label>인분<select value={filters.servings} onChange={e=>onChange({...filters,servings:e.target.value})}><option value="">전체</option>
-      {[...new Set(records.flatMap(r=>r.servings ? [r.servings] : []))].sort((a,b)=>a-b).map(n=><option value={n} key={n}>{n}인분</option>)}
-    </select></label></div>;
+
+export function RecipeFilters({ filters, onChange }: {
+  filters: typeof emptyFilters;
+  onChange: (value: typeof emptyFilters) => void;
+}) {
+  return <div className="metadata-filters">
+    {fields.map(key => <label key={key}>{labels[key]}
+      <input type="search" placeholder={labels[key] + ' 검색'} value={filters[key]}
+        onChange={event => onChange({ ...filters, [key]: event.target.value })} />
+    </label>)}
+    <label>인분
+      <input type="number" min="1" inputMode="numeric" placeholder="전체" value={filters.servings}
+        onChange={event => onChange({ ...filters, servings: event.target.value })} />
+    </label>
+  </div>;
 }

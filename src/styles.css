@@ -2136,8 +2136,8 @@ input, textarea, select, button { scroll-margin-block: 100px; }
 
 .metadata-filters { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
 .metadata-filters label, .time-filter { font-family: inherit; font-size: 14px; font-weight: 600; color: var(--muted); }
-.metadata-filters select, .time-filter input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; padding: 6px 8px; }
-.metadata-filters select { display:block; margin-top:4px; }
+.metadata-filters input, .time-filter input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; padding: 6px 8px; }
+.metadata-filters input { display:block; margin-top:4px; }
 .time-filter { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
 .time-filter input { width: 6em; text-align: center; }
 .view-switch { flex: none; white-space: nowrap; }
