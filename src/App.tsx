@@ -317,7 +317,7 @@ function HomeView({ onOpenRecord, scope }: { onOpenRecord: (record: MealRecord) 
       <select aria-label="기록 월" value={month} onChange={e => setMonth(e.target.value)}><option value="">전체 기록</option>{months.map(m => <option key={m} value={m}>{m.slice(0,4)}년 {Number(m.slice(5))}월</option>)}</select>
       <div className="view-switch" aria-label="보기 방식"><button type="button" aria-pressed={layout === 'photos'} onClick={() => setLayout('photos')}>사진</button><button type="button" aria-pressed={layout === 'list'} onClick={() => setLayout('list')}>목록</button></div>
     </div>
-    <RecipeFilters records={records} filters={filters} onChange={setFilters} />
+    <RecipeFilters filters={filters} onChange={setFilters} />
     {status === 'loading' && <p role="status" className="panel-state">기록 불러오는 중…</p>}
     {status === 'error' && <div role="alert" className="empty-state"><strong>기록을 불러오지 못했어요.</strong><button type="button" onClick={() => setRetry(v => v+1)}>다시 시도</button></div>}
     {status === 'ready' && !filtered.length && <div className="empty-state"><strong>{records.length ? '조건에 맞는 기록이 없어요.' : '아직 요리 기록이 없어요.'}</strong><p>{records.length ? '검색어나 필터를 바꿔보세요.' : '기록하기를 눌러 첫 요리를 남겨보세요.'}</p>{records.length > 0 && <button type="button" onClick={() => { setQuery(''); setMonth(''); setFilters(emptyFilters); setMaxMinutes(''); }}>필터 초기화</button>}</div>}
@@ -1535,11 +1535,11 @@ function SearchView({
 
       return (
         (!normalizedQuery || searchText.includes(normalizedQuery)) &&
-        matchesMetadata(record,filters) &&
+        matchesMetadata(record, filters, preset?.field && filters[preset.field] === preset.value ? preset.field : undefined) &&
         (!selectedMonth || record.cookedAt.startsWith(selectedMonth.month ? `${selectedMonth.year}-${String(selectedMonth.month).padStart(2,'0')}` : `${selectedMonth.year}-`))
       );
     });
-  }, [query, records, selectedMonth, filters]);
+  }, [query, records, selectedMonth, filters, preset]);
 
   const activeFilters = [
     selectedMonth ? [`${selectedMonth.year}년`, selectedMonth.month ? `${selectedMonth.month}월` : null].filter(Boolean).join(' ') : null,
@@ -1573,7 +1573,7 @@ function SearchView({
           <button type="button" onClick={clearFilters}>필터 지우기</button>
         </div>
       ) : null}
-      <RecipeFilters records={records} filters={filters} onChange={setFilters} />
+      <RecipeFilters filters={filters} onChange={setFilters} />
       <p className="result-count" hidden={status !== 'ready'}>{query.trim() || Object.values(filters).some(Boolean) || selectedMonth ? `${filteredRecords.length}개의 검색 결과` : `전체 ${filteredRecords.length}개의 기록`}</p>
       {status === 'loading' && <p role="status">기록 불러오는 중…</p>}
       {status === 'error' && <p role="alert">기록을 불러오지 못했어요. <button onClick={() => setRetry(v => v + 1)}>다시 시도</button></p>}
