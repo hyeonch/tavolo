@@ -79,7 +79,11 @@ export function createArchiveServer({ db, userId }) {
     const records = checked(await request);
     const members = checked(await db.from('journal_members').select('user_id,display_name'));
     const names = new Map(members.map(member => [member.user_id,member.display_name]));
-    return {records:records.map(record => ({...record,authorName:names.get(record.user_id) ?? null}))};
+    const photos = records.length ? checked(await db.from('media').select('id,meal_record_id,kind,recipe_step_id,created_at')
+      .in('meal_record_id',records.map(record => record.id)).is('deleted_at',null).order('created_at')) : [];
+    return {records:records.map(record => ({...record,authorName:names.get(record.user_id) ?? null,
+      photos:photos.filter(photo => photo.meal_record_id === record.id)
+        .map(photo => ({id:photo.id,kind:photo.kind,stepId:photo.recipe_step_id,createdAt:photo.created_at}))}))};
   });
   const recordArgs = {id: z.string().uuid(), expectedUpdatedAt: z.string().datetime({offset:true})};
   const patchSchema = z.object({
@@ -89,8 +93,12 @@ export function createArchiveServer({ db, userId }) {
     tags: z.array(text(40).min(1)).max(20).optional(),
     ingredientGroups: draftSchema.shape.ingredientGroups.removeDefault().optional(),
     steps: z.array(z.object({id:text(120).min(1),body:text(2000).min(1)})).max(50).optional(),
+    servings: draftSchema.shape.servings.unwrap().nullable().optional(),
+    totalMinutes: draftSchema.shape.totalMinutes.unwrap().nullable().optional(),
+    recipeUrl: link.nullable().optional(),
+    uncertainties: draftSchema.shape.uncertainties.removeDefault().nullable().optional(),
   }).strict().refine(patch => Object.keys(patch).length > 0);
-  tool('tavolo_update_record', '확정 기록에서 지정한 필드만 수정합니다. 검색 결과의 updated_at을 보내세요. 조리 단계의 기존 id를 유지하고 새 단계에는 새 id를 지정하세요.', {
+  tool('tavolo_update_record', '확정 기록에서 지정한 필드만 수정합니다. 검색 결과의 updated_at을 보내세요. 조리 단계의 기존 id를 유지하고 새 단계에는 새 id를 지정하세요. servings·totalMinutes·recipeUrl·uncertainties는 null로 비울 수 있습니다. recipeUrl은 요리에 저장되어 같은 요리의 다른 회차에도 함께 보입니다. uncertainties는 일반 메모와 분리된 확인 필요 메모입니다.', {
     ...recordArgs, patch: patchSchema,
   }, false, async ({id,expectedUpdatedAt,patch}) => {
     if (patch.ingredientGroups) patch.ingredientGroups = patch.ingredientGroups.map(group => ({
@@ -100,14 +108,23 @@ export function createArchiveServer({ db, userId }) {
   });
   const recordPhotoArgs = {...recordArgs, requestId:z.string().uuid(), stepId:text(120).min(1).optional()};
   const linkedPhotoArgs = {...recordPhotoArgs, mimeType:z.enum(['image/jpeg','image/png','image/webp'])};
-  tool('tavolo_attach_record_photo','확정 기록에 첨부한 원본 사진을 추가합니다. 단계 사진은 stepId를 지정하세요.',{
+  const replaceNote = ' stepId 없이 올리면 완성 사진이 되고, 기존 완성 사진은 앱 휴지통으로 이동합니다.';
+  tool('tavolo_attach_record_photo','확정 기록에 첨부한 원본 사진을 추가합니다. 단계 사진은 stepId를 지정하세요.'+replaceNote,{
     ...recordPhotoArgs,photo:z.object({download_url:z.string().url(),file_id:z.string().min(1)}),
   },false,args => recordPhoto({db,userId},args,'attach'),{'openai/fileParams':['photo']});
-  tool('tavolo_prepare_record_photo_upload','확정 기록에 사진을 추가할 업로드 링크를 발급합니다. pageUrl을 열거나 uploadUrl에 원본을 PUT한 뒤 finishArgs로 완료하세요.',
+  tool('tavolo_prepare_record_photo_upload','확정 기록에 사진을 추가할 업로드 링크를 발급합니다. pageUrl을 열거나 uploadUrl에 원본을 PUT한 뒤 finishArgs로 완료하세요.'+replaceNote,
     linkedPhotoArgs,false,args => recordPhoto({db,userId},args,'prepare'));
   tool('tavolo_finish_record_photo_upload','업로드한 사진을 검증하고 확정 기록에 추가합니다.',{
     ...linkedPhotoArgs,expectedSha256:z.string().regex(/^[0-9a-f]{64}$/).optional(),
   },false,args => recordPhoto({db,userId},args,'finish'));
+  const photoEdit = (photoAction) => async ({id,expectedUpdatedAt,photoId,stepId}) =>
+    checked(await db.rpc('edit_record_photo',{target_id:id,expected_update:expectedUpdatedAt,photo_id:photoId,action:photoAction,step_id:stepId ?? null}));
+  tool('tavolo_trash_record_photo', '확정 기록의 사진을 앱 휴지통으로 이동합니다. 앱에서 복구할 수 있습니다. photoId는 기록 검색 결과의 photos에서 확인하세요.', {
+    ...recordArgs, photoId: z.string().uuid(),
+  }, false, photoEdit('trash'), {}, true);
+  tool('tavolo_move_record_photo', '확정 기록의 사진을 다른 칸으로 옮깁니다. stepId를 지정하면 해당 조리 단계 사진이 되고, 생략하면 완성(대표) 사진이 됩니다. 완성 사진으로 옮기면 기존 완성 사진은 앱 휴지통으로 이동하니, 기존 사진을 남기려면 먼저 단계로 옮기세요.', {
+    ...recordArgs, photoId: z.string().uuid(), stepId: text(120).min(1).optional(),
+  }, false, photoEdit('move'));
   tool('tavolo_trash_record', '요리 기록을 앱 휴지통으로 이동합니다. 앱에서 복구할 수 있습니다.', {
     id: z.string().uuid(),
   }, false, async ({id}) => {

@@ -42,6 +42,7 @@ export type MealRecord = {
   totalMinutes?: number;
   rating?: number;
   memo?: string;
+  uncertainties?: string[];
   ingredientGroups?: IngredientGroup[];
   recipeSteps?: RecipeStep[];
   finishedMediaId?: string;

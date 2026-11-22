@@ -102,9 +102,10 @@ async function loadMealsAndRecordsAsync() {
 
   const records = (recordsResult.data ?? []).map((record) => {
     const media = mediaByRecordId.get(record.id) ?? [];
-    const finishedMediaId = (mediaResult.data ?? []).find(
-      (item) => item.meal_record_id === record.id && item.kind === 'finished'
-    )?.id;
+    // Prefer the newest finished photo if older data still has more than one.
+    const finishedMediaId = (mediaResult.data ?? [])
+      .filter((item) => item.meal_record_id === record.id && item.kind === 'finished')
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.id;
     return {
       id: record.id,
       authorName: (membersResult.data ?? []).find(m => m.user_id === record.user_id)?.display_name ?? (record.user_id === userId ? '나' : '함께한 사람'),
@@ -116,6 +117,7 @@ async function loadMealsAndRecordsAsync() {
       totalMinutes: record.total_minutes ?? undefined,
       rating: record.rating ?? undefined,
       memo: record.memo ?? undefined,
+      uncertainties: Array.isArray(record.uncertainties) && record.uncertainties.length ? record.uncertainties as string[] : undefined,
       ingredientGroups: Array.isArray(record.ingredient_groups) ? record.ingredient_groups : undefined,
       recipeSteps: Array.isArray(record.recipe_steps) ? record.recipe_steps : undefined,
       finishedMediaId,
